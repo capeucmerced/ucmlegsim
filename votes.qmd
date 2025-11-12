@@ -70,6 +70,7 @@ process_votes_table <- function(votes_csv){
           Rep_percent = round((r_yes/(r_yes + r_no + r_abstain)*100)),
           Rep_percent_sign = ifelse(is.nan(Rep_percent), "NA", paste0(Rep_percent, "%"))
           ) %>%
+    filter(!is.na(Bill)) %>%
     left_join(bills, by = c("Bill" = "bill_numbersb")) %>%
     mutate(billnumname = paste0(toupper(lastname_nospace), "_SB", bill_number),
           Bill = sprintf("[%s](/%s/%s.html)", Bill, b_pages_dir, billnumname)) %>%
