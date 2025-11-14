@@ -95,6 +95,7 @@ clean_votes <- function(votes_df){
         pmax(r_yes, r_no, r_abstain) == r_abstain ~ "Abstain"
       )
           ) %>%
+    filter(!is.na(Bill)) %>%
     ungroup()
 }
 
