@@ -14,9 +14,10 @@ execute:
 
 ```{r}
 library(readr)
-library(dplyr)
+library(tidyverse)
 library(gt)
 library(janitor)
+
 
 bills_csv <- "files/csvs/bill_list.csv"
 senator_csv <- "files/csvs/senator_list.csv"
@@ -49,7 +50,8 @@ process_votes_table <- function(votes_csv){
     mutate(across(any_of(s_names_period), as.character)) %>%
     filter(!is.na(Bill) & Bill != "") %>%
     rowwise() %>%
-    mutate( 
+    mutate(
+          Date = mdy(Date),
           Bill = as.character(Bill),
           yes = sum(c_across(any_of(s_names_period)) == "Aye", na.rm = TRUE),
           no = sum(c_across(any_of(s_names_period)) == "No", na.rm = TRUE),
