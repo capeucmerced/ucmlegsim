@@ -62,6 +62,7 @@ clean_votes <- function(votes_df){
 
   dat <- dat %>%
     mutate(across(any_of(s_names_period), as.character)) %>%
+    filter(!is.na(Bill) & Bill != "") %>%
     rowwise() %>%
     mutate(
       Bill = as.character(Bill),
@@ -95,7 +96,6 @@ clean_votes <- function(votes_df){
         pmax(r_yes, r_no, r_abstain) == r_abstain ~ "Abstain"
       )
           ) %>%
-    filter(!is.na(Bill)) %>%
     ungroup()
 }
 
