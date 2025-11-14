@@ -45,7 +45,7 @@ process_votes_table <- function(votes_csv){
     return(NULL)
   }
 
-  data <- dat %>%
+  dat <- dat %>%
     mutate(across(any_of(s_names_period), as.character)) %>%
     filter(!is.na(Bill) & Bill != "") %>%
     rowwise() %>%
