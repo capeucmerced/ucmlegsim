@@ -74,7 +74,7 @@ map %>%
         if (clickedLayer && clickedLayer.options && clickedLayer.options.layerId) {
           var district = clickedLayer.options.layerId;
           console.log('District:', district);
-          var url = '/ca_senate_sim/senator-pages/district_' + district + '.html';
+          var url = '/senator-pages/district_' + district + '.html';
           console.log('Opening:', url);
           window.open(url, '_blank');
         }
