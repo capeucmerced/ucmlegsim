@@ -210,7 +210,7 @@ for (i in seq_len(nrow(lobbys))) {
     "library(fontawesome)",
     "",
     paste("spending_df <-", spending_code),
-    paste("total_spend <-", total_cont_code),
+    paste("total_spend <-", total_spend_code),
     paste("d_support <-", d_support_code),
     paste("d_support_share <-", d_support_share_code),
     paste("r_support <-", r_support_code),

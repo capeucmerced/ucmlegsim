@@ -8,6 +8,8 @@ bills_csv <- "files/csvs/bill_list.csv"
 senator_dir  <- "files/pdfs/role_profiles/senators"
 s_pages_dir  <- "senator-pages"
 b_pages_dir  <- "bills-pages"
+lobby_csv <- "files/csvs/lobbyist_list.csv"
+cont_dir <- "files/csvs/lobbyist_contributions"
 
 if (!dir.exists(s_pages_dir)) dir.create(s_pages_dir, recursive = TRUE)
 
