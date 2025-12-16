@@ -13,7 +13,6 @@ cont_dir <- "files/csvs/lobbyist_contributions"
 
 if (!dir.exists(s_pages_dir)) dir.create(s_pages_dir, recursive = TRUE)
 
-# Read your spreadsheet
 senators <- read.csv(senator_csv) 
 senators <- senators %>%
   mutate(name_join = tolower(paste0(First.Name, Last.Name)),
@@ -52,7 +51,6 @@ senator_bills <- senators %>%
   mutate(across(bill_1:bill_2, ~ as.integer(.)))
 
 #votes data
-
 
 clean_votes <- function(votes_df){
 
@@ -114,6 +112,36 @@ votes <- list(lgl = votes_lgl,
               floor = votes_floor)
 votes <- lapply(votes, clean_votes)
   
+
+# Lobbyist Contribution data
+
+lobbys <- read.csv(lobby_csv) %>%
+  mutate(Code = toupper(Code))
+
+cont_files <- list.files(cont_dir, pattern = "\\.csv$", full.names = TRUE)
+all_contributions <- map_df(cont_files, function(file) {
+  df <- read.csv(file)
+
+  lobby_code <- toupper(gsub("^.*/([A-Z]+)_.*\\.csv$", "\\1", file))
+
+  df %>%
+    select(-Total) %>%
+    mutate(
+      Date = lubridate::mdy(Date),
+      Recipient.District = as.integer(gsub("\\$", "", Recipient.District)),
+      Contribution = as.numeric(gsub("\\$|,", "", Contribution)),
+      Lobby_Code = lobby_code
+    ) %>%
+    filter(!is.na(Recipient.District))
+}) %>%
+  left_join(lobbys %>% select(Code, Lobby), by = c("Lobby_Code" = "Code"))
+
+senator_totals <- all_contributions %>%
+  group_by(Recipient.District) %>%
+  summarize(total_received = sum(Contribution, na.rm = TRUE)) %>%
+  arrange(desc(total_received)) %>%
+  mutate(rank = row_number())
+
 
 # Loop to create pages
 
@@ -234,8 +262,6 @@ for (i in seq_len(nrow(senators))) {
       # No dataframes with data for this senator
       votes_including_s <- data.frame()
     }
-
-
   
     vote_table <- if(nrow(votes_including_s) > 0) {
       votes_str <- capture.output(dput(votes_including_s))
@@ -243,6 +269,43 @@ for (i in seq_len(nrow(senators))) {
     } else {
       "data.frame()"
     }
+  
+    # contributions
+  
+    senator_contributions <- all_contributions %>%
+    filter(Recipient.District == as.integer(senator_id)) %>%
+    arrange(desc(Date))
+
+    if(nrow(senator_contributions) > 0) {
+    
+    total_received <- sum(senator_contributions$Contribution, na.rm = TRUE)
+    
+    
+    senator_rank <- senator_totals %>%
+      filter(Recipient.District == as.integer(senator_id)) %>%
+      pull(rank)
+    senator_rank <- if(length(senator_rank) > 0) senator_rank else NA
+    
+    
+    top_contributors <- senator_contributions %>%
+      group_by(Lobby) %>%
+      summarize(total = sum(Contribution, na.rm = TRUE)) %>%
+      arrange(desc(total)) %>%
+      mutate(rank = dense_rank(desc(total))) %>%
+      filter(rank <= 3)
+    
+    
+    contributions_code <- capture.output(dput(senator_contributions)) %>% paste(collapse = "\n")
+    total_received_code <- deparse(total_received)
+    senator_rank_code <- deparse(senator_rank)
+    top_contributors_code <- capture.output(dput(top_contributors)) %>% paste(collapse = "\n")
+  } else {
+    contributions_code <- "data.frame()"
+    total_received_code <- "0"
+    senator_rank_code <- "NA"
+    top_contributors_code <- "data.frame()"
+  }
+    
 
   
   # Constructing the actual pages
@@ -395,6 +458,131 @@ paste("votes_including_s <-", vote_table),
 "```",
 "",
 ":::",
+"## Campaign Contributions",
+"",
+"```{r}",
+"#| echo: false",
+"#| warning: false",
+"#| message: false",
+"",
+"library(tidyverse)",
+"library(gt)",
+"library(scales)",
+"library(bslib)",
+"library(bsicons)",
+"",
+paste("senator_contributions <-", contributions_code),
+paste("total_received <-", total_received_code),
+paste("senator_rank <-", senator_rank_code),
+paste("top_contributors <-", top_contributors_code),
+"",
+"if(nrow(senator_contributions) > 0) {",
+"  ",
+"  # Value boxes",
+"  layout_column_wrap(",
+"    width = 1/2,",
+"    value_box(",
+"      title = 'Total Contributions Received',",
+"      value = dollar(total_received),",
+"      showcase = bs_icon('currency-dollar'),",
+"      theme = 'purple'",
+"    ),",
+"    value_box(",
+"      title = 'Rank Among All Senators',",
+"      value = if(!is.na(senator_rank)) paste0('#', senator_rank) else 'N/A',",
+"      showcase = bs_icon('bar-chart-fill'),",
+"      theme = 'primary',",
+"      if(!is.na(senator_rank)) paste0('Out of 40 senators') else ''",
+"    )",
+"  )",
+"}",
+"```",
+"",
+"```{r}",
+"#| echo: false",
+"#| warning: false",
+"",
+"if(nrow(senator_contributions) > 0 && nrow(top_contributors) > 0) {",
+"  ",
+"  # Top contributors boxes",
+"  rank_1 <- top_contributors %>% filter(rank == 1)",
+"  rank_2 <- top_contributors %>% filter(rank == 2)",
+"  rank_3 <- top_contributors %>% filter(rank == 3)",
+"  ",
+"  box_args <- list()",
+"  ",
+"  if(nrow(rank_1) > 0) {",
+"    contributors_1 <- paste(rank_1$Lobby, collapse = ', ')",
+"    box_args <- c(box_args, list(",
+"      value_box(",
+"        title = 'Top Contributor',",
+"        value = contributors_1,",
+"        showcase = bs_icon('trophy-fill'),",
+"        theme = 'success',",
+"        dollar(rank_1$total[1])",
+"      )",
+"    ))",
+"  }",
+"  ",
+"  if(nrow(rank_2) > 0) {",
+"    contributors_2 <- paste(rank_2$Lobby, collapse = ', ')",
+"    box_args <- c(box_args, list(",
+"      value_box(",
+"        title = '2nd Contributor',",
+"        value = contributors_2,",
+"        showcase = bs_icon('award-fill'),",
+"        theme = 'secondary',",
+"        dollar(rank_2$total[1])",
+"      )",
+"    ))",
+"  }",
+"  ",
+"  if(nrow(rank_3) > 0) {",
+"    contributors_3 <- paste(rank_3$Lobby, collapse = ', ')",
+"    box_args <- c(box_args, list(",
+"      value_box(",
+"        title = '3rd Contributor',",
+"        value = contributors_3,",
+"        showcase = bs_icon('award-fill'),",
+"        theme = 'secondary',",
+"        dollar(rank_3$total[1])",
+"      )",
+"    ))",
+"  }",
+"  ",
+"  num_boxes <- length(box_args)",
+"  if(num_boxes > 0) {",
+"    do.call(layout_column_wrap, c(list(width = 1/num_boxes), box_args))",
+"  }",
+"}",
+"```",
+"",
+"```{r}",
+"#| echo: false",
+"#| warning: false",
+"",
+"if(nrow(senator_contributions) > 0) {",
+"  senator_contributions %>%",
+"    select(Date, Lobby, Contribution) %>%",
+"    gt() %>%",
+"    cols_label(",
+"      Date = 'Date',",
+"      Lobby = 'Contributor',",
+"      Contribution = 'Amount'",
+"    ) %>%",
+"    fmt_currency(columns = Contribution, currency = 'USD') %>%",
+"    fmt_date(columns = Date, date_style = 'yMd') %>%",
+"    tab_header(title = 'All Contributions Received') %>%",
+"    opt_interactive(",
+"      use_sorting = TRUE,",
+"      use_search = TRUE",
+"    ) %>%",
+"    opt_row_striping()",
+"} else {",
+"  cat('No contribution data available for this senator.')",
+"}",
+"```",
+"",
 ""
   )
   
