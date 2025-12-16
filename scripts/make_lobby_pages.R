@@ -83,6 +83,7 @@ for (i in seq_len(nrow(lobbys))) {
       total_spend <- spending_df %>%
         pull(Total) 
       total_spend <- total_spend[total_spend != "" & !is.na(total_spend)]
+      total_spend <- as.numeric(gsub("\\$|,", "", total_spend))
       
       spending_df <- spending_df %>%
         select(-Total) %>%
