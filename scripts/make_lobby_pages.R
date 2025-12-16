@@ -80,18 +80,19 @@ for (i in seq_len(nrow(lobbys))) {
       spending_df <- read.csv(spending_file[1])
       
       # Extract total and remove total row
-      total_row <- spending_df %>% filter(grepl("^total$", Date, ignore.case = TRUE))
-      total_cont <- if(nrow(total_row) > 0) as.numeric(gsub("\\$|,", "", total_row$Contribution[1])) else NA
+      total_spend <- spending_df %>%
+        pull(Total) 
+      total_spend <- total_spend[total_spend != "" & !is.na(total_spend)]
       
       spending_df <- spending_df %>%
-        filter(!grepl("^total$", Date, ignore.case = TRUE)) %>%
+        select(-Total) %>%
         mutate(Date = lubridate::mdy(Date),
-              Senator.District = as.integer(gsub("\\$", "", Senator.District)),
+              Recipient.District = as.integer(gsub("\\$", "", Recipient.District)),
               Contribution = as.numeric(gsub("\\$|,", "", Contribution))) %>%
         arrange(desc(Date)) %>%
-        left_join(senators, by = c("Senator.District" = "District")) %>%
-        mutate(Recipient = ifelse(is.na(Recipient), Senator.Name, Recipient)) %>%
-        select(Date, Recipient, Senator.District, Party, Contribution) 
+        left_join(senators, by = c("Recipient.District" = "District")) %>%
+        mutate(Recipient = ifelse(is.na(Recipient), Recipient.Name, Recipient)) %>%
+        select(Date, Recipient, Recipient.District, Party, Contribution) 
       
       d_support <- spending_df %>%
         filter(Party == "D") %>%
@@ -315,8 +316,8 @@ for (i in seq_len(nrow(lobbys))) {
     "  spending_df %>%",
     "    mutate(",
     "      Recipient_Link = ifelse(",
-    "        !is.na(Senator.District),",
-    "        paste0('[', Recipient, '](../senator-pages/district_', Senator.District, '.html)'),",
+    "        !is.na(Recipient.District),",
+    "        paste0('[', Recipient, '](../senator-pages/district_', Recipient.District, '.html)'),",
     "        Recipient",
     "      )",
     "    ) %>%",

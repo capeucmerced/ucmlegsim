@@ -1,33 +1,57 @@
-Date,Senator Name,Senator District,Contribution
-11/21/25,Bob Archuleta (D),30,"$1,000"
-11/21/25,Angelique V. Ashby (D),8,"$1,000"
-11/21/25,Josh Becker (D),13,"$1,000"
-11/21/25,Catherine Blakespear (D),38,"$1,000"
-11/21/25,Christopher Cabaldon (D),3,"$1,000"
-11/21/25,Sabrina Cervantes (D),31,"$1,000"
-11/21/25,Steven Choi (R),37,"$2,000"
-11/21/25,Dave Cortese (D),15,"$1,000"
-11/21/25,María Elena Durazo (D),26,"$2,000"
-11/21/25,Lena Gonzalez (D),33,"$1,500"
-11/21/25,Tim Grayson (D),9,$750
-11/21/25,Brian W. Jones (R),40,"$1,000"
-11/21/25,Monique Limón (D),21,"$2,000"
-11/21/25,Jerry McNerney (D),5,"$1,000"
-11/21/25,Caroline Menjivar (D),20,"$2,250"
-11/21/25,Laura Richardson (D),35,"$1,750"
-11/21/25,Kelly Seyarto (R),32,"$1,750"
-11/21/25,Lola Smallwood-Cuevas (D),28,"$1,750"
-11/21/25,Tony Strickland (R),36,"$1,000"
-11/21/25,Thomas Umberg (D),34,"$3,000"
-11/21/25,Suzette Martinez Valladares (R),23,"$1,500"
-11/21/25,Aisha Wahab (D),10,"$1,000"
-11/21/25,Akilah Weber Pierson (D),39,"$1,500"
-11/21/25,Scott D. Wiener (D),11,"$1,000"
-11/21/25,Sasha Renee Perez (D),25,"$3,500"
-11/21/25,Melissa Hurtado (D),16,"$1,750"
-11/21/25,Marie Alvarado-Gil (D),4,$500
-11/21/25,Roger Niello (R),6,$500
-11/21/25,Steve Padilla (D),18,"$1,000"
-11/21/25,Benjamin Allen (D),24,"$1,500"
-11/21/25,Megan Dahle (R),1,"$1,250"
-Total,,,"$43,750"
+Date,Recipient Name,Recipient District,Contribution,Total
+11/21/25,Bob Archuleta (D),30,"$1,000","$49,950"
+11/21/25,Angelique V. Ashby (D),8,"$1,000",
+11/21/25,Josh Becker (D),13,"$1,000",
+11/21/25,Catherine Blakespear (D),38,"$1,000",
+11/21/25,Christopher Cabaldon (D),3,"$1,000",
+11/21/25,Sabrina Cervantes (D),31,"$1,000",
+11/21/25,Steven Choi (R),37,"$2,000",
+11/21/25,Dave Cortese (D),15,"$1,000",
+11/21/25,María Elena Durazo (D),26,"$2,000",
+11/21/25,Lena Gonzalez (D),33,"$1,500",
+11/21/25,Tim Grayson (D),9,$750,
+11/21/25,Brian W. Jones (R),40,"$1,000",
+11/21/25,Monique Limón (D),21,"$2,000",
+11/21/25,Jerry McNerney (D),5,"$1,000",
+11/21/25,Caroline Menjivar (D),20,"$2,250",
+11/21/25,Laura Richardson (D),35,"$1,750",
+11/21/25,Kelly Seyarto (R),32,"$1,750",
+11/21/25,Lola Smallwood-Cuevas (D),28,"$1,750",
+11/21/25,Tony Strickland (R),36,"$1,000",
+11/21/25,Thomas Umberg (D),34,"$3,000",
+11/21/25,Suzette Martinez Valladares (R),23,"$1,500",
+11/21/25,Aisha Wahab (D),10,"$1,000",
+11/21/25,Akilah Weber Pierson (D),39,"$1,500",
+11/21/25,Scott D. Wiener (D),11,"$1,000",
+11/21/25,Sasha Renee Perez (D),25,"$3,500",
+11/21/25,Melissa Hurtado (D),16,"$1,750",
+11/21/25,Marie Alvarado-Gil (D),4,$500,
+11/21/25,Roger Niello (R),6,$500,
+11/21/25,Steve Padilla (D),18,"$1,000",
+11/21/25,Benjamin Allen (D),24,"$1,500",
+11/21/25,Megan Dahle (R),1,"$1,250",
+12/16/25,"Grayson, Tim (D)",9,$500,
+12/16/25,"Laird, John (D)",17,$500,
+12/16/25,"Padilla, Steve (D)",18,$500,
+12/16/25,"Allen, Benjamin (D)",24,$500,
+12/16/25,Mike McGuire (D),2,$200,
+12/16/25,"Cabaldon, Christopher (D)",3,$200,
+12/16/25,"Alvarado-Gil, Marie (R)",4,$200,
+12/16/25,"Arreguin, Jesse (D)",7,$200,
+12/16/25,"Ashby, Angelique (D)",8,$200,
+12/16/25,"Wiener, Scott (D)",11,$200,
+12/16/25,"Becker, Josh (D)",13,$200,
+12/16/25,"Caballero, Anna (D)",14,$200,
+12/16/25,"Hurtado, Melissa (D)",16,$200,
+12/16/25,"Ochoa Bogh, Rosilicie (R)",19,$200,
+12/16/25,"Rubio, Susan (D)",22,$200,
+12/16/25,"Perez, Sasha Renee (D)",25,$200,
+12/16/25,"Stern, Henry (D)",27,$200,
+12/16/25,"Reyes, Eloise Gomez (D)",29,$200,
+12/16/25,"Archuleta, Bob (D)",30,$200,
+12/16/25,"Cervantes, Sabrina (D)",31,$200,
+12/16/25,"Gonzalez, Lena (D)",33,$200,
+12/16/25,"Umberg, Thomas (D)",34,$200,
+12/16/25,"Richardson, Laura (D)",35,$200,
+12/16/25,"Blakespear, Catherine (D)",38,$200,
+12/16/25,"Weber Pierson, Akilah (D)",39,$200,

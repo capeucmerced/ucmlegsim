@@ -1,9 +1,8 @@
-Date,Senator Name,Senator District,Contribution
-12/5/2025,Cabaldon (D),3,"$2,000"
-12/5/2025,Dahle (R),1,"$2,000"
-12/5/2025,Laird (D),17,"$2,000"
-12/5/2025,Padilla (D),18,"$1,000"
-12/5/2025,Perez (D),25,"$2,500"
-12/5/2025,Pierson (D),39,"$1,500"
-12/5/2025,Modesto Bee,,"3,400"
-Total,,,"$14,400"
+Date,Recipient Name,Recipient District,Contribution,Total
+12/5/2025,Cabaldon (D),3,"$2,000","$14,400"
+12/5/2025,Dahle (R),1,"$2,000",
+12/5/2025,Laird (D),17,"$2,000",
+12/5/2025,Padilla (D),18,"$1,000",
+12/5/2025,Perez (D),25,"$2,500",
+12/5/2025,Pierson (D),39,"$1,500",
+12/5/2025,Modesto Bee,,"3,400",

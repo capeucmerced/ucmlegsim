@@ -1,7 +1,6 @@
-Date,Senator Name,Senator District,Contribution
-11/21/25,Sasha Perez,25,8000
-11/21/25,Steve Padilla,18,5000
-10/03/25,Megan Dahle,1,4000
-10/31/25,Roger Niello,6,4000
-10/31,Susan Rubio,22,4000
-Total,,,25000
+Date,Recipient Name,Recipient District,Contribution,Total
+11/21/25,Sasha Perez,25,8000,25000
+11/21/25,Steve Padilla,18,5000,
+10/03/25,Megan Dahle,1,4000,
+10/31/25,Roger Niello,6,4000,
+10/31,Susan Rubio,22,4000,
