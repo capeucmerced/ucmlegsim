@@ -1,10 +1,12 @@
 # scripts/make_lobby_pages.R
 
 library(tidyverse)
+library(readxl)
 
 lobby_csv <- "files/csvs/lobbyist_list.csv"
 bills_csv <- "files/csvs/bill_list.csv"
 letters_dir  <- "files/pdfs/lobbyist_letters"
+cont_dir <- "files/csvs/lobbyist_contributions"
 b_pages_dir  <- "bills-pages"
 l_pages_dir <- "lobby-pages"
 
@@ -18,6 +20,12 @@ bills <- bills %>%
         bill_measure = paste0("SB", bill_number),
         bill_link = paste(author_name, bill_measure, sep = "_"))
 
+senators <- read.csv("files/csvs/senator_list.csv")
+senators <- senators %>%
+  mutate(Recipient = paste0(Last.Name, ", ", First.Name)) %>%
+  select(District, Recipient, Party)
+
+  
 # Creating pages
 
 for (i in seq_len(nrow(lobbys))) {
@@ -61,6 +69,73 @@ for (i in seq_len(nrow(lobbys))) {
     }
   } else {
     letters_code <- "data.frame()"
+  }
+
+  # Spending data
+
+  if (dir.exists(cont_dir)) {
+    spending_file <- list.files(cont_dir, pattern = paste0("^", lobby_code, "_.*\\.csv$"), full.names = TRUE, ignore.case = TRUE)
+    
+    if (length(spending_file) > 0) {
+      spending_df <- read.csv(spending_file[1])
+      
+      # Extract total and remove total row
+      total_row <- spending_df %>% filter(grepl("^total$", Date, ignore.case = TRUE))
+      total_cont <- if(nrow(total_row) > 0) as.numeric(total_row$Contribution[1]) else NA
+      
+      spending_df <- spending_df %>%
+        filter(!grepl("^total$", Date, ignore.case = TRUE)) %>%
+        mutate(Date = lubridate::mdy(Date),
+              Senator.District = as.integer(gsub("\\$", "", Senator.District)),
+              Contribution = as.numeric(gsub("\\$|,", "", Contribution))) %>%
+        arrange(desc(Date)) %>%
+        left_join(senators, by = c("Senator.District" = "District")) %>%
+        select(Date, Recipient, Senator.District, Party, Contribution) 
+      
+      d_support <- spending_df %>%
+        filter(Party == "D") %>%
+        summarize(Contributions = sum(Contribution)) %>%
+        pull(Contributions)
+      d_support_share <- d_support/total_cont
+
+      r_support <- spending_df %>%
+        filter(Party == "R") %>%
+        summarize(Contributions = sum(Contribution)) %>%
+        pull(Contributions)
+      r_support_share <- r_support/total_cont
+
+      top_recipients <- spending_df %>%
+        group_by(Recipient) %>%
+        summarize(contributions = sum(Contribution)) %>%
+        arrange(desc(contributions)) %>%
+        slice_head(n = 3)
+
+      # Convert to dput format
+      spending_code <- capture.output(dput(spending_df)) %>% paste(collapse = "\n")
+      total_cont_code <- deparse(total_cont)
+      d_support_code <- deparse(d_support)
+      d_support_share_code <- deparse(d_support_share)
+      r_support_code <- deparse(r_support)
+      r_support_share_code <- deparse(r_support_share)
+      top_recipients_code <- capture.output(dput(top_recipients)) %>% paste(collapse = "\n")
+      
+    } else {
+      spending_code <- "data.frame()"
+      total_cont_code <- "NA"
+      d_support_code <- "0"
+      d_support_share_code <- "0"
+      r_support_code <- "0"
+      r_support_share_code <- "0"
+      top_recipients_code <- "data.frame()"
+    }
+  } else {
+    spending_code <- "data.frame()"
+    total_cont_code <- "NA"
+    d_support_code <- "0"
+    d_support_share_code <- "0"
+    r_support_code <- "0"
+    r_support_share_code <- "0"
+    top_recipients_code <- "data.frame()"
   }
   
   # Create the QMD file path
@@ -118,7 +193,126 @@ for (i in seq_len(nrow(lobbys))) {
     "",
     "## Spending",
     "",
-    "Spending data coming soon.",
+    "```{r}",
+    "#| echo: false",
+    "#| warning: false",
+    "#| message: false",
+    "",
+    "library(dplyr)",
+    "library(gt)",
+    "library(scales)",
+    "library(bslib)",
+    "library(bsicons)",
+    "",
+    paste("spending_df <-", spending_code),
+    paste("total_cont <-", total_cont_code),
+    paste("d_support <-", d_support_code),
+    paste("d_support_share <-", d_support_share_code),
+    paste("r_support <-", r_support_code),
+    paste("r_support_share <-", r_support_share_code),
+    paste("top_recipients <-", top_recipients_code),
+    "",
+    "if(nrow(spending_df) > 0) {",
+    "  ",
+    "  # Value boxes for contributions",
+    "  layout_column_wrap(",
+    "    width = 1/3,",
+    "    value_box(",
+    "      title = 'Total Contributions',",
+    "      value = dollar(total_cont),",
+    "      showcase = bs_icon('currency-dollar'),",
+    "      theme = 'primary'",
+    "    ),",
+    "    value_box(",
+    "      title = 'Democratic Support',",
+    "      value = dollar(d_support),",
+    "      showcase = bs_icon('circle-fill'),",
+    "      theme = 'info',",
+    "      paste0(percent(d_support_share, accuracy = 0.1), ' of total')",
+    "    ),",
+    "    value_box(",
+    "      title = 'Republican Support',",
+    "      value = dollar(r_support),",
+    "      showcase = bs_icon('circle-fill'),",
+    "      theme = 'danger',",
+    "      paste0(percent(r_support_share, accuracy = 0.1), ' of total')",
+    "    )",
+    "  )",
+    "}",
+    "```",
+    "",
+    "```{r}",
+    "#| echo: false",
+    "#| warning: false",
+    "",
+    "if(nrow(spending_df) > 0 && nrow(top_recipients) > 0) {",
+    "  ",
+    "  # Top Recipients boxes",
+    "  layout_column_wrap(",
+    "    width = 1/3,",
+    "    value_box(",
+    "      title = 'Top Recipient',",
+    "      value = top_recipients$Recipient[1],",
+    "      showcase = bs_icon('trophy-fill'),",
+    "      theme = 'success',",
+    "      dollar(top_recipients$contributions[1])",
+    "    ),",
+    "    if(nrow(top_recipients) >= 2) {",
+    "      value_box(",
+    "        title = '2nd Recipient',",
+    "        value = top_recipients$Recipient[2],",
+    "        showcase = bs_icon('award-fill'),",
+    "        theme = 'secondary',",
+    "        dollar(top_recipients$contributions[2])",
+    "      )",
+    "    },",
+    "    if(nrow(top_recipients) >= 3) {",
+    "      value_box(",
+    "        title = '3rd Recipient',",
+    "        value = top_recipients$Recipient[3],",
+    "        showcase = bs_icon('award-fill'),",
+    "        theme = 'secondary',",
+    "        dollar(top_recipients$contributions[3])",
+    "      )",
+    "    }",
+    "  )",
+    "}",
+    "```",
+    "",
+    "```{r}",
+    "#| echo: false",
+    "#| warning: false",
+    "",
+    "if(nrow(spending_df) > 0) {",
+    "  ",
+    "  # Create linked table",
+    "  spending_df %>%",
+    "    mutate(",
+    "      Recipient_Link = paste0('[', Recipient, '](../senator-pages/district_', Senator.District, '.html)')",
+    "    ) %>%",
+    "    select(Date, Recipient_Link, Contribution, Party) %>%",
+    "    gt() %>%",
+    "    cols_label(",
+    "      Date = 'Date',",
+    "      Recipient_Link = 'Recipient',",
+    "      Contribution = 'Amount',",
+    "      Party = 'Party'",
+    "    ) %>%",
+    "    fmt_markdown(columns = Recipient_Link) %>%",
+    "    fmt_currency(columns = Contribution, currency = 'USD') %>%",
+    "    fmt_date(columns = Date, date_style = 'yMd') %>%",
+    "    tab_header(title = 'All Contributions') %>%",
+    "    opt_interactive(",
+    "      use_sorting = TRUE,",
+    "      use_search = TRUE",
+    "    ) %>%",
+    "    opt_row_striping()",
+    "",
+    "} else {",
+    "  cat('No spending data available for this lobby group.')",
+    "}",
+    "",
+    "```",
     "",
     ":::",
     ""
