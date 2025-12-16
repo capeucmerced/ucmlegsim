@@ -98,13 +98,13 @@ for (i in seq_len(nrow(lobbys))) {
         filter(Party == "D") %>%
         summarize(Contributions = sum(Contribution)) %>%
         pull(Contributions)
-      d_support_share <- d_support/total_cont
+      d_support_share <- d_support/total_spend
 
       r_support <- spending_df %>%
         filter(Party == "R") %>%
         summarize(Contributions = sum(Contribution)) %>%
         pull(Contributions)
-      r_support_share <- r_support/total_cont
+      r_support_share <- r_support/total_spend
 
       top_recipients <- spending_df %>%
         group_by(Recipient) %>%
@@ -115,7 +115,7 @@ for (i in seq_len(nrow(lobbys))) {
 
       # Convert to dput format
       spending_code <- capture.output(dput(spending_df)) %>% paste(collapse = "\n")
-      total_cont_code <- deparse(total_cont)
+      total_spend_code <- deparse(total_spend)
       d_support_code <- deparse(d_support)
       d_support_share_code <- deparse(d_support_share)
       r_support_code <- deparse(r_support)
@@ -124,7 +124,7 @@ for (i in seq_len(nrow(lobbys))) {
       
     } else {
       spending_code <- "data.frame()"
-      total_cont_code <- "NA"
+      total_spend_code <- "NA"
       d_support_code <- "0"
       d_support_share_code <- "0"
       r_support_code <- "0"
@@ -133,7 +133,7 @@ for (i in seq_len(nrow(lobbys))) {
     }
   } else {
     spending_code <- "data.frame()"
-    total_cont_code <- "NA"
+    total_spend_code <- "NA"
     d_support_code <- "0"
     d_support_share_code <- "0"
     r_support_code <- "0"
