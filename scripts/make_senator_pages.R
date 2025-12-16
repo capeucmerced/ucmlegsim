@@ -457,7 +457,6 @@ paste("votes_including_s <-", vote_table),
 "}",
 "```",
 "",
-":::",
 "## Campaign Contributions",
 "",
 "```{r}",
@@ -583,6 +582,7 @@ paste("top_contributors <-", top_contributors_code),
 "}",
 "```",
 "",
+":::",
 ""
   )
   
