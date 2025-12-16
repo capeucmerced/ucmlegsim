@@ -81,7 +81,7 @@ for (i in seq_len(nrow(lobbys))) {
       
       # Extract total and remove total row
       total_row <- spending_df %>% filter(grepl("^total$", Date, ignore.case = TRUE))
-      total_cont <- if(nrow(total_row) > 0) as.numeric(total_row$Contribution[1]) else NA
+      total_cont <- if(nrow(total_row) > 0) as.numeric(gsub("\\$|,", "", total_row$Contribution[1])) else NA
       
       spending_df <- spending_df %>%
         filter(!grepl("^total$", Date, ignore.case = TRUE)) %>%
@@ -90,6 +90,7 @@ for (i in seq_len(nrow(lobbys))) {
               Contribution = as.numeric(gsub("\\$|,", "", Contribution))) %>%
         arrange(desc(Date)) %>%
         left_join(senators, by = c("Senator.District" = "District")) %>%
+        mutate(Recipient = ifelse(is.na(Recipient), Senator.Name, Recipient)) %>%
         select(Date, Recipient, Senator.District, Party, Contribution) 
       
       d_support <- spending_df %>%
@@ -203,6 +204,7 @@ for (i in seq_len(nrow(lobbys))) {
     "library(scales)",
     "library(bslib)",
     "library(bsicons)",
+    "library(fontawesome)",
     "",
     paste("spending_df <-", spending_code),
     paste("total_cont <-", total_cont_code),
@@ -221,19 +223,19 @@ for (i in seq_len(nrow(lobbys))) {
     "      title = 'Total Contributions',",
     "      value = dollar(total_cont),",
     "      showcase = bs_icon('currency-dollar'),",
-    "      theme = 'primary'",
+    "      theme = 'purple'",
     "    ),",
     "    value_box(",
     "      title = 'Democratic Support',",
     "      value = dollar(d_support),",
-    "      showcase = bs_icon('circle-fill'),",
-    "      theme = 'info',",
+    "      showcase = fa('democrat', fill = 'blue', height = '3em'),",
+    "      theme = 'primary',",
     "      paste0(percent(d_support_share, accuracy = 0.1), ' of total')",
     "    ),",
     "    value_box(",
     "      title = 'Republican Support',",
     "      value = dollar(r_support),",
-    "      showcase = bs_icon('circle-fill'),",
+    "      showcase = fa('republican', fill = 'red', height = '3em'),",
     "      theme = 'danger',",
     "      paste0(percent(r_support_share, accuracy = 0.1), ' of total')",
     "    )",
@@ -288,7 +290,11 @@ for (i in seq_len(nrow(lobbys))) {
     "  # Create linked table",
     "  spending_df %>%",
     "    mutate(",
-    "      Recipient_Link = paste0('[', Recipient, '](../senator-pages/district_', Senator.District, '.html)')",
+    "      Recipient_Link = ifelse(",
+    "        !is.na(Senator.District),",
+    "        paste0('[', Recipient, '](../senator-pages/district_', Senator.District, '.html)'),",
+    "        Recipient",
+    "      )",
     "    ) %>%",
     "    select(Date, Recipient_Link, Contribution, Party) %>%",
     "    gt() %>%",
