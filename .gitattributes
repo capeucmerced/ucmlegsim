@@ -1,0 +1,3 @@
+# The 2025 archive is a byte-exact mirror of the retired live site.
+# Never normalize or rewrite its line endings.
+archive/** -text
