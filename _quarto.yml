@@ -1,16 +1,25 @@
 project:
   type: website
+  # These run before every render and (re)generate the per-bill, per-senator,
+  # and per-lobby pages from the data in files/ and the vote sheets.
   pre-render:
     - Rscript scripts/make_bill_pages.R
     - Rscript scripts/make_senator_pages.R
     - Rscript scripts/make_lobby_pages.R
-  
+  # Copied into the site verbatim. archive/ holds prior years' sites
+  # (see archive/index.html) and must never be rendered or altered.
+  resources:
+    - "files/"
+    - "archive/"
 
-resources:
-  - "files/"
+# Freeze: generated pages carry "freeze: auto" in their own front matter, so
+# they only re-execute when their content actually changed — that is what keeps
+# builds fast. The eight top-level pages read live data and are never frozen.
+execute:
+  freeze: auto
 
 website:
-  title: "UC Merced CA Legislative Simulation -- 2025"
+  title: "UC Merced CA Legislative Simulation — 2026"
   navbar:
     left:
       - text: Home
@@ -30,13 +39,11 @@ website:
       - text: News
         href: news.qmd
 
-
 format:
   html:
-    theme: cosmo
-    css: styles.css
+    # cosmo is the Bootstrap base; styles/brand.scss holds all of our own
+    # design tokens and rules (colors, typefaces, table styling).
+    theme:
+      - cosmo
+      - styles/brand.scss
     toc: true
-
-
-
-

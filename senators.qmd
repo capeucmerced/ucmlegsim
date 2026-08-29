@@ -1,6 +1,6 @@
 ---
 title: "Senators"
-format: 
+format:
   html:
     page-layout: full
 execute:
@@ -11,64 +11,53 @@ execute:
 
 ```{r}
 library(gt)
-library(dplyr)
+source("scripts/shared.R")
 
-# Read the CSV file
-senators <- read.csv("files/csvs/senator_list.csv")
-senators <- senators %>%
-  mutate(namesmatch = gsub(" ", "", Last.Name),
-        namesmatch = tolower(namesmatch),
-        name = paste(Last.Name, First.Name, sep = ", "))
+senators <- load_senators() |>
+  mutate(display_name = paste(Last.Name, First.Name, sep = ", "))
 
-# Check if the role_profiles folder exists and has any files
-profile_folder_has_files <- dir.exists("files/pdfs/role_profiles/senators") && 
-                           length(list.files("files/pdfs/role_profiles/senators")) > 0
+# Profile PDFs exist once role profiles are posted; the column only
+# appears when the folder has files. Filenames follow name_link:
+# e.g. ochoa_bogh_19_profile.pdf
+profiles_exist <- dir.exists(SEN_PROFILE_DIR) && length(list.files(SEN_PROFILE_DIR)) > 0
 
-# Check if Leadership roles are in
-leadership_has_data <- "Leadership" %in% names(senators) && 
-                       any(!is.na(senators$Leadership))                          
+leadership_has_data <- "Leadership" %in% names(senators) &&
+  any(!is.na(senators$Leadership) & senators$Leadership != "")
 
-# Adding name column which links to specific senator page
-senators$Name_Link <- paste0("[", senators$name, "](senator-pages/district_", senators$District, ".html)")
+senators$Name_Link <- sprintf("[%s](%s/district_%s.html)",
+                              senators$display_name, SENATOR_PAGES_DIR, senators$District)
 
-# Only add Profile column if the folder has files
-if (profile_folder_has_files) {
-  senators$Profile <- paste0("[View Profile](files/pdfs/role_profiles/senators/", senators$namesmatch, "_",  senators$District, "_profile.pdf)")
-}
-
-# Build the fmt_markdown columns list dynamically
-markdown_columns <- c("Name_Link") 
-if (profile_folder_has_files) {
+markdown_columns <- c("Name_Link")
+if (profiles_exist) {
+  senators$Profile <- sprintf("[View Profile](%s/%s_%s_profile.pdf)",
+                              SEN_PROFILE_DIR, senators$name_link, senators$District)
   markdown_columns <- c(markdown_columns, "Profile")
 }
 
-# Build columns to hide dynamically
-columns_to_hide <- c("namesmatch", "First.Name", "Last.Name", "name", "Committee", "Chair", "Vice.Chair")
-if (!leadership_has_data) {
-  columns_to_hide <- c(columns_to_hide, "Leadership")
-}
+columns_to_show <- c("District", "Name_Link", "Party")
+if (leadership_has_data) columns_to_show <- c(columns_to_show, "Leadership")
+if (profiles_exist)      columns_to_show <- c(columns_to_show, "Profile")
 
-# Create the table
-senators %>%
-  gt() %>%
-  cols_hide(columns = all_of(columns_to_hide)) %>%
+senators |>
+  select(all_of(columns_to_show)) |>
+  gt() |>
   cols_label(
     District = "District",
     Name_Link = "Name",
     Party = "Party"
-  ) %>%
-  cols_align(align = "left", columns = everything()) %>% 
-  fmt_markdown(columns = all_of(markdown_columns)) %>%
+  ) |>
+  cols_align(align = "left", columns = everything()) |>
+  fmt_markdown(columns = all_of(markdown_columns)) |>
   tab_header(
     title = "Senators",
     subtitle = "Click to view senator profile or activity"
-  ) %>%
+  ) |>
   opt_interactive(
     use_sorting = TRUE,
     use_search = TRUE,
     use_filters = FALSE,
     use_resizers = TRUE,
     page_size_default = 20
-  ) %>%
-  opt_row_striping() 
+  ) |>
+  opt_row_striping()
 ```

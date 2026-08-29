@@ -1,9 +1,8 @@
 ---
 title: "Agendas"
-format: 
+format:
   html:
     page-layout: full
-
 execute:
   echo: false
   warning: false
@@ -12,69 +11,47 @@ execute:
 
 ```{r}
 library(gt)
-library(dplyr)
-library(stringr)
+source("scripts/shared.R")
 
-agendas_dir <- "files/pdfs/agendas/"
+# Agenda PDFs are named <committee>_<MM>_<DD>_<YY>.pdf, e.g. anr_10_17_25.pdf
+pdf_files <- list.files(AGENDAS_DIR, pattern = "\\.pdf$")
 
-# Get list of PDF files in the directory
-pdf_files <- list.files(agendas_dir, pattern = "\\.pdf$", full.names = FALSE)
-
-if(length(pdf_files) == 0) {
+if (length(pdf_files) == 0) {
   cat("Committee agendas have not been set.")
 } else {
-  committee_fullnames <- c(
-    "lgl" = "Local Government and Labor",
-    "anr" = "Agriculture and Natural Resources",
-    "blh" = "Business, Law, and Health",
-    "app" = "Appropriations"
-  )
-  
-  # Parse filenames to extract information
-  agendas <- data.frame(filename = pdf_files) %>%
+  agendas <- data.frame(filename = pdf_files) |>
     mutate(
-      # Extract committee code and date parts from filename
-      # Pattern: XXX_MM_DD_YY.pdf
-      Committee = str_extract(filename, "^[^_]+"),
+      code  = str_extract(filename, "^[^_]+"),
       month = str_extract(filename, "(?<=_)\\d{2}(?=_\\d{2}_\\d{2})"),
-      day = str_extract(filename, "(?<=_\\d{2}_)\\d{2}(?=_\\d{2})"),
-      year = str_extract(filename, "(?<=_\\d{2}_\\d{2}_)\\d{2}"),
-      
-      # Create date object and formatted date string
+      day   = str_extract(filename, "(?<=_\\d{2}_)\\d{2}(?=_\\d{2})"),
+      year  = str_extract(filename, "(?<=_\\d{2}_\\d{2}_)\\d{2}"),
       date_obj = as.Date(paste0("20", year, "-", month, "-", day)),
       Meeting.Date = format(date_obj, "%m/%d/%y"),
-      
-      # Create link to PDF
-      Agenda_Link = paste0("[View Agenda](", agendas_dir, filename, ")"),
-      
-      # Translate committee code to full name
-      Committee_Name = committee_fullnames[Committee]
-    ) %>%
-    select(Meeting.Date, Committee_Name, Agenda_Link, date_obj) %>%
-    arrange(desc(date_obj)) %>%
-    select(-date_obj)
-  
-  # Create the table
-  agendas %>%
-    gt() %>%
+      Agenda_Link = sprintf("[View Agenda](%s/%s)", AGENDAS_DIR, filename),
+      Committee_Name = COMMITTEE_NAMES[code]
+    ) |>
+    arrange(desc(date_obj)) |>
+    select(Meeting.Date, Committee_Name, Agenda_Link)
+
+  agendas |>
+    gt() |>
     cols_label(
       Meeting.Date = "Meeting Date",
       Committee_Name = "Committee",
       Agenda_Link = "Agenda"
-    ) %>%
-    fmt_markdown(columns = Agenda_Link) %>%
-    cols_align(align = "left", columns = everything()) %>%
+    ) |>
+    fmt_markdown(columns = Agenda_Link) |>
+    cols_align(align = "left", columns = everything()) |>
     tab_header(
       title = "Committee Agendas",
       subtitle = "Click to view agenda PDFs"
-    ) %>%
+    ) |>
     opt_interactive(
       use_sorting = TRUE,
       use_filters = FALSE,
       use_resizers = TRUE,
       page_size_default = 20
-    ) %>%
+    ) |>
     opt_row_striping()
 }
 ```
-

@@ -1,0 +1,316 @@
+/*-- scss:defaults --*/
+
+// ---------------------------------------------------------------------------
+// The site's design tokens. Change a color here and it changes everywhere.
+//
+// The language: warm paper ground, near-black ink, navy as the structural
+// voice (headings, rules, navbar), gold used only as "gilding" — hairlines,
+// underlines, small marks. Display type is EB Garamond (serif); all running
+// text and tables use Atkinson Hyperlegible, a high-legibility face designed
+// by the Braille Institute.
+// ---------------------------------------------------------------------------
+
+@import url('https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&display=swap');
+
+// Core palette
+$paper:     #f9f7f1;   // page ground
+$ink:       #211d15;   // body text
+$navy:      #17345a;   // structure: headings, navbar, rules  (matches district map)
+$gold:      #d4a821;   // gilding: hairlines, active marks    (matches district map)
+$gold-text: #8f7210;   // gold darkened enough to read as text on paper
+$muted:     #6d675b;   // secondary text
+$card:      #fefdf9;   // slightly raised surfaces
+
+// Party / data colors (kept separate from the brand colors)
+$party-dem: #1560a8;
+$party-rep: #c22e2e;
+
+// Bootstrap variable overrides (cosmo is the base theme)
+$body-bg:    $paper;
+$body-color: $ink;
+$primary:    $navy;
+$link-color: $navy;
+
+$font-family-sans-serif: "Atkinson Hyperlegible", "Segoe UI", Arial, sans-serif;
+$headings-font-family: "EB Garamond", Georgia, "Times New Roman", serif;
+$headings-font-weight: 500;
+$headings-color: $navy;
+
+$navbar-bg: $navy;
+$navbar-fg: rgba($paper, 0.92);
+$navbar-hl: $gold;
+
+$table-striped-bg: rgba($navy, 0.035);
+
+/*-- scss:rules --*/
+
+// --- Navbar: navy bar finished with a gold hairline ------------------------
+.navbar {
+  border-bottom: 2px solid $gold;
+
+  .navbar-brand {
+    font-family: $headings-font-family;
+    font-size: 1.15rem;
+    letter-spacing: 0.02em;
+  }
+
+  .nav-link {
+    font-size: 0.92rem;
+
+    &:hover, &.active {
+      color: $gold !important;
+    }
+  }
+}
+
+// --- Page titles ------------------------------------------------------------
+.title {
+  font-family: $headings-font-family;
+  color: $navy;
+}
+
+h1, h2, h3 {
+  text-wrap: balance;
+}
+
+// Small-caps label utility (card headers, eyebrows)
+.label-caps {
+  font-family: $font-family-sans-serif;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: $gold-text;
+}
+
+// Stationery double rule
+.rule-double {
+  border: none;
+  border-top: 3px double $navy;
+  margin: 1.2rem 0;
+}
+
+// --- Tables (gt renders interactive tables through reactable) ---------------
+.reactable {
+  font-family: $font-family-sans-serif;
+  font-size: 0.92rem;
+
+  .rt-th {
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: $navy;
+    border-bottom: 2px solid $navy;
+    background: transparent;
+  }
+
+  .rt-tr-striped { background: rgba($navy, 0.035); }
+  .rt-tr-highlight:hover { background: rgba($gold, 0.12); }
+
+  .rt-td { border-bottom: 1px solid rgba($navy, 0.12); }
+
+  // Numbers align in columns
+  .rt-td { font-variant-numeric: tabular-nums; }
+}
+
+// Static gt tables (headers on non-interactive tables)
+.gt_table {
+  font-family: $font-family-sans-serif;
+
+  .gt_col_heading {
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: $navy;
+  }
+}
+
+// gt table titles in the display face
+.gt_heading .gt_title, .rt-caption {
+  font-family: $headings-font-family;
+  font-size: 1.3rem;
+  color: $navy;
+}
+
+// --- Tabs -------------------------------------------------------------------
+.panel-tabset .nav-tabs .nav-link {
+  color: $muted;
+
+  &.active {
+    color: $navy;
+    font-weight: 700;
+    border-bottom: 2px solid $gold;
+  }
+
+  &:hover { color: $navy; }
+}
+
+// --- Footer / small print ---------------------------------------------------
+.nav-footer {
+  background: $paper;
+  border-top: 3px double $navy;
+  color: $muted;
+  font-size: 0.85rem;
+}
+
+// --- The front-page monitor --------------------------------------------------
+// A responsive grid of cards; each card is a "desk" (The Wire, Floor Action,
+// Money Watch, …). Cards stack on phones.
+
+.monitor-masthead {
+  text-align: center;
+  border-top: 3px double $navy;
+  border-bottom: 3px double $navy;
+  padding: 1.1rem 0 0.9rem;
+  margin-bottom: 0.4rem;
+
+  h1 {
+    font-size: 2rem;
+    margin: 0 0 0.2rem;
+  }
+
+  .session-status {
+    font-family: $headings-font-family;
+    font-style: italic;
+    color: $muted;
+    font-size: 1.02rem;
+  }
+}
+
+.monitor-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(19rem, 1fr));
+  gap: 1rem;
+  align-items: start;
+  margin-top: 1.2rem;
+}
+
+.monitor-card {
+  background: $card;
+  border: 1px solid rgba($navy, 0.18);
+  border-radius: 3px;
+  padding: 0.9rem 1.1rem 1rem;
+
+  .card-label {
+    @extend .label-caps;
+    display: block;
+    border-bottom: 2px solid $gold;
+    padding-bottom: 0.35rem;
+    margin-bottom: 0.7rem;
+  }
+
+  ul { list-style: none; margin: 0; padding: 0; }
+  li { padding: 0.3rem 0; border-bottom: 1px solid rgba($navy, 0.08); }
+  li:last-child { border-bottom: none; }
+
+  .card-more {
+    display: inline-block;
+    margin-top: 0.55rem;
+    font-size: 0.85rem;
+    color: $gold-text;
+    text-decoration: none;
+    &:hover { color: $navy; }
+  }
+}
+
+.monitor-wide { grid-column: 1 / -1; }
+
+// --- The Wire (newsfeed posts, rendered by js/feed.js) -----------------------
+.wire-post {
+  padding: 0.65rem 0;
+  border-bottom: 1px solid rgba($navy, 0.1);
+  &:last-child { border-bottom: none; }
+}
+
+.wire-meta {
+  font-size: 0.76rem;
+  color: $muted;
+
+  .wire-outlet {
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: $navy;
+  }
+}
+
+.wire-headline {
+  font-family: $headings-font-family;
+  font-size: 1.18rem;
+  line-height: 1.25;
+  margin-top: 0.15rem;
+
+  a { text-decoration: none; &:hover { text-decoration: underline; } }
+}
+
+.wire-dek {
+  font-size: 0.92rem;
+  color: mix($ink, $muted, 55%);
+  margin-top: 0.15rem;
+}
+
+.wire-more {
+  display: inline-block;
+  font-size: 0.82rem;
+  margin-top: 0.2rem;
+  color: $gold-text;
+  text-decoration: none;
+  &:hover { color: $navy; }
+}
+
+.wire-empty { color: $muted; font-style: italic; }
+
+// --- Bill-page booktabs -------------------------------------------------------
+// Colored index tabs on the right edge of the bill PDF, one per lobby org
+// that filed a letter. Each org's color comes inline via --org-color.
+// On narrow screens the rail becomes a chip row above the document.
+
+.bill-doc-wrap {
+  position: relative;
+  margin-right: 3.4rem;   // room for the protruding tabs
+}
+
+.booktab-rail {
+  position: absolute;
+  top: 1.2rem;
+  right: -3.2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  width: 3rem;
+}
+
+.booktab {
+  display: block;
+  background: var(--org-color, $navy);
+  color: #fff;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-align: center;
+  text-decoration: none;
+  padding: 0.3rem 0.25rem;
+  border-radius: 0 3px 3px 0;
+  border-left: 3px solid rgba(0, 0, 0, 0.25);
+  box-shadow: 1px 1px 2px rgba(0, 0, 0, 0.18);
+
+  &:hover {
+    color: #fff;
+    filter: brightness(1.15);
+    text-decoration: none;
+  }
+}
+
+@media (max-width: 900px) {
+  .bill-doc-wrap { margin-right: 0; }
+  .booktab-rail {
+    position: static;
+    flex-direction: row;
+    flex-wrap: wrap;
+    width: auto;
+    margin-bottom: 0.6rem;
+  }
+  .booktab { border-radius: 3px; }
+}

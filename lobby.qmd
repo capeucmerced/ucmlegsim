@@ -1,51 +1,39 @@
 ---
 title: "Lobbyist Groups"
-format: 
+format:
   html:
     page-layout: full
-
 execute:
   echo: false
   warning: false
   message: false
 ---
 
-``` {r}
-
+```{r}
 library(gt)
-library(dplyr)
+source("scripts/shared.R")
 
-lobby_csv <- "files/csvs/lobbyist_list.csv"
-letters_dir  <- "files/pdfs/lobbyist_letters/"
+lobbys <- read.csv(LOBBY_CSV) |>
+  mutate(link = sprintf("[%s](%s/%s.html)", Lobby, LOBBY_PAGES_DIR, toupper(Code)))
 
-
-lobbys <- read.csv(lobby_csv)
-
-lobbys$link <- paste0("[", lobbys$Lobby, "](lobby-pages/", toupper(lobbys$Code), ".html)")
-
-markdown_columns <- c("link") 
-columns_to_hide <- c("Code", "Lobby")
-
-# Create the table
-lobbys %>%
-  gt() %>%
-  cols_hide(columns = all_of(columns_to_hide)) %>%
+lobbys |>
+  select(link, Spending.Power) |>
+  gt() |>
   cols_label(
     link = "Lobby",
-    Spending.Power = "Spending Power",
-  ) %>%
-  cols_align(align = "left", columns = everything()) %>% 
-  fmt_markdown(columns = all_of(markdown_columns)) %>%
+    Spending.Power = "Spending Power"
+  ) |>
+  cols_align(align = "left", columns = everything()) |>
+  fmt_markdown(columns = link) |>
   tab_header(
     title = "Lobby Firms",
     subtitle = "Click to view Lobby position letters and spending"
-  ) %>%
+  ) |>
   opt_interactive(
     use_sorting = TRUE,
     use_filters = FALSE,
     use_resizers = TRUE,
     page_size_default = 20
-  ) %>%
-  opt_row_striping() 
-
+  ) |>
+  opt_row_striping()
 ```

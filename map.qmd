@@ -1,6 +1,6 @@
 ---
 title: "District Map"
-format: 
+format:
   html:
     page-layout: full
     resources:
@@ -14,23 +14,20 @@ execute:
 This is a map of each state Senate district. Feel free to click on any district to go to the senator's webpage.
 
 ```{r}
-
 library(leaflet)
 library(sf)
 library(htmlwidgets)
-library(tidyverse)
+source("scripts/shared.R")
 
-# Read the GeoJSON data
 districts <- st_read("files/other/ca_senate_districts.geojson", quiet = TRUE)
 
-senators <- read.csv("files/csvs/senator_list.csv")
-senators <- senators %>%
-  mutate(name = paste(Last.Name, First.Name, sep = ", "))
+senators <- load_senators() |>
+  mutate(display_name = paste(Last.Name, First.Name, sep = ", "))
 
 districts <- left_join(districts, senators, by = c("district" = "District"))
-# Create map 
-map <- leaflet(districts) %>%
-  addProviderTiles(providers$CartoDB.Positron) %>%  
+
+map <- leaflet(districts) |>
+  addProviderTiles(providers$CartoDB.Positron) |>
   addPolygons(
     weight = 1,
     opacity = 1,
@@ -45,41 +42,28 @@ map <- leaflet(districts) %>%
       fillOpacity = 0.7,
       bringToFront = TRUE
     ),
-    label = ~paste("District", district, name),  
+    label = ~paste("District", district, display_name),
     labelOptions = labelOptions(
       style = list("font-weight" = "normal", padding = "3px 8px"),
       textsize = "13px",
       direction = "auto"
     )
-  ) %>%
+  ) |>
   setView(lng = -120, lat = 36.5, zoom = 5)
 
-# Add the JavaScript after map creation
-map %>% 
+# Clicking a district opens that senator's page. The click is bound to each
+# polygon layer itself, so it lands on the exact district shape (not a
+# bounding box), and the URL is relative so it works wherever the site lives.
+map |>
   onRender("
     function(el, x) {
-      var myMap = this;
-      
-      myMap.on('click', function(e) {
-        console.log('Map clicked at:', e.latlng);
-        
-        // Check if we clicked on a layer
-        var clickedLayer = null;
-        myMap.eachLayer(function(layer) {
-          if (layer.getBounds && layer.getBounds().contains(e.latlng)) {
-            clickedLayer = layer;
-          }
-        });
-        
-        if (clickedLayer && clickedLayer.options && clickedLayer.options.layerId) {
-          var district = clickedLayer.options.layerId;
-          console.log('District:', district);
-          var url = '/senator-pages/district_' + district + '.html';
-          console.log('Opening:', url);
-          window.open(url, '_blank');
+      this.eachLayer(function(layer) {
+        if (layer.options && layer.options.layerId) {
+          layer.on('click', function() {
+            window.open('senator-pages/district_' + layer.options.layerId + '.html', '_blank');
+          });
         }
       });
     }
   ")
 ```
-

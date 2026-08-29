@@ -1,103 +1,57 @@
 ---
 title: "Votes"
-format: 
+format:
   html:
     page-layout: full
-freeze: auto
 execute:
   echo: false
   warning: false
-  error: true  
+  message: false
 ---
 
 [Vote entry link can be found here.](https://docs.google.com/spreadsheets/d/1O3c2ZGWMUwBu_q2Yjr0nbfBOn9qD2T3A_zhYH8Q2ZHs/edit?gid=0#gid=0)
 
-```{r}
-library(readr)
-library(tidyverse)
+```{r setup}
 library(gt)
-library(janitor)
+source("scripts/shared.R")
 
+senators <- load_senators()
+ns       <- senator_name_sets(senators)
+bills    <- load_bills()
+votes    <- load_all_votes(ns)
 
-bills_csv <- "files/csvs/bill_list.csv"
-senator_csv <- "files/csvs/senator_list.csv"
-b_pages_dir  <- "bills-pages"
-
-senators <- read.csv(senator_csv)
-senators$Name <- paste(senators$First.Name, senators$Last.Name, sep = " ")
-senators$Name <- trimws(gsub("\\s+", " ", senators$Name)) 
-s_names <- senators$Name
-s_names_period <- make.names(s_names) #R doesn't like spaces, creates issues with names with hyphens, easiest to just work with "." instead of spaces and switch back for display later
-d_sen <- senators$Name[senators$Party == "D"]
-d_sen_period <- make.names(d_sen)
-r_sen <- senators$Name[senators$Party == "R"]
-r_sen_period <- make.names(r_sen)
-
-bills <- read.csv(bills_csv)
-bills$bill_numbersb <- paste0("SB-", bills$bill_number)
-bills$lastname_nospace <- gsub(" ", "_", bills$Last.Name)
-
-# Function for creating final vote tables
-process_votes_table <- function(votes_csv){
-
-  dat <- read.csv(votes_csv)
-
-  if(nrow(dat) == 0) {
-    return(NULL)
+# Render one committee's vote table (or a note if it has no votes yet).
+vote_table <- function(code) {
+  dat <- votes[[code]]
+  if (is.null(dat)) {
+    cat("No votes have been taken in this committee yet.")
+    return(invisible(NULL))
   }
 
-  dat <- dat %>%
-    mutate(across(any_of(s_names_period), as.character)) %>%
-    filter(!is.na(Bill) & Bill != "") %>%
-    rowwise() %>%
-    mutate(
-          Date = mdy(Date),
-          Bill = as.character(Bill),
-          yes = sum(c_across(any_of(s_names_period)) == "Aye", na.rm = TRUE),
-          no = sum(c_across(any_of(s_names_period)) == "No", na.rm = TRUE),
-          abstain = sum(c_across(any_of(s_names_period)) == "Abstain", na.rm = TRUE),
-          absent = sum(c_across(any_of(s_names_period)) == "" | is.na(c_across(any_of(s_names_period)))),
-          Vote = paste(yes, no, abstain, absent, sep = "-"),
-          d_yes = sum(c_across(any_of(d_sen_period)) == "Aye", na.rm = TRUE),
-          d_no = sum(c_across(any_of(d_sen_period)) == "No", na.rm = TRUE),
-          d_abstain = sum(c_across(any_of(d_sen_period)) == "Abstain", na.rm = TRUE),
-          d_absent = sum(c_across(any_of(d_sen_period)) == "" | is.na(c_across(any_of(d_sen_period)))),
-          Dem_vote = paste(d_yes, d_no, d_abstain, d_absent, sep = "-"),
-          Dem_percent = round((d_yes/(d_yes + d_no + d_abstain)*100)),
-          Dem_percent_sign = ifelse(is.nan(Dem_percent), "NA", paste0(Dem_percent, "%")),
-          r_yes = sum(c_across(any_of(r_sen_period)) == "Aye", na.rm = TRUE),
-          r_no = sum(c_across(any_of(r_sen_period)) == "No", na.rm = TRUE),
-          r_abstain = sum(c_across(any_of(r_sen_period)) == "Abstain", na.rm = TRUE),
-          r_absent = sum(c_across(any_of(r_sen_period)) == "" | is.na(c_across(any_of(r_sen_period)))),
-          Rep_vote = paste(r_yes, r_no, r_abstain, r_absent, sep = "-"),
-          Rep_percent = round((r_yes/(r_yes + r_no + r_abstain)*100)),
-          Rep_percent_sign = ifelse(is.nan(Rep_percent), "NA", paste0(Rep_percent, "%"))
-          ) %>%
-    left_join(bills, by = c("Bill" = "bill_numbersb")) %>%
-    mutate(billnumname = paste0(toupper(lastname_nospace), "_SB", bill_number),
-          Bill = sprintf("[%s](/%s/%s.html)", Bill, b_pages_dir, billnumname)) %>%
-    mutate(across(any_of(s_names_period), ~ ifelse(.x == "", NA, .x))) %>%   
-    rename_with(~ s_names[match(.x, s_names_period)], .cols = any_of(s_names_period)) %>%     
-    select(Date, Bill, Vote, Result, Dem_percent_sign, Rep_percent_sign, any_of(s_names)) %>%
-    arrange(desc(Date))
-
-  # Return the gt table
-  dat %>%
-    gt() %>%
-    fmt_markdown(columns = "Bill") %>%
-    tab_options(
-      table.width = pct(100)  # Force table to use full width
-    ) %>%
+  dat |>
+    # Link each bill to its page
+    left_join(bills |> select(bill_measure, url_slug), by = c("Bill" = "bill_measure")) |>
+    mutate(Bill = ifelse(is.na(url_slug), Bill,
+                         sprintf("[%s](/%s/%s.html)", Bill, BILL_PAGES_DIR, url_slug))) |>
+    # Blank senator cells -> NA so they display as an em dash
+    mutate(across(any_of(ns$s_names_period), ~ ifelse(.x == "", NA, .x))) |>
+    # Senator columns back to their display names
+    rename_with(~ ns$s_names[match(.x, ns$s_names_period)], .cols = any_of(ns$s_names_period)) |>
+    select(Date, Bill, Vote, Result, Dem_percent_sign, Rep_percent_sign, any_of(ns$s_names)) |>
+    arrange(desc(Date)) |>
+    gt() |>
+    fmt_markdown(columns = "Bill") |>
+    tab_options(table.width = pct(100)) |>
     cols_label(
       Vote = "Vote (Aye-No-Abstain-Absent)",
       Dem_percent_sign = "Democrat Support",
       Rep_percent_sign = "Republican Support"
-    ) %>%
+    ) |>
     tab_header(
       title = md("**Votes**"),
       subtitle = paste0("Last updated: ", format(Sys.time(), "%Y-%m-%d %H:%M %Z"))
-    ) %>%
-    fmt_missing(columns = everything(), missing_text = "—") %>%
+    ) |>
+    sub_missing(columns = everything(), missing_text = "—") |>
     opt_interactive(
       use_sorting = TRUE,
       use_search = TRUE,
@@ -105,10 +59,9 @@ process_votes_table <- function(votes_csv){
       use_resizers = TRUE,
       use_highlight = TRUE,
       page_size_default = 20
-    ) %>%
-    opt_row_striping() 
+    ) |>
+    opt_row_striping()
 }
-
 ```
 
 ::: {.panel-tabset}
@@ -116,40 +69,31 @@ process_votes_table <- function(votes_csv){
 ## Local Government and Labor
 
 ```{r}
-
-process_votes_table("https://docs.google.com/spreadsheets/d/e/2PACX-1vSWsxVKMyPrvGZW1VFD0_DdTsMmH-dzITniXvWusbbG34FPwj7uWsIDB6B_6Sb5AdK94SbZ75eL0vTT/pub?gid=0&single=true&output=csv") 
-
+vote_table("lgl")
 ```
 
 ## Agriculture and Natural Resources
 
 ```{r}
-
-process_votes_table("https://docs.google.com/spreadsheets/d/e/2PACX-1vSWsxVKMyPrvGZW1VFD0_DdTsMmH-dzITniXvWusbbG34FPwj7uWsIDB6B_6Sb5AdK94SbZ75eL0vTT/pub?gid=1077921709&single=true&output=csv")  
-
+vote_table("anr")
 ```
 
 ## Business, Law, and Health
 
 ```{r}
-
-process_votes_table("https://docs.google.com/spreadsheets/d/e/2PACX-1vSWsxVKMyPrvGZW1VFD0_DdTsMmH-dzITniXvWusbbG34FPwj7uWsIDB6B_6Sb5AdK94SbZ75eL0vTT/pub?gid=1971997036&single=true&output=csv")
-
-
+vote_table("blh")
 ```
 
 ## Appropriations
 
 ```{r}
-
-process_votes_table("https://docs.google.com/spreadsheets/d/e/2PACX-1vSWsxVKMyPrvGZW1VFD0_DdTsMmH-dzITniXvWusbbG34FPwj7uWsIDB6B_6Sb5AdK94SbZ75eL0vTT/pub?gid=578574660&single=true&output=csv")
-
+vote_table("app")
 ```
 
 ## Floor
 
 ```{r}
-
-process_votes_table("https://docs.google.com/spreadsheets/d/e/2PACX-1vSWsxVKMyPrvGZW1VFD0_DdTsMmH-dzITniXvWusbbG34FPwj7uWsIDB6B_6Sb5AdK94SbZ75eL0vTT/pub?gid=192921423&single=true&output=csv")
-
+vote_table("floor")
 ```
+
+:::

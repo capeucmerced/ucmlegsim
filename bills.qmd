@@ -1,9 +1,8 @@
 ---
 title: "Bills"
-format: 
+format:
   html:
     page-layout: full
-
 execute:
   echo: false
   warning: false
@@ -12,151 +11,41 @@ execute:
 
 ```{r}
 library(gt)
-library(tidyverse)
-library(purrr)
+source("scripts/shared.R")
 
+senators <- load_senators()
+ns       <- senator_name_sets(senators)
+votes    <- load_all_votes(ns)
 
-bills_csv <- "files/csvs/bill_list.csv"
-senator_csv <- "files/csvs/senator_list.csv"
-bills_dir  <- "files/pdfs/bills"
-b_pages_dir  <- "bills-pages"
-s_pages_dir  <- "senator-pages"
+bills <- load_bills() |>
+  left_join(senators |> select(name_join, District, Party), by = "name_join") |>
+  mutate(
+    PDF  = sprintf("[View Bill Text](%s/%s.pdf)", BILL_PDF_DIR, url_slug),
+    Page = sprintf("[View Details](%s/%s.html)", BILL_PAGES_DIR, url_slug)
+  )
 
-# read the first sheet of your Excel file
-bills <- read.csv(bills_csv) 
-senators <- read.csv(senator_csv)
+# Each bill's most recent vote (if any), from whichever committee took it.
+latest_votes <- bind_rows(votes, .id = "source") |>
+  select(any_of(c("source", "Date", "Bill", "Vote", "Result")))
 
-bills <- bills %>%
-  mutate(name = paste(First.Name, Last.Name, sep = " "),
-        Last.Name_link = gsub(" ", "_", Last.Name),
-        name_join = tolower(paste0(First.Name, Last.Name)),
-        name_join = gsub(" ", "", name_join),
-        bill_measure = paste0("SB-", bill_number),
-        url = paste0(toupper(Last.Name_link), "_", "SB", bill_number),
-        committee = ifelse(committee == "" | is.na(committee), "Unassigned", committee),
-        appropriations = ifelse(appropriations == 1, "Yes", "No")) 
-
-senators <- senators %>%
-  mutate(name_join = tolower(paste0(First.Name, Last.Name)),
-          name_join = gsub(" ", "", name_join))
-          
-senators$Name <- paste(senators$First.Name, senators$Last.Name, sep = " ")
-senators$Name <- trimws(gsub("\\s+", " ", senators$Name)) 
-s_names <- senators$Name
-d_sen <- senators$Name[senators$Party == "D"]
-r_sen <- senators$Name[senators$Party == "R"]
-
-senators <- senators %>%
-  select(-First.Name, -Last.Name, -Name )
-
-bills <- left_join(bills, senators, by = "name_join")
-
-bills$PDF <- paste0("[View Bill Text](", bills_dir,  "/", bills$url, ".pdf)")
-
-bills$Page <- paste0("[View Details](", b_pages_dir, "/", bills$url, ".html)")
-
-# Adding last vote data
-
-clean_votes <- function(votes_df){
-
-  dat <- votes_df
-
-  if(nrow(dat) == 0) {
-    return(NULL)
-  }
-
-  dat <- dat %>%
-    rename_with(~ gsub("\\.", " ", .x)) %>%  
-    mutate(across(any_of(s_names), as.character)) %>%
-    rowwise() %>%
-    mutate( 
-          Bill = as.character(Bill),
-          yes = sum(c_across(any_of(s_names)) == "Aye", na.rm = TRUE),
-          no = sum(c_across(any_of(s_names)) == "No", na.rm = TRUE),
-          abstain = sum(c_across(any_of(s_names)) == "Abstain", na.rm = TRUE),
-          absent = sum(c_across(any_of(s_names)) == "" | is.na(c_across(any_of(s_names)))),
-          Vote = paste(yes, no, abstain, absent, sep = "-"),
-          d_yes = sum(c_across(any_of(d_sen)) == "Aye", na.rm = TRUE),
-          d_no = sum(c_across(any_of(d_sen)) == "No", na.rm = TRUE),
-          d_abstain = sum(c_across(any_of(d_sen)) == "Abstain", na.rm = TRUE),
-          d_absent = sum(c_across(any_of(d_sen)) == "" | is.na(c_across(any_of(d_sen)))),
-          Dem_vote = paste(d_yes, d_no, d_abstain, d_absent, sep = "-"),
-          Dem_percent = round((d_yes/(d_yes + d_no + d_abstain + d_absent)*100)),
-          Dem_percent_sign = paste0(Dem_percent, "%"),
-          r_yes = sum(c_across(any_of(r_sen)) == "Aye", na.rm = TRUE),
-          r_no = sum(c_across(any_of(r_sen)) == "No", na.rm = TRUE),
-          r_abstain = sum(c_across(any_of(r_sen)) == "Abstain", na.rm = TRUE),
-          r_absent = sum(c_across(any_of(r_sen)) == "" | is.na(c_across(any_of(r_sen)))),
-          Rep_vote = paste(r_yes, r_no, r_abstain, r_absent, sep = "-"),
-          Rep_percent = round((r_yes/(r_yes + r_no + r_abstain + r_absent)*100)),
-          Rep_percent_sign = paste0(Rep_percent, "%")
-          ) %>%
-    select(Date, Bill, Vote, Result, Dem_percent, Rep_percent, any_of(s_names))
+if (nrow(latest_votes) > 0) {
+  latest_votes <- latest_votes |>
+    group_by(Bill) |>
+    slice_max(Date, n = 1, with_ties = FALSE) |>
+    ungroup() |>
+    mutate(source = COMMITTEE_NAMES[source])
+  bills <- left_join(bills, latest_votes, by = c("bill_measure" = "Bill"))
+} else {
+  # No votes anywhere yet (start of semester): show the columns empty.
+  bills <- bills |> mutate(Vote = NA, Date = NA, source = NA, Result = NA)
 }
 
-votes_lgl <- read.csv("https://docs.google.com/spreadsheets/d/e/2PACX-1vSWsxVKMyPrvGZW1VFD0_DdTsMmH-dzITniXvWusbbG34FPwj7uWsIDB6B_6Sb5AdK94SbZ75eL0vTT/pub?gid=0&single=true&output=csv") 
-votes_anr <- read.csv("https://docs.google.com/spreadsheets/d/e/2PACX-1vSWsxVKMyPrvGZW1VFD0_DdTsMmH-dzITniXvWusbbG34FPwj7uWsIDB6B_6Sb5AdK94SbZ75eL0vTT/pub?gid=1077921709&single=true&output=csv") 
-votes_blh <- read.csv("https://docs.google.com/spreadsheets/d/e/2PACX-1vSWsxVKMyPrvGZW1VFD0_DdTsMmH-dzITniXvWusbbG34FPwj7uWsIDB6B_6Sb5AdK94SbZ75eL0vTT/pub?gid=1971997036&single=true&output=csv") 
-votes_app <- read.csv("https://docs.google.com/spreadsheets/d/e/2PACX-1vSWsxVKMyPrvGZW1VFD0_DdTsMmH-dzITniXvWusbbG34FPwj7uWsIDB6B_6Sb5AdK94SbZ75eL0vTT/pub?gid=578574660&single=true&output=csv") 
-votes_floor <- read.csv("https://docs.google.com/spreadsheets/d/e/2PACX-1vSWsxVKMyPrvGZW1VFD0_DdTsMmH-dzITniXvWusbbG34FPwj7uWsIDB6B_6Sb5AdK94SbZ75eL0vTT/pub?gid=192921423&single=true&output=csv")
-
-votes <- list(lgl = votes_lgl,
-              anr = votes_anr,
-              blh = votes_blh,
-              app = votes_app,
-              floor = votes_floor)
-votes <- lapply(votes, clean_votes)
-
-# Filter out NULL values from votes list
-votes <- votes[!sapply(votes, is.null)]
-
-vote_data <- data.frame()
-
-# Only process if there are non-NULL votes
-if(length(votes) > 0) {
-  for (i in 1:nrow(bills)){
-    bill_id <- bills$bill_measure[i]
-
-    matches <- map_dfr(votes, ~ {
-      if(is.null(.x) || nrow(.x) == 0) return(NULL)
-      .x %>% filter(Bill == bill_id)
-    }, .id = "source")
-
-    if(!is.null(matches) && nrow(matches) > 0) {
-      latest_match <- matches %>%
-        ungroup() %>%
-        filter(Date == max(Date)) %>%
-        select(source, Date, Bill, Vote, Result, Dem_percent, Rep_percent)
-    } else {
-      latest_match <- data.frame() 
-    }
-
-    vote_data = bind_rows(vote_data, latest_match)
-  }
-
-  bills <- left_join(bills, vote_data, by = c("bill_measure" = "Bill"))
-
-  bills <- bills %>%
-    mutate(source = case_when(
-      source == "lgl" ~ "Local Government and Labor",
-      source == "anr" ~ "Agriculture and Natural Resources",
-      source == "blh" ~ "Business, Law, and Health",
-      source == "app" ~ "Appropriations",
-      source == "floor" ~ "Floor",
-    ))
-  }
-
-bills_table <- bills %>%
-  select(bill_measure, title, name, lobbyist, committee, appropriations, PDF, Page, any_of(c("Vote", "Date", "source", "Result")))  # Use any_of() for vote columns
-
-if(length(votes) > 0) {
-bills_table %>%
-  gt() %>% 
-  sub_missing(
-    columns = everything(),
-    missing_text = ""
-  ) %>%
-  fmt_markdown(columns = c("PDF", "Page")) %>%
+bills |>
+  select(bill_measure, title, name, lobbyist, committee, appropriations,
+         PDF, Page, Vote, Date, source, Result) |>
+  gt() |>
+  sub_missing(columns = everything(), missing_text = "") |>
+  fmt_markdown(columns = c("PDF", "Page")) |>
   cols_label(
     bill_measure = "Bill",
     title = "Subject",
@@ -167,48 +56,21 @@ bills_table %>%
     Page = "Bill Details",
     PDF = "PDF",
     Vote = "Recent Vote (Aye-No-Abstain-Absent)",
-    Date = "Vote Date", 
+    Date = "Vote Date",
     source = "Voting Committee",
     Result = "Vote Result"
-  ) %>%
+  ) |>
   tab_header(
     title = "Bills",
     subtitle = "Click a link to open the corresponding PDF"
-  ) %>%
+  ) |>
   opt_interactive(
-      use_sorting = TRUE,
-      use_search = TRUE,
-      use_filters = FALSE,
-      use_resizers = TRUE,
-      use_highlight = TRUE,
-      page_size_default = 5
-    ) %>%
-    opt_row_striping()
-} else {
-  bills_table %>%
-  gt() %>% 
-  fmt_markdown(columns = c("PDF", "Page")) %>%
-  cols_label(
-    bill_measure = "Bill",
-    title = "Subject",
-    name = "Author",
-    lobbyist = "Supporting Lobby",
-    committee = "Committee Assigned",
-    appropriations = "Appropriations",
-    Page = "Bill Details",
-    PDF = "PDF"
-  ) %>%
-  tab_header(
-    title = "Bills",
-    subtitle = "Click a link to open the corresponding PDF"
-  ) %>%
-  opt_interactive(
-      use_sorting = TRUE,
-      use_search = TRUE,
-      use_filters = FALSE,
-      use_resizers = TRUE,
-      page_size_default = 5
-    ) %>%
-    opt_row_striping()
-}
+    use_sorting = TRUE,
+    use_search = TRUE,
+    use_filters = FALSE,
+    use_resizers = TRUE,
+    use_highlight = TRUE,
+    page_size_default = 5
+  ) |>
+  opt_row_striping()
 ```

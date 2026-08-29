@@ -1,0 +1,139 @@
+// js/feed.js — renders The Wire (the journalist newsfeed).
+//
+// Posts are fetched straight from the intake system's JSON endpoint in the
+// reader's browser, so new posts appear seconds after submission with no
+// site rebuild. The endpoint is the Apps Script web app from
+// intake/apps-script/newsfeed_api.gs.
+//
+// DEPLOY: paste the /exec URL into FEED_URL below. While it is empty, feed
+// containers show a quiet placeholder instead.
+//
+// Usage on a page:
+//   <div class="wire-feed" data-journalist=""></div>
+//   <script src="js/feed.js"></script>
+// data-journalist="Name" limits the feed to one journalist's posts
+// (used on the per-journalist pages); empty shows everyone.
+
+var FEED_URL = "";           // <- set at deploy
+var REFRESH_SECONDS = 60;    // gentle background refresh while the page is open
+
+(function () {
+  "use strict";
+
+  function timeLabel(iso) {
+    var then = new Date(iso);
+    var mins = Math.round((Date.now() - then.getTime()) / 60000);
+    if (mins < 1) return "just now";
+    if (mins < 60) return mins + "m ago";
+    if (mins < 60 * 24) return Math.round(mins / 60) + "h ago";
+    return then.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+  }
+
+  function safeUrl(url) {
+    return /^https?:\/\//i.test(url) ? url : "";
+  }
+
+  // Build each post with textContent (never innerHTML) so student-written
+  // text can't inject markup into the page.
+  function renderPost(post) {
+    var item = document.createElement("article");
+    item.className = "wire-post";
+
+    var meta = document.createElement("div");
+    meta.className = "wire-meta";
+    var outlet = document.createElement("span");
+    outlet.className = "wire-outlet";
+    outlet.textContent = post.outlet || post.name;
+    var byline = document.createElement("span");
+    byline.className = "wire-byline";
+    byline.textContent = " · " + post.name + (post.handle ? " " + post.handle : "") +
+                         " · " + timeLabel(post.time);
+    meta.appendChild(outlet);
+    meta.appendChild(byline);
+
+    var head = document.createElement("div");
+    head.className = "wire-headline";
+    var link = safeUrl(post.link);
+    if (link) {
+      var a = document.createElement("a");
+      a.href = link;
+      a.target = "_blank";
+      a.rel = "noopener";
+      a.textContent = post.headline;
+      head.appendChild(a);
+    } else {
+      head.textContent = post.headline;
+    }
+
+    item.appendChild(meta);
+    item.appendChild(head);
+
+    if (post.dek) {
+      var dek = document.createElement("div");
+      dek.className = "wire-dek";
+      dek.textContent = post.dek;
+      item.appendChild(dek);
+    }
+
+    if (link) {
+      var more = document.createElement("a");
+      more.className = "wire-more";
+      more.href = link;
+      more.target = "_blank";
+      more.rel = "noopener";
+      more.textContent = "Full story →";
+      item.appendChild(more);
+    }
+
+    return item;
+  }
+
+  function fillContainer(container, posts) {
+    var only = container.getAttribute("data-journalist") || "";
+    var shown = only ? posts.filter(function (p) { return p.name === only; }) : posts;
+    var limit = parseInt(container.getAttribute("data-limit") || "0", 10);
+    if (limit > 0) shown = shown.slice(0, limit);
+
+    container.textContent = "";
+    if (shown.length === 0) {
+      var empty = document.createElement("p");
+      empty.className = "wire-empty";
+      empty.textContent = "Nothing on the wire yet.";
+      container.appendChild(empty);
+      return;
+    }
+    shown.forEach(function (p) { container.appendChild(renderPost(p)); });
+  }
+
+  function refresh() {
+    var containers = document.querySelectorAll(".wire-feed");
+    if (containers.length === 0) return;
+
+    if (!FEED_URL) {
+      containers.forEach(function (c) {
+        var note = document.createElement("p");
+        note.className = "wire-empty";
+        note.textContent = "The Wire connects when the session begins.";
+        c.textContent = "";
+        c.appendChild(note);
+      });
+      return;
+    }
+
+    fetch(FEED_URL)
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        containers.forEach(function (c) { fillContainer(c, data.posts || []); });
+      })
+      .catch(function () { /* keep whatever is currently shown */ });
+  }
+
+  document.addEventListener("DOMContentLoaded", function () {
+    refresh();
+    if (FEED_URL) {
+      setInterval(function () {
+        if (!document.hidden) refresh();
+      }, REFRESH_SECONDS * 1000);
+    }
+  });
+})();

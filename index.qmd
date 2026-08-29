@@ -1,12 +1,162 @@
 ---
-title: "Welcome to the 2025 UC Merced California Legislative Simulation Tracker"
+# pagetitle names the browser tab without printing a heading —
+# the masthead below is this page's real title.
+pagetitle: "The Chamber Monitor"
+format:
+  html:
+    page-layout: full
+    toc: false
+execute:
+  echo: false
+  warning: false
+  message: false
 ---
 
-This website is your one-stop-shop for all documents and activity in the simulation. 
+```{r data}
+#| results: asis
+library(gt)
+source("scripts/shared.R")
 
-Updates occur hourly between :15 and :30 past the hour. If you run into errors, please check back in after the hourly update before reporting issues.
+senators <- load_senators()
+ns       <- senator_name_sets(senators)
+bills    <- load_bills() |>
+  left_join(senators |> select(name_join, District, Party), by = "name_join")
+votes    <- load_all_votes(ns)
+letters  <- scan_letters()
+contribs <- load_all_contributions()
 
+all_vote_rows <- if (length(votes) > 0) bind_rows(votes, .id = "source") else data.frame()
 
-<div style="text-align: center;">
-  <img src="files/images/homepage_logo.png"  style="width: 80%; max-width: 800px;">
+# --- Masthead with the session-status line ---------------------------------
+n_votes   <- if (nrow(all_vote_rows) > 0) nrow(all_vote_rows) else 0
+total_money <- if (nrow(contribs) > 0) sum(contribs$Contribution, na.rm = TRUE) else 0
+
+cat(sprintf('
+<div class="monitor-masthead">
+  <h1>UC Merced California Legislative Simulation</h1>
+  <div class="session-status">%d bills introduced · %d votes taken · %d letters filed · %s in contributions</div>
 </div>
+', nrow(bills), n_votes, nrow(letters), scales::dollar(total_money)))
+```
+
+This site tracks all documents and activity in the simulation. It updates
+automatically as bills, votes, letters, and news are filed — if something
+you just submitted hasn't appeared, give it a few minutes and refresh.
+
+```{r cards}
+#| results: asis
+
+# Helper: one monitor card. `body_html` is already-built HTML.
+card <- function(label, body_html, more_href = NULL, more_text = NULL, wide = FALSE) {
+  more <- if (!is.null(more_href)) {
+    sprintf('<a class="card-more" href="%s">%s</a>', more_href, more_text)
+  } else ""
+  sprintf('<div class="monitor-card%s"><span class="card-label">%s</span>%s%s</div>',
+          if (wide) " monitor-wide" else "", label, body_html, more)
+}
+li <- function(items) {
+  if (length(items) == 0) return('<p class="wire-empty">Nothing yet.</p>')
+  paste0("<ul>", paste0("<li>", items, "</li>", collapse = ""), "</ul>")
+}
+esc <- function(x) gsub("<", "&lt;", gsub("&", "&amp;", as.character(x)))
+
+# --- The Wire (live via js/feed.js) ----------------------------------------
+wire_card <- card(
+  "The Wire",
+  '<div class="wire-feed" data-limit="8"></div>',
+  "news.html", "All news →"
+)
+
+# --- Floor & Committee Action: latest votes --------------------------------
+action_items <- character(0)
+if (nrow(all_vote_rows) > 0) {
+  recent <- all_vote_rows |>
+    arrange(desc(Date)) |>
+    head(6) |>
+    left_join(bills |> select(bill_measure, url_slug, title), by = c("Bill" = "bill_measure"))
+  action_items <- sprintf(
+    '<a href="%s/%s.html"><b>%s</b></a> %s · %s · %s · <span style="white-space:nowrap">%s</span>',
+    BILL_PAGES_DIR, recent$url_slug, recent$Bill, esc(recent$title),
+    COMMITTEE_NAMES[recent$source], recent$Vote, format(recent$Date, "%b %d")
+  )
+}
+action_card <- card("Floor & Committee Action", li(action_items), "votes.html", "All votes →")
+
+# --- Meetings: the latest filed agendas ------------------------------------
+agenda_files <- list.files(AGENDAS_DIR, pattern = "\\.pdf$")
+meeting_items <- character(0)
+if (length(agenda_files) > 0) {
+  ag <- data.frame(f = agenda_files) |>
+    mutate(
+      code = gsub("^([a-z]+)_.*$", "\\1", f),
+      date = as.Date(gsub("^[a-z]+_(\\d+)_(\\d+)_(\\d+)\\.pdf$", "20\\3-\\1-\\2", f))
+    ) |>
+    arrange(desc(date)) |>
+    head(5)
+  meeting_items <- sprintf(
+    '<a href="%s/%s">%s — %s</a>',
+    AGENDAS_DIR, ag$f, COMMITTEE_NAMES[ag$code], format(ag$date, "%b %d")
+  )
+}
+meetings_card <- card("Meetings", li(meeting_items), "agendas.html", "All agendas →")
+
+# --- Letters Desk: positions filed, with org color tags --------------------
+letter_items <- character(0)
+if (nrow(letters) > 0) {
+  lob_colors <- tryCatch(read.csv(LOBBY_CSV), error = function(e) data.frame())
+  desk <- letters |>
+    left_join(bills |> select(bill_number, url_slug), by = "bill_number") |>
+    arrange(desc(bill_number)) |>
+    head(6)
+  color_of <- function(code) {
+    if ("Color" %in% names(lob_colors)) {
+      m <- lob_colors$Color[toupper(lob_colors$Code) == code]
+      if (length(m) == 1 && !is.na(m)) return(m)
+    }
+    "#17345a"
+  }
+  letter_items <- sprintf(
+    '<span class="booktab" style="--org-color:%s;display:inline-block;padding:0.05rem 0.45rem">%s</span> %s on <a href="%s/%s.html">SB-%d</a>',
+    vapply(desk$org_code, color_of, character(1)),
+    desk$org_code, desk$position, BILL_PAGES_DIR, desk$url_slug, desk$bill_number
+  )
+}
+letters_card <- card("Letters Desk", li(letter_items), "lobby.html", "All lobbies →")
+
+# --- Money Watch: latest contributions -------------------------------------
+money_items <- character(0)
+if (nrow(contribs) > 0) {
+  mw <- contribs |>
+    filter(!is.na(Recipient.District)) |>
+    left_join(senators |> select(District, Last.Name, Party), by = c("Recipient.District" = "District")) |>
+    arrange(desc(Date)) |>
+    head(6)
+  money_items <- sprintf(
+    '<b>%s</b> → <a href="%s/district_%d.html">%s (%s-%d)</a> · %s · %s',
+    mw$Lobby_Code, SENATOR_PAGES_DIR, mw$Recipient.District,
+    esc(mw$Last.Name), mw$Party, mw$Recipient.District,
+    scales::dollar(mw$Contribution), format(mw$Date, "%b %d")
+  )
+}
+money_card <- card("Money Watch", li(money_items), "lobby.html", "All spending →")
+
+# --- The Papers: current newspaper edition ---------------------------------
+papers_html <- '<p class="wire-empty">No editions published yet.</p>'
+newspaper <- read_sheet_safe(NEWSPAPER_SHEET_URL)
+if (nrow(newspaper) > 0 && all(c("Edition", "Link") %in% names(newspaper))) {
+  current <- newspaper |> filter(!is.na(Link) & Link != "") |> tail(1)
+  if (nrow(current) == 1) {
+    papers_html <- sprintf(
+      '<p style="font-family:var(--bs-font-serif, Georgia)">Current edition: <a href="%s" target="_blank" rel="noopener"><b>%s</b></a></p>',
+      current$Link, esc(current$Edition)
+    )
+  }
+}
+papers_card <- card("The Papers", papers_html, "news.html", "The newsroom →")
+
+cat('<div class="monitor-grid">',
+    wire_card, action_card, meetings_card, letters_card, money_card, papers_card,
+    '</div>')
+```
+
+<script src="js/feed.js"></script>

@@ -1,86 +1,64 @@
 ---
 title: "News"
-format: 
+format:
   html:
     page-layout: full
-
 execute:
   echo: false
   warning: false
   message: false
 ---
-You can find links to the class newspaper in the table below. To read articles from a specific news source, you can find links to their websites at the bottom of the page. 
+
+You can find links to the class newspaper in the table below. To read articles from a specific news source, you can find links to their websites at the bottom of the page.
 
 ```{r}
 library(gt)
-library(tidyverse)
+source("scripts/shared.R")
 
-newspaper <- read.csv("https://docs.google.com/spreadsheets/d/e/2PACX-1vTenWjAnSsUSJxazVdGIKxSVhONVPHrgvkxTSJrdZtdaNN4zziuvtTepefp06r_iWL-iuYIq8NsrQW1/pub?gid=0&single=true&output=csv") 
+newspaper <- read_sheet_safe(NEWSPAPER_SHEET_URL)
 
-
-if (nrow(newspaper) > 0) {
-newspaper <- newspaper %>%
-  mutate(Link = case_when(
-    is.na(Link) | Link == "" ~ "",  # No link - just plain text
-    TRUE ~ sprintf("[%s](%s)", "Click here for link", Link)  # Has link - make it clickable
-  )) %>%
-  filter(!is.na(Link) & Link != "")
-
-newspaper %>%
-  gt() %>%
-  fmt_markdown(columns = Link) %>%
-  cols_label(
-    Edition = "Edition",
-    Date = "Date",
-    Link = "View"
-  ) %>%
-  tab_header(
-    title = "Class Newspaper"
-  ) %>%
-  opt_interactive(
-    use_sorting = TRUE,
-    use_search = TRUE,
-    use_filters = FALSE,
-    use_resizers = TRUE
-  ) %>%
-  opt_row_striping()
-} else {
-    cat("Class newspaper not available.\n")
+if (nrow(newspaper) > 0 && "Link" %in% names(newspaper)) {
+  newspaper <- newspaper |>
+    filter(!is.na(Link) & Link != "") |>
+    mutate(Link = sprintf("[%s](%s)", "Click here for link", Link))
 }
 
+if (nrow(newspaper) > 0 && "Link" %in% names(newspaper)) {
+  newspaper |>
+    gt() |>
+    fmt_markdown(columns = Link) |>
+    cols_label(Edition = "Edition", Date = "Date", Link = "View") |>
+    tab_header(title = "Class Newspaper") |>
+    opt_interactive(use_sorting = TRUE, use_search = TRUE,
+                    use_filters = FALSE, use_resizers = TRUE) |>
+    opt_row_striping()
+} else {
+  cat("Class newspaper not available.\n")
+}
 ```
 
 ```{r}
-library(gt)
-library(tidyverse)
+# The outlet directory (local CSV; empty or missing is fine early on).
+news <- tryCatch(read.csv(JOURNALIST_CSV), error = function(e) data.frame())
 
+if (nrow(news) > 0) {
+  news <- news |>
+    mutate(Newspaper = ifelse(is.na(Link) | Link == "", Newspaper,
+                              sprintf("[%s](%s)", Newspaper, Link))) |>
+    select(-Link)
 
-news_csv <- "files/csvs/journalist_list.csv"
-news <- read_csv(news_csv)
-
-news <- news %>%
-  mutate(Newspaper = case_when(
-    is.na(Link) | Link == "" ~ Newspaper,  # No link - just plain text
-    TRUE ~ sprintf("[%s](%s)", Newspaper, Link)  # Has link - make it clickable
-  )) %>%
-  select(-Link)
-
-news %>%
-  gt() %>%
-  fmt_markdown(columns = Newspaper) %>%
-  cols_label(
-    Newspaper = ""
-  ) %>%
-  tab_header(
-    title = "Newspapers",
-    subtitle = "Clink on name to view articles from that outlet"
-  ) %>%
-  opt_interactive(
-    use_sorting = TRUE,
-    use_search = TRUE,
-    use_filters = FALSE,
-    use_resizers = TRUE
-  ) %>%
-  opt_row_striping()
-
+  news |>
+    gt() |>
+    fmt_markdown(columns = Newspaper) |>
+    cols_label(Newspaper = "") |>
+    tab_header(
+      title = "Newspapers",
+      subtitle = "Click on name to view articles from that outlet"
+    ) |>
+    opt_interactive(use_sorting = TRUE, use_search = TRUE,
+                    use_filters = FALSE, use_resizers = TRUE) |>
+    opt_row_striping()
+} else {
+  cat("Newspaper list not available yet.\n")
+}
 ```

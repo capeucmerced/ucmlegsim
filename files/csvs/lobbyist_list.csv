@@ -1,11 +1,11 @@
-﻿Lobby,Code,Spending Power
-Chamber of Commerce,coc,High
-CA Labor Federation ,fed,High
-PG&E/ Edison/ Sempra,pge,High
-CA Bankers Association/Personal Insurance Federation,bank,Medium
-CA Teachers' Association,cta,Medium
-Altria (tobacco),alt,Medium
-Farm Bureau,fb,Low
-Sierra Club,sc,Low
-University of California,uc,Low
-League of CA Cities,lcc,Low
+Lobby,Code,Spending Power,Color
+Chamber of Commerce,coc,High,#8c1d40
+CA Labor Federation,fed,High,#b3541e
+PG&E/ Edison/ Sempra,pge,High,#b06f00
+CA Bankers Association/Personal Insurance Federation,bank,Medium,#3d5a80
+CA Teachers' Association,cta,Medium,#5b3a8c
+Altria (tobacco),alt,Medium,#5c4033
+Farm Bureau,fb,Low,#6f8a21
+Sierra Club,sc,Low,#2e6b46
+University of California,uc,Low,#0f6f8f
+League of CA Cities,lcc,Low,#757083

@@ -1,8 +1,19 @@
-name: Update Quarto Site
+# Builds the Quarto site and deploys it to GitHub Pages (ucmlegsim.com).
+#
+# When it runs:
+#   - on every push to main
+#   - hourly (backstop; GitHub auto-disables this after ~60 days without
+#     repo activity — re-enable it under the Actions tab if that happens)
+#   - manually, from the Actions tab ("Run workflow")
+#   - on a repository_dispatch API call with event type "rebuild-site" —
+#     this is how form submissions trigger an immediate rebuild
+name: Build and Deploy Site
 on:
   schedule:
-    - cron: "0 * * * *"  # Every hour
-  workflow_dispatch:  # Allows manual triggering
+    - cron: "0 * * * *"
+  workflow_dispatch:
+  repository_dispatch:
+    types: [rebuild-site]
   push:
     branches: [main, master]
 
@@ -11,49 +22,69 @@ permissions:
   pages: write
   id-token: write
 
+# If several triggers fire at once, keep only the newest build.
+concurrency:
+  group: pages-build
+  cancel-in-progress: true
+
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-        
+
       - name: Setup Quarto
         uses: quarto-dev/quarto-actions/setup@v2
-        
+
       - name: Setup R
         uses: r-lib/actions/setup-r@v2
         with:
           use-public-rspm: true
-          
+
+      # Everything any page or generator script loads. (These are cached
+      # between runs by the action, so installs are usually fast.)
       - name: Install R packages
         uses: r-lib/actions/setup-r-dependencies@v2
         with:
           extra-packages: |
-            any::readr
-            any::dplyr
+            any::tidyverse
             any::gt
             any::janitor
             any::readxl
             any::knitr
             any::rmarkdown
-            any::googlesheets4
-            any::shiny
             any::plotly
             any::bslib
             any::bsicons
             any::htmltools
-            
+            any::leaflet
+            any::sf
+            any::htmlwidgets
+            any::scales
+            any::fontawesome
+
+      # Quarto's freeze cache: generated pages whose data didn't change skip
+      # re-execution entirely. Restoring the newest previous cache is what
+      # keeps routine rebuilds down to a few minutes.
+      - name: Restore freeze cache
+        uses: actions/cache@v4
+        with:
+          path: _freeze
+          key: freeze-${{ github.run_id }}
+          restore-keys: |
+            freeze-
+
       - name: Render Quarto site
         uses: quarto-dev/quarto-actions/render@v2
         with:
           to: html
-          
+
       - name: Upload to GitHub Pages
         uses: actions/upload-pages-artifact@v3
         with:
           path: _site
-          
+
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
