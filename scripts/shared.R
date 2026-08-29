@@ -120,7 +120,8 @@ load_bills <- function() {
       bill_measure = paste0("SB-", bill_number),
       url_slug     = paste0(toupper(gsub(" ", "_", Last.Name)), "_SB", bill_number),
       committee    = ifelse(committee == "" | is.na(committee), "Unassigned", committee),
-      appropriations = ifelse(appropriations == 1, "Yes", "No")
+      # A blank fiscal flag counts as "No" (admin can correct the sheet)
+      appropriations = ifelse(!is.na(appropriations) & appropriations == 1, "Yes", "No")
     )
 }
 
@@ -189,6 +190,57 @@ clean_votes <- function(dat, ns) {
 load_all_votes <- function(ns) {
   votes <- lapply(VOTE_SHEET_URLS, function(u) clean_votes(read_sheet_safe(u), ns))
   votes[!sapply(votes, is.null)]
+}
+
+# --- Bill status (the tracker) ----------------------------------------------
+
+# The bill list's committee column holds full names typed by hand
+# ("Local Government & Labor"); map them back to committee codes loosely.
+committee_code_from_name <- function(name) {
+  n <- tolower(gsub("&", "and", name))
+  hit <- sapply(names(COMMITTEE_NAMES), function(code) {
+    grepl(substr(tolower(COMMITTEE_NAMES[code]), 1, 12), n, fixed = TRUE)
+  })
+  if (any(hit)) names(COMMITTEE_NAMES)[which(hit)[1]] else NA
+}
+
+# Derive each bill's position in the process from records that already
+# exist — nobody enters "status" anywhere. Adds these columns:
+#   policy_result / app_result / floor_result  (latest vote result per stage)
+#   status        one label: Introduced / In Committee / To Appropriations /
+#                 To Floor / Passed Senate / Failed — <stage>
+# A bill that never gets a committee vote simply stays "In Committee".
+bill_statuses <- function(bills, votes) {
+  rows <- if (length(votes) > 0) bind_rows(votes, .id = "source") else data.frame()
+
+  latest_result <- function(bm, srcs) {
+    if (nrow(rows) == 0) return(NA_character_)
+    r <- rows |> filter(Bill == bm, source %in% srcs) |> arrange(desc(Date))
+    if (nrow(r) == 0) NA_character_ else as.character(r$Result[1])
+  }
+  passed <- function(x) !is.na(x) & grepl("pass", x, ignore.case = TRUE)
+
+  bills |>
+    rowwise() |>
+    mutate(
+      policy_result = latest_result(bill_measure, c("lgl", "anr", "blh")),
+      app_result    = latest_result(bill_measure, "app"),
+      floor_result  = latest_result(bill_measure, "floor")
+    ) |>
+    ungroup() |>
+    mutate(
+      status = case_when(
+        passed(floor_result)                                ~ "Passed Senate",
+        !is.na(floor_result)                                ~ "Failed — Floor",
+        passed(app_result)                                  ~ "To Floor",
+        !is.na(app_result)                                  ~ "Failed — Appropriations",
+        passed(policy_result) & appropriations == "Yes"     ~ "To Appropriations",
+        passed(policy_result)                               ~ "To Floor",
+        !is.na(policy_result)                               ~ "Failed — Committee",
+        committee != "Unassigned"                           ~ "In Committee",
+        TRUE                                                ~ "Introduced"
+      )
+    )
 }
 
 # --- Lobbyist letters -------------------------------------------------------

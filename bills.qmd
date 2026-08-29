@@ -19,9 +19,20 @@ votes    <- load_all_votes(ns)
 
 bills <- load_bills() |>
   left_join(senators |> select(name_join, District, Party), by = "name_join") |>
+  bill_statuses(votes) |>
   mutate(
     PDF  = sprintf("[View Bill Text](%s/%s.pdf)", BILL_PDF_DIR, url_slug),
-    Page = sprintf("[View Details](%s/%s.html)", BILL_PAGES_DIR, url_slug)
+    Page = sprintf("[View Details](%s/%s.html)", BILL_PAGES_DIR, url_slug),
+    # Status dot: green = passed, red = dead, gold = moving
+    Status = sprintf(
+      '<span class="status-dot %s"></span> %s',
+      case_when(
+        status == "Passed Senate" ~ "s-pass",
+        grepl("^Failed", status)  ~ "s-fail",
+        TRUE                      ~ "s-active"
+      ),
+      status
+    )
   )
 
 # Each bill's most recent vote (if any), from whichever committee took it.
@@ -41,15 +52,16 @@ if (nrow(latest_votes) > 0) {
 }
 
 bills |>
-  select(bill_measure, title, name, lobbyist, committee, appropriations,
+  select(bill_measure, title, name, Status, lobbyist, committee, appropriations,
          PDF, Page, Vote, Date, source, Result) |>
   gt() |>
   sub_missing(columns = everything(), missing_text = "") |>
-  fmt_markdown(columns = c("PDF", "Page")) |>
+  fmt_markdown(columns = c("Status", "PDF", "Page")) |>
   cols_label(
     bill_measure = "Bill",
     title = "Subject",
     name = "Author",
+    Status = "Status",
     lobbyist = "Supporting Lobby",
     committee = "Committee Assigned",
     appropriations = "Appropriations",

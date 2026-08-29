@@ -20,7 +20,8 @@ votes    <- load_all_votes(ns)
 letters  <- scan_letters()
 
 bills <- load_bills() |>
-  left_join(senators |> select(name_join, District), by = "name_join")
+  left_join(senators |> select(name_join, District), by = "name_join") |>
+  bill_statuses(votes)
 
 # All votes from all committees in one frame (empty if none taken yet)
 all_vote_rows <- if (length(votes) > 0) bind_rows(votes, .id = "source") else data.frame()
@@ -83,6 +84,48 @@ for (i in seq_len(nrow(bills))) {
     letter_lines <- "No lobbyist letters available for this bill."
   }
 
+  # --- Progress tracker (the leginfo-style stepper) ------------------------
+  # States per step: done / fail / current / pending. The Appropriations
+  # step only appears on fiscal bills. Derived entirely from b's status
+  # columns (see bill_statuses in shared.R).
+  ok   <- function(x) !is.na(x) && grepl("pass", x, ignore.case = TRUE)
+  died <- function(x) !is.na(x) && !grepl("pass", x, ignore.case = TRUE)
+
+  referred <- isTRUE(b$committee != "Unassigned")
+  policy_state <- if (died(b$policy_result)) "fail"
+                  else if (ok(b$policy_result)) "done"
+                  else if (referred) "current" else "pending"
+  fiscal <- isTRUE(b$appropriations == "Yes")
+  app_state <- if (!fiscal) NA
+               else if (died(b$app_result)) "fail"
+               else if (ok(b$app_result)) "done"
+               else if (ok(b$policy_result)) "current" else "pending"
+  floor_ready <- if (fiscal) ok(b$app_result) else ok(b$policy_result)
+  floor_state <- if (died(b$floor_result)) "fail"
+                 else if (ok(b$floor_result)) "done"
+                 else if (floor_ready) "current" else "pending"
+
+  steps <- list(
+    c("Introduced", "done"),
+    c(if (referred) b$committee else "Committee", policy_state)
+  )
+  if (fiscal) steps <- c(steps, list(c("Appropriations", app_state)))
+  steps <- c(steps, list(c("Floor", floor_state)))
+  if (ok(b$floor_result)) steps <- c(steps, list(c("Passed Senate", "done")))
+
+  tracker_parts <- character(0)
+  for (k in seq_along(steps)) {
+    if (k > 1) {
+      bar_state <- if (steps[[k - 1]][2] == "done") "done" else ""
+      tracker_parts <- c(tracker_parts, sprintf('<div class="tbar %s"></div>', bar_state))
+    }
+    tracker_parts <- c(tracker_parts, sprintf(
+      '<div class="tstep %s"><span class="tdot"></span><span class="tlab">%s</span></div>',
+      steps[[k]][2], steps[[k]][1]
+    ))
+  }
+  tracker_html <- paste0('<div class="tracker">', paste(tracker_parts, collapse = ""), "</div>")
+
   # --- Booktabs: colored index tabs on the bill PDF, one per letter --------
   # Each org's color comes from the Color column of lobbyist_list.csv.
   booktab_rail <- ""
@@ -117,6 +160,8 @@ for (i in seq_len(nrow(bills))) {
   )
 
   body <- c(
+    "",
+    tracker_html,
     "",
     "::: {.panel-tabset}",
     "",

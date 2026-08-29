@@ -1,0 +1,84 @@
+---
+title: "What can I do if…"
+format:
+  html:
+    page-layout: article
+execute:
+  echo: false
+---
+
+<!--
+HOW TO ADD AN ENTRY (instructor/TA note — this comment never shows on the site):
+Copy one of the callout blocks below into the right role's tab, change the
+title to the situation, and write the advice inside. Plain markdown works:
+links, bold, lists. End entries with action links where possible.
+-->
+
+Stuck? Find your role below, then the situation that sounds like yours.
+Every situation in the simulation has a move available — these are the
+common ones.
+
+::: {.panel-tabset}
+
+## Senators
+
+::: {.callout-note collapse="true"}
+### I don't think I have anything to do.
+
+There is always something moving. In rough priority order: check whether
+either of your bills is on an upcoming agenda ([Committees](committees.qmd));
+read the bills coming before *your* committee and decide your questions and
+your vote; check your bill's letters — if a lobby filed "Oppose Unless
+Amended," talk to them about what amendment would flip them; and talk to the
+press. A senator nobody hears from doesn't get covered, and coverage is
+influence.
+:::
+
+::: {.callout-note collapse="true"}
+### My bill is on the agenda in the next policy committee.
+
+Prepare to present it: a two-minute statement of the problem, what the bill
+does, and who supports it. Expect questions from members — read your own
+bill's weak points first. Count your votes before the meeting, not during
+it: talk to committee members, and look at what the lobbies filed on your
+bill ([your bill's page](bills.qmd) shows every letter). If you don't have
+the votes, an amendment before the hearing may be cheaper than a loss in it.
+:::
+
+## Lobbyists
+
+::: {.callout-note collapse="true"}
+### I don't think I have anything to do.
+
+Read the [dockets](committees.qmd) — every bill awaiting a hearing is a bill
+you could be shaping. File positions on bills that touch your organization's
+interests ([file a letter](lobby.qmd)); meet the authors of bills you want
+amended; check which senators are up for contributions you haven't made yet;
+and pitch story angles to journalists. Money and letters left unspent at the
+end of the semester bought nothing.
+:::
+
+## Journalists
+
+::: {.callout-note collapse="true"}
+### I don't think I have anything to do.
+
+Scan the [Monitor](index.qmd): every recent vote, letter, and contribution
+is a potential story. Who voted against their party? Which lobby is
+spending big on one senator? Which bill died quietly? Post short items to
+the Wire as things happen, and save the best thread for your outlet's next
+full write-up.
+:::
+
+## Chairs & Leadership
+
+::: {.callout-note collapse="true"}
+### I need to change my agenda at the last minute.
+
+Just file the agenda form again for the same meeting date — the new
+submission becomes the current agenda automatically (marked as a revision),
+and the site shows only the newest version. Announce the change in class;
+the site's copy is always the authoritative one.
+:::
+
+:::

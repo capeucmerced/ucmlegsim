@@ -28,16 +28,18 @@ website:
         href: bills.qmd
       - text: Senators
         href: senators.qmd
+      - text: Committees
+        href: committees.qmd
       - text: Votes
         href: votes.qmd
       - text: Districts
         href: map.qmd
-      - text: Agendas
-        href: agendas.qmd
       - text: Lobbyists
         href: lobby.qmd
       - text: News
         href: news.qmd
+      - text: Help
+        href: help.qmd
 
 format:
   html:

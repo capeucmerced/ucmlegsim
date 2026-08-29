@@ -9,6 +9,15 @@ execute:
   message: false
 ---
 
+## The Wire
+
+Live dispatches from the press corps — newest first.
+
+<div class="wire-feed"></div>
+<script src="js/feed.js"></script>
+
+## The Papers
+
 You can find links to the class newspaper in the table below. To read articles from a specific news source, you can find links to their websites at the bottom of the page.
 
 ```{r}

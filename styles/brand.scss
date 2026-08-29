@@ -262,6 +262,71 @@ h1, h2, h3 {
 
 .wire-empty { color: $muted; font-style: italic; }
 
+// --- Bill progress tracker (the stepper on bill pages) -----------------------
+$track-pass: #2e6b46;
+$track-fail: #a33131;
+
+.tracker {
+  display: flex;
+  align-items: flex-start;
+  margin: 0.5rem 0 1.3rem;
+  overflow-x: auto;
+  padding-bottom: 0.2rem;
+}
+
+.tstep {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 5.2rem;
+  flex: 0 0 auto;
+
+  .tdot {
+    width: 0.95rem;
+    height: 0.95rem;
+    border-radius: 50%;
+    border: 2px solid rgba($navy, 0.35);
+    background: transparent;
+  }
+  .tlab {
+    margin-top: 0.35rem;
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    color: $muted;
+    text-align: center;
+    max-width: 8rem;
+  }
+
+  &.done    { .tdot { background: $navy; border-color: $navy; }       .tlab { color: $navy; } }
+  &.fail    { .tdot { background: $track-fail; border-color: $track-fail; } .tlab { color: $track-fail; } }
+  &.current { .tdot { border-color: $gold; border-width: 3px; }       .tlab { color: $gold-text; } }
+}
+
+.tbar {
+  flex: 1 1 2rem;
+  height: 2px;
+  background: rgba($navy, 0.22);
+  margin-top: 0.45rem;
+  min-width: 1.2rem;
+
+  &.done { background: $navy; }
+}
+
+// Status dots used in tables (bills table, dockets)
+.status-dot {
+  display: inline-block;
+  width: 0.62rem;
+  height: 0.62rem;
+  border-radius: 50%;
+  vertical-align: baseline;
+
+  &.s-pass   { background: $track-pass; }
+  &.s-fail   { background: $track-fail; }
+  &.s-active { background: $gold; }
+}
+
 // --- Bill-page booktabs -------------------------------------------------------
 // Colored index tabs on the right edge of the bill PDF, one per lobby org
 // that filed a letter. Each org's color comes inline via --org-color.

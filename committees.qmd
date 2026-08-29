@@ -1,0 +1,114 @@
+---
+title: "Committees"
+format:
+  html:
+    page-layout: full
+execute:
+  echo: false
+  warning: false
+  message: false
+---
+
+```{r}
+#| results: asis
+library(knitr)
+source("scripts/shared.R")
+
+senators <- load_senators()
+ns       <- senator_name_sets(senators)
+votes    <- load_all_votes(ns)
+bills    <- load_bills() |> bill_statuses(votes)
+
+# Bills' committee names -> codes for docket matching
+bills$committee_code <- sapply(bills$committee, committee_code_from_name)
+
+# One tab per committee, plus the Floor. Each tab shows the membership,
+# the latest agenda, the docket (bills awaiting action there), and the
+# most recent votes taken.
+agenda_files <- list.files(AGENDAS_DIR, pattern = "\\.pdf$")
+
+cat("::: {.panel-tabset}\n\n")
+
+for (code in names(COMMITTEE_NAMES)) {
+  cat("##", COMMITTEE_NAMES[code], "\n\n")
+
+  # --- Membership (not applicable to the Floor) ---------------------------
+  if (code != "floor") {
+    members <- senators |>
+      filter(grepl(code, Committee)) |>
+      mutate(
+        Role = case_when(
+          !is.na(Chair) & Chair == code ~ "Chair",
+          !is.na(Vice.Chair) & Vice.Chair == code ~ "Vice Chair",
+          TRUE ~ "Member"
+        ),
+        Senator = sprintf("[%s](%s/district_%s.html)", Name, SENATOR_PAGES_DIR, District)
+      ) |>
+      arrange(factor(Role, levels = c("Chair", "Vice Chair", "Member")), Last.Name) |>
+      select(Senator, Role, Party, District)
+
+    if (nrow(members) > 0) {
+      cat(kable(members, format = "pipe"), sep = "\n")
+      cat("\n\n")
+    } else {
+      cat("*Committee assignments have not been made yet.*\n\n")
+    }
+  }
+
+  # --- Latest agenda -------------------------------------------------------
+  mine <- sort(agenda_files[startsWith(agenda_files, paste0(code, "_"))], decreasing = TRUE)
+  # Filenames sort by name, not date; parse dates to find the real latest
+  if (length(mine) > 0) {
+    dates <- as.Date(gsub("^[a-z]+_(\\d+)_(\\d+)_(\\d+)\\.pdf$", "20\\3-\\1-\\2", mine))
+    mine <- mine[order(dates, decreasing = TRUE)]
+    cat(sprintf("**Latest agenda:** [%s](%s/%s)\n\n",
+                format(max(dates, na.rm = TRUE), "%B %d, %Y"), AGENDAS_DIR, mine[1]))
+    if (length(mine) > 1) {
+      cat('<details><summary>Earlier agendas</summary>\n\n')
+      cat(sprintf("- [%s](%s/%s)\n",
+                  format(sort(dates, decreasing = TRUE)[-1], "%B %d, %Y"),
+                  AGENDAS_DIR, mine[-1]), sep = "")
+      cat("\n</details>\n\n")
+    }
+  } else {
+    cat("*No agendas filed yet.*\n\n")
+  }
+
+  # --- Docket: bills awaiting action here ---------------------------------
+  docket <- if (code == "floor") {
+    bills |> filter(status == "To Floor")
+  } else if (code == "app") {
+    bills |> filter(status == "To Appropriations")
+  } else {
+    bills |> filter(committee_code %in% code, status == "In Committee")
+  }
+
+  cat("### Docket\n\n")
+  if (nrow(docket) > 0) {
+    docket_tbl <- docket |>
+      mutate(Bill = sprintf("[%s](%s/%s.html)", bill_measure, BILL_PAGES_DIR, url_slug)) |>
+      select(Bill, Subject = title, Author = name, Fiscal = appropriations)
+    cat(kable(docket_tbl, format = "pipe"), sep = "\n")
+    cat("\n\n")
+  } else {
+    cat("*Nothing currently awaiting action.*\n\n")
+  }
+
+  # --- Recent votes --------------------------------------------------------
+  if (!is.null(votes[[code]])) {
+    recent <- votes[[code]] |>
+      arrange(desc(Date)) |>
+      head(5) |>
+      left_join(bills |> select(bill_measure, url_slug), by = c("Bill" = "bill_measure")) |>
+      mutate(Bill = ifelse(is.na(url_slug), Bill,
+                           sprintf("[%s](%s/%s.html)", Bill, BILL_PAGES_DIR, url_slug)),
+             Date = format(Date, "%b %d")) |>
+      select(Date, Bill, Vote, Result)
+    cat("### Recent votes\n\n")
+    cat(kable(recent, format = "pipe"), sep = "\n")
+    cat("\n\n")
+  }
+}
+
+cat(":::\n")
+```
