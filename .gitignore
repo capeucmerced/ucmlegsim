@@ -1,6 +1,19 @@
+# R session files
 .Rproj.user
 .Rhistory
 .RData
 .Ruserdata
 
+# Quarto build output — the site is rendered fresh by CI (or locally); never commit it
 /.quarto/
+/_site/
+/_freeze/
+
+# Pages generated at render time by the scripts/make_*.R pre-render scripts.
+# They are rebuilt on every render; committing them only creates stale copies.
+/bills-pages/
+/senator-pages/
+/lobby-pages/
+
+# Per-document render artifacts Quarto sometimes leaves next to sources
+*_files/
