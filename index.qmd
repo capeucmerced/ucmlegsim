@@ -27,21 +27,19 @@ contribs <- load_all_contributions()
 
 all_vote_rows <- if (length(votes) > 0) bind_rows(votes, .id = "source") else data.frame()
 
-# --- Masthead with the session-status line ---------------------------------
-n_votes   <- if (nrow(all_vote_rows) > 0) nrow(all_vote_rows) else 0
+# --- The letterhead masthead + the stats ticker ----------------------------
+n_votes     <- if (nrow(all_vote_rows) > 0) nrow(all_vote_rows) else 0
 total_money <- if (nrow(contribs) > 0) sum(contribs$Contribution, na.rm = TRUE) else 0
 
 cat(sprintf('
 <div class="monitor-masthead">
-  <h1>UC Merced California Legislative Simulation</h1>
-  <div class="session-status">%d bills introduced · %d votes taken · %d letters filed · %s in contributions</div>
+  <div class="mast-over">The University of California, Merced</div>
+  <h1 class="mast-blackletter">California State Senate</h1>
+  <div class="mast-under"><span class="rule-flank">✦&nbsp;&nbsp;</span>Legislative Simulation · 2026 Session<span class="rule-flank">&nbsp;&nbsp;✦</span></div>
 </div>
+<div class="session-ticker"><b>%d</b> bills<span class="tick-sep">·</span><b>%d</b> votes<span class="tick-sep">·</span><b>%d</b> letters<span class="tick-sep">·</span><b>%s</b> contributed</div>
 ', nrow(bills), n_votes, nrow(letters), scales::dollar(total_money)))
 ```
-
-This site tracks all documents and activity in the simulation. It updates
-automatically as bills, votes, letters, and news are filed — if something
-you just submitted hasn't appeared, give it a few minutes and refresh.
 
 ```{r cards}
 #| results: asis
@@ -146,9 +144,12 @@ newspaper <- read_sheet_safe(NEWSPAPER_SHEET_URL)
 if (nrow(newspaper) > 0 && all(c("Edition", "Link") %in% names(newspaper))) {
   current <- newspaper |> filter(!is.na(Link) & Link != "") |> tail(1)
   if (nrow(current) == 1) {
+    # The sheet's Edition column is often just a number — label it as one
+    ed <- esc(current$Edition)
+    if (grepl("^[0-9]+$", ed)) ed <- paste("Edition", ed)
     papers_html <- sprintf(
-      '<p style="font-family:var(--bs-font-serif, Georgia)">Current edition: <a href="%s" target="_blank" rel="noopener"><b>%s</b></a></p>',
-      current$Link, esc(current$Edition)
+      '<p>Current edition: <a href="%s" target="_blank" rel="noopener"><b>%s</b></a></p>',
+      current$Link, ed
     )
   }
 }

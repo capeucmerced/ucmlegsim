@@ -26,8 +26,10 @@ senators <- load_senators() |>
 
 districts <- left_join(districts, senators, by = c("district" = "District"))
 
+# Esri's gray canvas needs no API key (Carto's tiles now watermark
+# keyless use) and suits the muted paper palette.
 map <- leaflet(districts) |>
-  addProviderTiles(providers$CartoDB.Positron) |>
+  addProviderTiles(providers$Esri.WorldGrayCanvas) |>
   addPolygons(
     weight = 1,
     opacity = 1,

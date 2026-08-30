@@ -21,8 +21,8 @@ bills <- load_bills() |>
   left_join(senators |> select(name_join, District, Party), by = "name_join") |>
   bill_statuses(votes) |>
   mutate(
-    PDF  = sprintf("[View Bill Text](%s/%s.pdf)", BILL_PDF_DIR, url_slug),
-    Page = sprintf("[View Details](%s/%s.html)", BILL_PAGES_DIR, url_slug),
+    # The bill number links to the bill's page; the PDF lives there.
+    bill_link = sprintf("[%s](%s/%s.html)", bill_measure, BILL_PAGES_DIR, url_slug),
     # Status dot: green = passed, red = dead, gold = moving
     Status = sprintf(
       '<span class="status-dot %s"></span> %s',
@@ -52,29 +52,25 @@ if (nrow(latest_votes) > 0) {
 }
 
 bills |>
-  select(bill_measure, title, name, Status, lobbyist, committee, appropriations,
-         PDF, Page, Vote, Date, source, Result) |>
+  select(bill_link, title, name, Status, committee, appropriations,
+         Vote, Result) |>
   gt() |>
   sub_missing(columns = everything(), missing_text = "") |>
-  fmt_markdown(columns = c("Status", "PDF", "Page")) |>
+  fmt_markdown(columns = c("Status", "bill_link")) |>
+  tab_options(table.width = pct(100)) |>
   cols_label(
-    bill_measure = "Bill",
+    bill_link = "Bill",
     title = "Subject",
     name = "Author",
     Status = "Status",
-    lobbyist = "Supporting Lobby",
-    committee = "Committee Assigned",
-    appropriations = "Appropriations",
-    Page = "Bill Details",
-    PDF = "PDF",
-    Vote = "Recent Vote (Aye-No-Abstain-Absent)",
-    Date = "Vote Date",
-    source = "Voting Committee",
-    Result = "Vote Result"
+    committee = "Committee",
+    appropriations = "Fiscal",
+    Vote = "Latest Vote (A-N-Ab-Abs)",
+    Result = "Result"
   ) |>
   tab_header(
     title = "Bills",
-    subtitle = "Click a link to open the corresponding PDF"
+    subtitle = "Click a bill number for its full page — text, tracker, votes, and letters"
   ) |>
   opt_interactive(
     use_sorting = TRUE,

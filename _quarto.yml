@@ -19,27 +19,36 @@ execute:
   freeze: auto
 
 website:
-  title: "UC Merced CA Legislative Simulation — 2026"
+  # Browser-tab suffix; the navbar shows the letterhead lockup instead
+  title: "UC Merced Legislative Simulation"
+  # Ordered by how often students need each page day-to-day:
+  # the work (Bills/Committees/Votes), then the people (Senators/Lobbyists),
+  # then press, then reference (Districts map, the Playbook).
   navbar:
+    title: "California State Senate"
     left:
       - text: Home
         href: index.qmd
       - text: Bills
         href: bills.qmd
-      - text: Senators
-        href: senators.qmd
       - text: Committees
         href: committees.qmd
       - text: Votes
         href: votes.qmd
-      - text: Districts
-        href: map.qmd
+      - text: Senators
+        href: senators.qmd
       - text: Lobbyists
         href: lobby.qmd
       - text: News
         href: news.qmd
-      - text: Help
+      - text: Districts
+        href: map.qmd
+      - text: Playbook
         href: help.qmd
+  page-footer:
+    left: "UC Merced California Legislative Simulation"
+    center: "The site updates automatically as bills, votes, letters, and news are filed."
+    right: "[Session Archive](archive/)"
 
 format:
   html:

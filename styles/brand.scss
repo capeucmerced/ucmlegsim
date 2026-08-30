@@ -10,7 +10,11 @@
 // by the Braille Institute.
 // ---------------------------------------------------------------------------
 
-@import url('https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=UnifrakturMaguntia&display=swap');
+
+// The blackletter face used for the letterhead masthead (matches the
+// "California State Senate" style on the committee agendas)
+$blackletter: "UnifrakturMaguntia", "Old English Text MT", Georgia, serif;
 
 // Core palette
 $paper:     #f9f7f1;   // page ground
@@ -44,23 +48,55 @@ $table-striped-bg: rgba($navy, 0.035);
 
 /*-- scss:rules --*/
 
+// The html element shows through beneath short pages — keep it paper too
+html { background: $paper; }
+
 // --- Navbar: navy bar finished with a gold hairline ------------------------
 .navbar {
   border-bottom: 2px solid $gold;
 
+  // The corner lockup: a miniature of the front page's letterhead —
+  // blackletter wordmark with a micro small-caps subline in gold.
   .navbar-brand {
-    font-family: $headings-font-family;
-    font-size: 1.15rem;
-    letter-spacing: 0.02em;
+    font-family: $blackletter;
+    font-size: 1.45rem;
+    line-height: 1;
+    padding-top: 0.15rem;
+    padding-bottom: 0.15rem;
+
+    &::after {
+      content: "UC Merced Legislative Simulation · 2026";
+      display: block;
+      font-family: $font-family-sans-serif;
+      font-size: 0.5rem;
+      font-weight: 700;
+      letter-spacing: 0.26em;
+      text-transform: uppercase;
+      color: $gold;
+      margin-top: 0.15rem;
+    }
   }
 
   .nav-link {
-    font-size: 0.92rem;
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
 
     &:hover, &.active {
       color: $gold !important;
     }
   }
+}
+
+// Content-page titles get the stationery treatment: Garamond over a
+// double rule, with room to breathe.
+.quarto-title {
+  border-bottom: 3px double rgba($navy, 0.5);
+  padding-bottom: 0.5rem;
+  margin-bottom: 1.1rem;
+
+  h1.title { margin-bottom: 0; }
 }
 
 // --- Page titles ------------------------------------------------------------
@@ -93,25 +129,90 @@ h1, h2, h3 {
 // --- Tables (gt renders interactive tables through reactable) ---------------
 .reactable {
   font-family: $font-family-sans-serif;
-  font-size: 0.92rem;
+  font-size: 0.9rem;
+  border: 1px solid rgba($navy, 0.2);
+  border-top: 3px double $navy;
+  background: $card;
+  width: 100% !important;  // gt's width option doesn't reach interactive tables
 
   .rt-th {
-    font-size: 0.72rem;
+    font-size: 0.7rem;
     font-weight: 700;
     letter-spacing: 0.1em;
     text-transform: uppercase;
     color: $navy;
     border-bottom: 2px solid $navy;
-    background: transparent;
+    background: rgba($navy, 0.04);
+    padding: 0.5rem 0.65rem;
   }
 
-  .rt-tr-striped { background: rgba($navy, 0.035); }
+  .rt-td {
+    padding: 0.45rem 0.65rem;
+    border-bottom: 1px solid rgba($navy, 0.1);
+    font-variant-numeric: tabular-nums;
+    vertical-align: middle;
+  }
+
+  .rt-tr-striped { background: rgba($navy, 0.03); }
   .rt-tr-highlight:hover { background: rgba($gold, 0.12); }
 
-  .rt-td { border-bottom: 1px solid rgba($navy, 0.12); }
+  // The search box (default browser input reads as unstyled — dress it)
+  .rt-search {
+    font-family: $font-family-sans-serif;
+    font-size: 0.85rem;
+    background: $paper;
+    border: 1px solid rgba($navy, 0.3);
+    border-radius: 2px;
+    padding: 0.35rem 0.6rem;
+    margin: 0.5rem 0.65rem;
+    max-width: 18rem;
 
-  // Numbers align in columns
-  .rt-td { font-variant-numeric: tabular-nums; }
+    &:focus {
+      outline: none;
+      border-color: $gold;
+      box-shadow: 0 0 0 2px rgba($gold, 0.25);
+    }
+  }
+
+  // Pagination footer
+  .rt-pagination {
+    border-top: 2px solid rgba($navy, 0.25);
+    padding: 0.4rem 0.65rem;
+    font-size: 0.78rem;
+    color: $muted;
+  }
+  .rt-page-button { color: $navy; border-radius: 2px; }
+  .rt-page-button-current {
+    background: $navy;
+    color: $paper;
+    font-weight: 700;
+  }
+  .rt-page-jump, .rt-page-size-select {
+    font-family: $font-family-sans-serif;
+    border: 1px solid rgba($navy, 0.3);
+    background: $paper;
+    border-radius: 2px;
+  }
+}
+
+// Plain markdown/kable tables (Committees page dockets, etc.)
+.table {
+  font-size: 0.9rem;
+  background: $card;
+  border-top: 3px double $navy;
+
+  thead th {
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: $navy;
+    border-bottom: 2px solid $navy !important;
+    background: rgba($navy, 0.04);
+  }
+
+  td { border-color: rgba($navy, 0.1); vertical-align: middle; }
+  tbody tr:hover { background: rgba($gold, 0.08); }
 }
 
 // Static gt tables (headers on non-interactive tables)
@@ -159,56 +260,111 @@ h1, h2, h3 {
 // A responsive grid of cards; each card is a "desk" (The Wire, Floor Action,
 // Money Watch, …). Cards stack on phones.
 
+// The letterhead masthead: mirrors the committee-agenda stationery —
+// small caps over blackletter over small caps, framed by double rules.
 .monitor-masthead {
   text-align: center;
   border-top: 3px double $navy;
   border-bottom: 3px double $navy;
-  padding: 1.1rem 0 0.9rem;
-  margin-bottom: 0.4rem;
+  padding: 0.7rem 0 0.6rem;
+  margin-bottom: 0.35rem;
 
-  h1 {
-    font-size: 2rem;
-    margin: 0 0 0.2rem;
+  .mast-over {
+    font-size: 0.66rem;
+    font-weight: 700;
+    letter-spacing: 0.32em;
+    text-transform: uppercase;
+    color: $gold-text;
+    margin-bottom: 0.1rem;
   }
 
-  .session-status {
-    font-family: $headings-font-family;
-    font-style: italic;
-    color: $muted;
-    font-size: 1.02rem;
+  h1.mast-blackletter {
+    font-family: $blackletter;
+    font-weight: 400;
+    font-size: 3.1rem;
+    line-height: 1.05;
+    color: $navy;
+    margin: 0;
+    text-shadow: 1px 1px 0 rgba($gold, 0.35);
+  }
+
+  .mast-under {
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.28em;
+    text-transform: uppercase;
+    color: $navy;
+    margin-top: 0.25rem;
+
+    .rule-flank { color: $gold; letter-spacing: 0; }
   }
 }
 
+// The thin stats ticker beneath the masthead
+.session-ticker {
+  text-align: center;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: $muted;
+  margin: 0.15rem 0 0.7rem;
+
+  b { color: $navy; }
+  .tick-sep { color: $gold; padding: 0 0.45rem; }
+}
+
+// The desk grid: three columns on a desktop, everything above the fold;
+// each card scrolls internally when its list runs long.
 .monitor-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(19rem, 1fr));
-  gap: 1rem;
-  align-items: start;
-  margin-top: 1.2rem;
+  grid-template-columns: repeat(auto-fit, minmax(17rem, 1fr));
+  gap: 0.8rem;
+  align-items: stretch;
+}
+
+@media (min-width: 1100px) {
+  .monitor-grid { grid-template-columns: repeat(3, 1fr); }
 }
 
 .monitor-card {
   background: $card;
-  border: 1px solid rgba($navy, 0.18);
-  border-radius: 3px;
-  padding: 0.9rem 1.1rem 1rem;
+  border: 1px solid rgba($navy, 0.2);
+  border-top: 3px solid $navy;
+  border-radius: 2px;
+  padding: 0 0.85rem 0.6rem;
+  max-height: 21.5rem;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba($navy, 0.3) transparent;
 
   .card-label {
     @extend .label-caps;
     display: block;
+    position: sticky;
+    top: 0;
+    background: $card;
     border-bottom: 2px solid $gold;
-    padding-bottom: 0.35rem;
-    margin-bottom: 0.7rem;
+    padding: 0.55rem 0 0.3rem;
+    margin-bottom: 0.4rem;
+    z-index: 1;
   }
 
   ul { list-style: none; margin: 0; padding: 0; }
-  li { padding: 0.3rem 0; border-bottom: 1px solid rgba($navy, 0.08); }
+  li {
+    padding: 0.24rem 0;
+    border-bottom: 1px solid rgba($navy, 0.08);
+    font-size: 0.84rem;
+    line-height: 1.35;
+  }
   li:last-child { border-bottom: none; }
 
   .card-more {
     display: inline-block;
-    margin-top: 0.55rem;
-    font-size: 0.85rem;
+    margin-top: 0.4rem;
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
     color: $gold-text;
     text-decoration: none;
     &:hover { color: $navy; }
@@ -261,6 +417,29 @@ h1, h2, h3 {
 }
 
 .wire-empty { color: $muted; font-style: italic; }
+
+// --- Roll-call blocks on bill pages ------------------------------------------
+details.rollcall {
+  border-left: 2px solid $gold;
+  background: $card;
+  padding: 0.45rem 0.8rem;
+  margin: 0.4rem 0;
+  font-size: 0.88rem;
+
+  summary {
+    cursor: pointer;
+    font-size: 0.74rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: $navy;
+
+    &:hover { color: $gold-text; }
+  }
+
+  p { margin: 0.45rem 0 0.1rem; }
+  b { color: $navy; }
+}
 
 // --- Bill progress tracker (the stepper on bill pages) -----------------------
 $track-pass: #2e6b46;

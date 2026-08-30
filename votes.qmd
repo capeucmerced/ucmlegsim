@@ -28,16 +28,13 @@ vote_table <- function(code) {
     return(invisible(NULL))
   }
 
+  # Summaries only — the full roll call for each vote lives on the
+  # bill's own page.
   dat |>
-    # Link each bill to its page
     left_join(bills |> select(bill_measure, url_slug), by = c("Bill" = "bill_measure")) |>
     mutate(Bill = ifelse(is.na(url_slug), Bill,
-                         sprintf("[%s](/%s/%s.html)", Bill, BILL_PAGES_DIR, url_slug))) |>
-    # Blank senator cells -> NA so they display as an em dash
-    mutate(across(any_of(ns$s_names_period), ~ ifelse(.x == "", NA, .x))) |>
-    # Senator columns back to their display names
-    rename_with(~ ns$s_names[match(.x, ns$s_names_period)], .cols = any_of(ns$s_names_period)) |>
-    select(Date, Bill, Vote, Result, Dem_percent_sign, Rep_percent_sign, any_of(ns$s_names)) |>
+                         sprintf("[%s](%s/%s.html)", Bill, BILL_PAGES_DIR, url_slug))) |>
+    select(Date, Bill, Vote, Result, Dem_percent_sign, Rep_percent_sign) |>
     arrange(desc(Date)) |>
     gt() |>
     fmt_markdown(columns = "Bill") |>

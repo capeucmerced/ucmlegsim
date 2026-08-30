@@ -28,9 +28,11 @@ for (i in seq_len(nrow(lobbys))) {
       filter(org_code == lobby_code) |>
       left_join(bills |> select(bill_number, bill_measure, url_slug), by = "bill_number") |>
       mutate(
+        # NOTE: links inside gt tables are NOT rewritten by Quarto, so they
+        # must point at the final .html, never the .qmd source.
         Bill_Link = ifelse(is.na(url_slug),
                            paste0("SB-", bill_number),
-                           sprintf("[SB-%s](../%s/%s.qmd)", bill_number, BILL_PAGES_DIR, url_slug)),
+                           sprintf("[SB-%s](../%s/%s.html)", bill_number, BILL_PAGES_DIR, url_slug)),
         Letter_Link = sprintf("[View Letter](../%s/%s)", LETTERS_DIR, filename)
       ) |>
       select(Bill_Link, Position = position, Letter_Link) |>
@@ -199,7 +201,7 @@ for (i in seq_len(nrow(lobbys))) {
     "    mutate(",
     "      Recipient_Link = ifelse(",
     "        !is.na(Recipient.District),",
-    "        sprintf('[%s](../senator-pages/district_%s.qmd)', Recipient, Recipient.District),",
+    "        sprintf('[%s](../senator-pages/district_%s.html)', Recipient, Recipient.District),",
     "        Recipient",
     "      )",
     "    ) |>",

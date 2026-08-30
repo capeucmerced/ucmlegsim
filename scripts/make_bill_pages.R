@@ -46,6 +46,34 @@ for (i in seq_len(nrow(bills))) {
   }
   matches_code <- paste(capture.output(dput(matches)), collapse = "\n")
 
+  # --- Roll calls: who voted how, one collapsible block per vote ----------
+  # Built from the per-committee frames so only that committee's members
+  # are listed (the floor lists everyone). Pure HTML: markdown inside
+  # <details> blocks would not be processed.
+  rollcall_lines <- c()
+  for (code in names(votes)) {
+    vdf <- votes[[code]]
+    vrows <- vdf |> filter(Bill == b$bill_measure) |> arrange(desc(Date))
+    if (nrow(vrows) == 0) next
+    member_cols <- intersect(ns$s_names_period, names(vdf))
+    display <- ns$s_names[match(member_cols, ns$s_names_period)]
+    for (j in seq_len(nrow(vrows))) {
+      v <- as.character(unlist(vrows[j, member_cols]))
+      grp <- function(val) paste(sort(display[!is.na(v) & v == val]), collapse = ", ")
+      absent <- paste(sort(display[is.na(v) | v == ""]), collapse = ", ")
+      parts <- c()
+      if (grp("Aye") != "")     parts <- c(parts, paste0("<b>Aye:</b> ", grp("Aye")))
+      if (grp("No") != "")      parts <- c(parts, paste0("<b>No:</b> ", grp("No")))
+      if (grp("Abstain") != "") parts <- c(parts, paste0("<b>Abstain:</b> ", grp("Abstain")))
+      if (absent != "")         parts <- c(parts, paste0("<b>Absent:</b> ", absent))
+      rollcall_lines <- c(rollcall_lines, sprintf(
+        '<details class="rollcall"><summary>Roll call — %s, %s (%s)</summary><p>%s</p></details>',
+        COMMITTEE_NAMES[code], format(vrows$Date[j], "%b %d"), vrows$Result[j],
+        paste(parts, collapse = "<br>")
+      ))
+    }
+  }
+
   # --- Previous versions of the bill text ---------------------------------
   prev_pattern <- paste0("^", b$url_slug, "_v[0-9]+\\.pdf$")
   prev_files   <- list.files(PREV_BILL_PDF_DIR, pattern = prev_pattern)
@@ -210,6 +238,8 @@ for (i in seq_len(nrow(bills))) {
     "  cat('No vote history available for this bill.')",
     "}",
     "```",
+    "",
+    rollcall_lines,
     "",
     "## Previous Text",
     "",
