@@ -1,7 +1,7 @@
 Lobby,Code,Spending Power,Color
 CA Chamber of Commerce,coc,High,#1a5fa8
 CA Labor Federation,fed,High,#1c1c1c
-PG&E/ Edison/ Sempra,elec,High,#b38f00
+PG&E/ Edison/ Sempra,elec,High,#c99700
 Chevron/ WSPA,oil,,#5d4037
 CA Bankers Association/ Personal Insurance Federation,bank,Medium,#7b1e3b
 CA Teachers Association,cta,Medium,#5b3a8c
@@ -9,7 +9,7 @@ Uber/ Meta/ OpenAI,tech,,#c2185b
 Cal Medical Association/ CA Dental Association/ CA Nurses Association/ CA Hospital Association,med,,#00695c
 Farm Bureau,farm,Low,#6f8a21
 Sierra Club/ Natural Resources Defense Fund,env,Low,#2e6b46
-League of California Cities/ CA State Association of Counties/ University of California,local,Low,#6d6875
+League of California Cities/ CA State Association of Counties/ University of California,local,Low,#7a6f5e
 California Association of Highway Patrolmen/ CCPOA/ PORAC,law,,#8a6d1a
 "Tribes: San Manuel, Pechange, Santa Ynez Chumash, United Auburn, Chukchansi, Table Mountain",tribe,,#00838f
 Consumer Attorneys of CA,atty,,#a31621
