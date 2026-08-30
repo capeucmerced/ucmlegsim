@@ -9,6 +9,8 @@ execute:
   message: false
 ---
 
+<p class="page-lede">Every bill of the session. Click a bill number for its full page — text, tracker, roll calls, and letters.</p>
+
 ```{r}
 library(gt)
 source("scripts/shared.R")
@@ -67,10 +69,6 @@ bills |>
     appropriations = "Fiscal",
     Vote = "Latest Vote (A-N-Ab-Abs)",
     Result = "Result"
-  ) |>
-  tab_header(
-    title = "Bills",
-    subtitle = "Click a bill number for its full page — text, tracker, votes, and letters"
   ) |>
   opt_interactive(
     use_sorting = TRUE,

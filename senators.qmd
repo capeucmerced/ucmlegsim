@@ -9,6 +9,8 @@ execute:
   message: false
 ---
 
+<p class="page-lede">The forty members of the Senate. Click a name for their record — bills, votes, and contributions received.</p>
+
 ```{r}
 library(gt)
 source("scripts/shared.R")
@@ -48,10 +50,6 @@ senators |>
   ) |>
   cols_align(align = "left", columns = everything()) |>
   fmt_markdown(columns = all_of(markdown_columns)) |>
-  tab_header(
-    title = "Senators",
-    subtitle = "Click to view senator profile or activity"
-  ) |>
   opt_interactive(
     use_sorting = TRUE,
     use_search = TRUE,

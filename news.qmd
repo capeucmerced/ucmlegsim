@@ -37,7 +37,6 @@ if (nrow(newspaper) > 0 && "Link" %in% names(newspaper)) {
     gt() |>
     fmt_markdown(columns = Link) |>
     cols_label(Edition = "Edition", Date = "Date", Link = "View") |>
-    tab_header(title = "Class Newspaper") |>
     opt_interactive(use_sorting = TRUE, use_search = TRUE,
                     use_filters = FALSE, use_resizers = TRUE) |>
     opt_row_striping()
@@ -59,11 +58,7 @@ if (nrow(news) > 0) {
   news |>
     gt() |>
     fmt_markdown(columns = Newspaper) |>
-    cols_label(Newspaper = "") |>
-    tab_header(
-      title = "Newspapers",
-      subtitle = "Click on name to view articles from that outlet"
-    ) |>
+    cols_label(Newspaper = "Outlet") |>
     opt_interactive(use_sorting = TRUE, use_search = TRUE,
                     use_filters = FALSE, use_resizers = TRUE) |>
     opt_row_striping()

@@ -9,6 +9,8 @@ execute:
   message: false
 ---
 
+<p class="page-lede">Membership, agendas, dockets, and recent actions — one tab per committee, plus the floor.</p>
+
 ```{r}
 #| results: asis
 library(knitr)

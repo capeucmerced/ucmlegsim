@@ -9,7 +9,14 @@ execute:
   message: false
 ---
 
-[Vote entry link can be found here.](https://docs.google.com/spreadsheets/d/1O3c2ZGWMUwBu_q2Yjr0nbfBOn9qD2T3A_zhYH8Q2ZHs/edit?gid=0#gid=0)
+```{r lede}
+#| results: asis
+cat(sprintf(
+  '<p class="page-lede">Vote summaries for every action taken, newest first — open a bill for its full roll call. Votes are entered <a href="%s">in the vote sheet</a>. Last updated %s.</p>',
+  "https://docs.google.com/spreadsheets/d/1O3c2ZGWMUwBu_q2Yjr0nbfBOn9qD2T3A_zhYH8Q2ZHs/edit?gid=0#gid=0",
+  format(Sys.time(), "%b %d, %I:%M %p")
+))
+```
 
 ```{r setup}
 library(gt)
@@ -43,10 +50,6 @@ vote_table <- function(code) {
       Vote = "Vote (Aye-No-Abstain-Absent)",
       Dem_percent_sign = "Democrat Support",
       Rep_percent_sign = "Republican Support"
-    ) |>
-    tab_header(
-      title = md("**Votes**"),
-      subtitle = paste0("Last updated: ", format(Sys.time(), "%Y-%m-%d %H:%M %Z"))
     ) |>
     sub_missing(columns = everything(), missing_text = "—") |>
     opt_interactive(

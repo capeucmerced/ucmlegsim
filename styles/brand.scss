@@ -99,6 +99,18 @@ html { background: $paper; }
   h1.title { margin-bottom: 0; }
 }
 
+// The page lede: one italic line under the title that explains the page.
+// Tables themselves carry no internal titles — context lives here instead.
+.page-lede {
+  font-family: $headings-font-family;
+  font-style: italic;
+  font-size: 1.06rem;
+  color: $muted;
+  margin: -0.3rem 0 1.1rem;
+
+  a { color: $gold-text; }
+}
+
 // --- Page titles ------------------------------------------------------------
 .title {
   font-family: $headings-font-family;

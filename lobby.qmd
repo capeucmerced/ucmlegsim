@@ -9,6 +9,8 @@ execute:
   message: false
 ---
 
+<p class="page-lede">The lobbying organizations of the session. Click a firm for its positions filed and money spent.</p>
+
 ```{r}
 library(gt)
 source("scripts/shared.R")
@@ -25,10 +27,6 @@ lobbys |>
   ) |>
   cols_align(align = "left", columns = everything()) |>
   fmt_markdown(columns = link) |>
-  tab_header(
-    title = "Lobby Firms",
-    subtitle = "Click to view Lobby position letters and spending"
-  ) |>
   opt_interactive(
     use_sorting = TRUE,
     use_filters = FALSE,
