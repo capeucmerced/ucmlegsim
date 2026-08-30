@@ -2,7 +2,8 @@
 title: "News"
 format:
   html:
-    page-layout: full
+    page-layout: article
+    toc: false
 execute:
   echo: false
   warning: false
@@ -11,6 +12,32 @@ execute:
 
 ## The Wire
 
+```{r editions-margin}
+#| results: asis
+source("scripts/shared.R")
+
+# Quick links to the class newspaper's editions, kept in the right margin.
+newspaper <- read_sheet_safe(NEWSPAPER_SHEET_URL)
+
+if (nrow(newspaper) > 0 && all(c("Edition", "Link") %in% names(newspaper))) {
+  eds <- newspaper |> filter(!is.na(Link) & Link != "")
+  if (nrow(eds) > 0) {
+    eds <- eds[rev(seq_len(nrow(eds))), ]  # newest first
+    items <- sprintf(
+      '<li><a href="%s" target="_blank" rel="noopener">%s</a>%s</li>',
+      eds$Link,
+      ifelse(grepl("^[0-9]+$", eds$Edition), paste("Edition", eds$Edition), eds$Edition),
+      ifelse(is.na(eds$Date) | eds$Date == "", "", paste0(" · ", eds$Date))
+    )
+    cat('::: {.column-margin}\n',
+        '<div class="margin-editions"><span class="margin-label">Class Newspaper</span><ul>',
+        paste(items, collapse = ""),
+        '</ul></div>\n',
+        ':::\n', sep = "")
+  }
+}
+```
+
 Live dispatches from the press corps — newest first.
 
 <div class="wire-feed"></div>
@@ -18,48 +45,23 @@ Live dispatches from the press corps — newest first.
 
 ## The Papers
 
-```{r}
-library(gt)
-source("scripts/shared.R")
-
-newspaper <- read_sheet_safe(NEWSPAPER_SHEET_URL)
-
-if (nrow(newspaper) > 0 && "Link" %in% names(newspaper)) {
-  newspaper <- newspaper |>
-    filter(!is.na(Link) & Link != "") |>
-    mutate(Link = sprintf("[%s](%s)", "Click here for link", Link))
-}
-
-if (nrow(newspaper) > 0 && "Link" %in% names(newspaper)) {
-  newspaper |>
-    gt() |>
-    fmt_markdown(columns = Link) |>
-    cols_label(Edition = "Edition", Date = "Date", Link = "View") |>
-    opt_interactive(use_sorting = TRUE, use_search = TRUE,
-                    use_filters = FALSE, use_resizers = TRUE) |>
-    opt_row_striping()
-} else {
-  cat("Class newspaper not available.\n")
-}
-```
-
-```{r}
+```{r outlets}
 #| results: asis
 # The outlet directory as tiles. A tile links to the outlet's article page
-# when a Link is set; until then it stands as a nameplate. Logos land in
-# files/images/logos/<outlet_slug>.png and appear automatically.
+# when a Link is set; until then it stands as a nameplate. Each outlet's
+# Logo column names its file in files/images/newspaper_logos/.
 news <- tryCatch(read.csv(JOURNALIST_CSV), error = function(e) data.frame())
 
 if (nrow(news) > 0) {
   tiles <- vapply(seq_len(nrow(news)), function(i) {
     outlet <- news$Newspaper[i]
-    slug   <- tolower(gsub("[^a-z0-9]+", "_", tolower(outlet)))
-    logo   <- sprintf("files/images/logos/%s.png", slug)
+    logo <- if ("Logo" %in% names(news) && !is.na(news$Logo[i]) && news$Logo[i] != "") {
+      file.path("files/images/newspaper_logos", trimws(news$Logo[i]))
+    } else ""
 
-    face <- if (file.exists(logo)) {
+    face <- if (logo != "" && file.exists(logo)) {
       sprintf('<span class="tile-plate"><img src="%s" alt="%s"></span>', logo, outlet)
     } else {
-      # Monogram from the outlet's initials
       initials <- paste(substr(strsplit(outlet, "\\s+")[[1]], 1, 1), collapse = "")
       sprintf('<span class="tile-mono">%s</span>', toupper(substr(initials, 1, 3)))
     }

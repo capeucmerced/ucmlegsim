@@ -1,11 +1,11 @@
-Newspaper,Link
-Fresno Bee,
-Modesto Bee,
-San Francisco Chronicle,
-LA Times,
-San Diego Union Tribune,
-La Opinion,
-Orange County Register,
-Sacramento Bee,
-CalMatters,
-The Press-Enterprise,
+Newspaper,Link,Logo
+Fresno Bee,,fresno_bee.png
+Modesto Bee,,modesto_bee.png
+San Francisco Chronicle,,sf_chron.png
+LA Times,,la_times.png
+San Diego Union Tribune,,san_diego.jpg
+La Opinion,,la_opinion.png
+Orange County Register,,orange_county.png
+Sacramento Bee,,sacramento_bee.png
+CalMatters,,calmatters.png
+The Press-Enterprise,,press_enterprise.jpg

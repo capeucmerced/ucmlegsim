@@ -72,9 +72,7 @@ bills |>
     use_sorting = TRUE,
     use_search = TRUE,
     use_filters = FALSE,
-    use_resizers = TRUE,
     use_highlight = TRUE,
     page_size_default = 5
-  ) |>
-  opt_row_striping()
+  )
 ```

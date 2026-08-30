@@ -17,3 +17,6 @@
 
 # Per-document render artifacts Quarto sometimes leaves next to sources
 *_files/
+
+# Box Drive sync-conflict copies ("name (user@email).ext") — never track these
+*(nbrouwer@ucmerced.edu)*

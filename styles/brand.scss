@@ -180,45 +180,46 @@ h1, h2, h3 {
     vertical-align: middle;
   }
 
-  .rt-tr-striped { background: rgba($navy, 0.03); }
-  .rt-tr-highlight:hover { background: rgba($gold, 0.12); }
+  // No striping — rows separate by hairline only, like the plain tables
+  .rt-tr-striped { background: transparent; }
+  .rt-tr-highlight:hover { background: rgba($gold, 0.1); }
 
-  // The search box (default browser input reads as unstyled — dress it)
+  // The search: a quiet underline field, tucked right
   .rt-search {
     font-family: $font-family-sans-serif;
-    font-size: 0.85rem;
-    background: $paper;
-    border: 1px solid rgba($navy, 0.3);
-    border-radius: 2px;
-    padding: 0.35rem 0.6rem;
-    margin: 0.5rem 0.65rem;
-    max-width: 18rem;
+    font-size: 0.82rem;
+    background: transparent;
+    border: none;
+    border-bottom: 1px solid rgba($navy, 0.35);
+    border-radius: 0;
+    padding: 0.2rem 0.1rem;
+    margin: 0 0 0.45rem auto;
+    display: block;
+    max-width: 13rem;
 
     &:focus {
       outline: none;
-      border-color: $gold;
-      box-shadow: 0 0 0 2px rgba($gold, 0.25);
+      border-bottom-color: $gold;
+      box-shadow: none;
     }
   }
 
-  // Pagination footer
+  // Pagination: a minimal footer line
   .rt-pagination {
-    border-top: 2px solid rgba($navy, 0.25);
-    padding: 0.4rem 0.65rem;
-    font-size: 0.78rem;
+    border-top: 1px solid rgba($navy, 0.2);
+    background: transparent;
+    padding: 0.35rem 0.2rem;
+    font-size: 0.76rem;
     color: $muted;
   }
-  .rt-page-button { color: $navy; border-radius: 2px; }
-  .rt-page-button-current {
-    background: $navy;
-    color: $paper;
-    font-weight: 700;
-  }
+  .rt-page-button { color: $navy; border-radius: 2px; background: transparent; }
+  .rt-page-button-current { color: $gold-text; font-weight: 700; }
   .rt-page-jump, .rt-page-size-select {
     font-family: $font-family-sans-serif;
-    border: 1px solid rgba($navy, 0.3);
-    background: $paper;
-    border-radius: 2px;
+    border: none;
+    border-bottom: 1px solid rgba($navy, 0.3);
+    background: transparent;
+    border-radius: 0;
   }
 }
 
@@ -296,14 +297,32 @@ h1, h2, h3 {
   .tile-plate {
     background: #fff;
     border-radius: 3px;
-    width: 74%;
-    height: 52%;
+    width: 78%;
+    height: 56%;
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 0.4rem;
+    padding: 0.35rem;
 
-    img { max-width: 100%; max-height: 100%; object-fit: contain; }
+    // min-width/height 0: flex children otherwise refuse to shrink below
+    // an image's intrinsic size, cropping wide wordmarks
+    img {
+      max-width: 100%;
+      max-height: 100%;
+      min-width: 0;
+      min-height: 0;
+      width: auto;
+      height: auto;
+      object-fit: contain;
+    }
+
+    // Conglomerates: several member logos compose a small cluster
+    &.multi {
+      flex-wrap: wrap;
+      gap: 4%;
+
+      img { max-width: 44%; max-height: 44%; flex: 0 1 auto; }
+    }
   }
 
   .tile-name {
@@ -332,6 +351,23 @@ h1, h2, h3 {
 
 // A tile with no page/link yet renders as a plain div
 div.tile { cursor: default; }
+
+// --- Margin quick-links (Newsroom: class-newspaper editions) ------------------
+.margin-editions {
+  font-size: 0.78rem;
+
+  .margin-label {
+    @extend .label-caps;
+    display: block;
+    border-bottom: 2px solid $gold;
+    padding-bottom: 0.25rem;
+    margin-bottom: 0.4rem;
+  }
+
+  ul { list-style: none; margin: 0; padding: 0; }
+  li { padding: 0.18rem 0; border-bottom: 1px solid rgba($navy, 0.08); }
+  li:last-child { border-bottom: none; }
+}
 
 // Static gt tables (headers on non-interactive tables)
 .gt_table {
