@@ -12,11 +12,13 @@ project:
     - "files/"
     - "archive/"
 
-# Freeze: generated pages carry "freeze: auto" in their own front matter, so
-# they only re-execute when their content actually changed — that is what keeps
-# builds fast. The eight top-level pages read live data and are never frozen.
-execute:
-  freeze: auto
+# NOTE: no project-wide freeze here, on purpose. The generated pages
+# (bills-pages/, senator-pages/, lobby-pages/) each carry "freeze: auto" in
+# their own front matter — they skip re-execution unless their baked-in data
+# changed, which is what keeps builds fast. The top-level pages read live
+# data (CSVs, Google Sheets) and must re-execute every build; a project-wide
+# freeze would serve them stale whenever data changed but their source
+# didn't.
 
 website:
   # Browser-tab suffix; the navbar shows the letterhead lockup instead

@@ -37,7 +37,7 @@ The master mapping of people to roles. One row per student.
 | Role | `senator` / `lobbyist` / `journalist` |
 | District | Senators only: 1–40 |
 | First Name / Last Name | Senators: their senator persona's name |
-| Org Code | Lobbyists only: code from `lobbyist_list.csv` (e.g. `SC`) |
+| Org Code | Lobbyists only: code from `lobbyist_list.csv` (e.g. `ENV`) |
 | Outlet | Journalists only: newspaper name |
 | Handle | Journalists only: display handle for the newsfeed (e.g. `@CVSun_Torres`) |
 | Chair / Vice Chair | Committee code they lead, if any (e.g. `anr`) |
@@ -146,7 +146,7 @@ description, link. Never the email.
 
 | Column | Meaning |
 | --- | --- |
-| Org Code | e.g. `SC` |
+| Org Code | e.g. `ENV` |
 | Budget | total semester budget (number) |
 | Spent | formula: sum of that org's Spending rows |
 | Remaining | formula: Budget − Spent |
