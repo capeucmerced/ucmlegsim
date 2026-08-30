@@ -9,8 +9,6 @@ execute:
   message: false
 ---
 
-<p class="page-lede">Every bill of the session. Click a bill number for its full page — text, tracker, roll calls, and letters.</p>
-
 ```{r}
 library(gt)
 source("scripts/shared.R")

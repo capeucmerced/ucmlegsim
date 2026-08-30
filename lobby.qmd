@@ -9,29 +9,34 @@ execute:
   message: false
 ---
 
-<p class="page-lede">The lobbying organizations of the session. Click a firm for its positions filed and money spent.</p>
-
 ```{r}
-library(gt)
+#| results: asis
 source("scripts/shared.R")
 
-lobbys <- read.csv(LOBBY_CSV) |>
-  mutate(link = sprintf("[%s](%s/%s.html)", Lobby, LOBBY_PAGES_DIR, toupper(Code)))
+# One square tile per organization, linking to its page. If a logo exists
+# in files/images/logos/<CODE>.png it is shown on a white plate; otherwise
+# the tile is a monogram in the org's color. Spending power (when set)
+# appears as a corner badge.
+lobbys <- read.csv(LOBBY_CSV) |> mutate(Code = toupper(Code))
 
-lobbys |>
-  select(link, Spending.Power) |>
-  gt() |>
-  cols_label(
-    link = "Lobby",
-    Spending.Power = "Spending Power"
-  ) |>
-  cols_align(align = "left", columns = everything()) |>
-  fmt_markdown(columns = link) |>
-  opt_interactive(
-    use_sorting = TRUE,
-    use_filters = FALSE,
-    use_resizers = TRUE,
-    page_size_default = 20
-  ) |>
-  opt_row_striping()
+tiles <- vapply(seq_len(nrow(lobbys)), function(i) {
+  l <- lobbys[i, ]
+  color <- if (!is.na(l$Color) && l$Color != "") l$Color else "#17345a"
+  logo  <- sprintf("files/images/logos/%s.png", l$Code)
+
+  face <- if (file.exists(logo)) {
+    sprintf('<span class="tile-plate"><img src="%s" alt="%s logo"></span>', logo, l$Lobby)
+  } else {
+    sprintf('<span class="tile-mono">%s</span>', l$Code)
+  }
+
+  badge <- if (!is.na(l$Spending.Power) && l$Spending.Power != "") {
+    sprintf('<span class="tile-badge">%s</span>', l$Spending.Power)
+  } else ""
+
+  sprintf('<a class="tile" style="--tile-color:%s" href="%s/%s.html">%s%s<span class="tile-name">%s</span></a>',
+          color, LOBBY_PAGES_DIR, l$Code, badge, face, l$Lobby)
+}, character(1))
+
+cat('<div class="tile-grid">', paste(tiles, collapse = "\n"), '</div>')
 ```

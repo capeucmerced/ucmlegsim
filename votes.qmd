@@ -9,10 +9,10 @@ execute:
   message: false
 ---
 
-```{r lede}
+```{r note}
 #| results: asis
 cat(sprintf(
-  '<p class="page-lede">Vote summaries for every action taken, newest first — open a bill for its full roll call. Votes are entered <a href="%s">in the vote sheet</a>. Last updated %s.</p>',
+  '<p class="table-note"><a href="%s">Vote entry sheet</a> · full roll calls are on each bill&#39;s page · updated %s</p>',
   "https://docs.google.com/spreadsheets/d/1O3c2ZGWMUwBu_q2Yjr0nbfBOn9qD2T3A_zhYH8Q2ZHs/edit?gid=0#gid=0",
   format(Sys.time(), "%b %d, %I:%M %p")
 ))

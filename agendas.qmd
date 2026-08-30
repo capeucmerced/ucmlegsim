@@ -9,8 +9,6 @@ execute:
   message: false
 ---
 
-<p class="page-lede">Every committee agenda filed this session, newest first. The next meeting for each committee is also shown on its [Committees](committees.qmd) tab.</p>
-
 ```{r}
 library(gt)
 source("scripts/shared.R")

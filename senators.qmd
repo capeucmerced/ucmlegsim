@@ -9,8 +9,6 @@ execute:
   message: false
 ---
 
-<p class="page-lede">The forty members of the Senate. Click a name for their record — bills, votes, and contributions received.</p>
-
 ```{r}
 library(gt)
 source("scripts/shared.R")

@@ -18,8 +18,6 @@ Live dispatches from the press corps — newest first.
 
 ## The Papers
 
-You can find links to the class newspaper in the table below. To read articles from a specific news source, you can find links to their websites at the bottom of the page.
-
 ```{r}
 library(gt)
 source("scripts/shared.R")
@@ -46,22 +44,36 @@ if (nrow(newspaper) > 0 && "Link" %in% names(newspaper)) {
 ```
 
 ```{r}
-# The outlet directory (local CSV; empty or missing is fine early on).
+#| results: asis
+# The outlet directory as tiles. A tile links to the outlet's article page
+# when a Link is set; until then it stands as a nameplate. Logos land in
+# files/images/logos/<outlet_slug>.png and appear automatically.
 news <- tryCatch(read.csv(JOURNALIST_CSV), error = function(e) data.frame())
 
 if (nrow(news) > 0) {
-  news <- news |>
-    mutate(Newspaper = ifelse(is.na(Link) | Link == "", Newspaper,
-                              sprintf("[%s](%s)", Newspaper, Link))) |>
-    select(-Link)
+  tiles <- vapply(seq_len(nrow(news)), function(i) {
+    outlet <- news$Newspaper[i]
+    slug   <- tolower(gsub("[^a-z0-9]+", "_", tolower(outlet)))
+    logo   <- sprintf("files/images/logos/%s.png", slug)
 
-  news |>
-    gt() |>
-    fmt_markdown(columns = Newspaper) |>
-    cols_label(Newspaper = "Outlet") |>
-    opt_interactive(use_sorting = TRUE, use_search = TRUE,
-                    use_filters = FALSE, use_resizers = TRUE) |>
-    opt_row_striping()
+    face <- if (file.exists(logo)) {
+      sprintf('<span class="tile-plate"><img src="%s" alt="%s"></span>', logo, outlet)
+    } else {
+      # Monogram from the outlet's initials
+      initials <- paste(substr(strsplit(outlet, "\\s+")[[1]], 1, 1), collapse = "")
+      sprintf('<span class="tile-mono">%s</span>', toupper(substr(initials, 1, 3)))
+    }
+
+    link <- news$Link[i]
+    inner <- sprintf('%s<span class="tile-name">%s</span>', face, outlet)
+    if (!is.na(link) && link != "") {
+      sprintf('<a class="tile" href="%s" target="_blank" rel="noopener">%s</a>', link, inner)
+    } else {
+      sprintf('<div class="tile" title="Articles coming soon">%s</div>', inner)
+    }
+  }, character(1))
+
+  cat('<div class="tile-grid">', paste(tiles, collapse = "\n"), '</div>')
 } else {
   cat("Newspaper list not available yet.\n")
 }

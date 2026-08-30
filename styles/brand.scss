@@ -72,9 +72,13 @@ html { background: $paper; }
       font-weight: 700;
       letter-spacing: 0.26em;
       text-transform: uppercase;
-      color: $gold;
+      color: rgba($paper, 0.65);
       margin-top: 0.15rem;
+      transition: color 0.15s;
     }
+
+    // The whole lockup moves to gold together on hover
+    &:hover::after { color: $gold; }
   }
 
   .nav-link {
@@ -99,14 +103,12 @@ html { background: $paper; }
   h1.title { margin-bottom: 0; }
 }
 
-// The page lede: one italic line under the title that explains the page.
-// Tables themselves carry no internal titles — context lives here instead.
-.page-lede {
-  font-family: $headings-font-family;
-  font-style: italic;
-  font-size: 1.06rem;
+// Small utility line above a table (used sparingly, e.g. the vote-entry
+// link on the Votes page). Tables otherwise stand on their own.
+.table-note {
+  font-size: 0.8rem;
   color: $muted;
-  margin: -0.3rem 0 1.1rem;
+  margin: -0.2rem 0 0.8rem;
 
   a { color: $gold-text; }
 }
@@ -142,10 +144,23 @@ h1, h2, h3 {
 .reactable {
   font-family: $font-family-sans-serif;
   font-size: 0.9rem;
-  border: 1px solid rgba($navy, 0.2);
+  border: none;
   border-top: 3px double $navy;
-  background: $card;
+  background: transparent;
   width: 100% !important;  // gt's width option doesn't reach interactive tables
+
+  // Kill reactable's own white surfaces so every table sits on the page's
+  // paper, exactly like the plain (kable) tables do.
+  .rt-table, .rt-thead, .rt-tbody, .rt-tfoot, .rt-tr, .rt-tr-group {
+    background: transparent;
+  }
+
+  // No word may ever break mid-word in a table
+  .rt-td, .rt-th {
+    word-break: normal;
+    overflow-wrap: normal;
+    hyphens: none;
+  }
 
   .rt-th {
     font-size: 0.7rem;
@@ -207,10 +222,11 @@ h1, h2, h3 {
   }
 }
 
-// Plain markdown/kable tables (Committees page dockets, etc.)
+// Plain markdown/kable tables (Committees page dockets, etc.) — the same
+// look as the interactive ones: transparent on paper, double-rule top.
 .table {
   font-size: 0.9rem;
-  background: $card;
+  background: transparent;
   border-top: 3px double $navy;
 
   thead th {
@@ -221,11 +237,101 @@ h1, h2, h3 {
     color: $navy;
     border-bottom: 2px solid $navy !important;
     background: rgba($navy, 0.04);
+    padding: 0.5rem 0.65rem;
   }
 
-  td { border-color: rgba($navy, 0.1); vertical-align: middle; }
+  td {
+    border-color: rgba($navy, 0.1);
+    vertical-align: middle;
+    padding: 0.45rem 0.65rem;
+    word-break: normal;
+    overflow-wrap: normal;
+    hyphens: none;
+  }
   tbody tr:hover { background: rgba($gold, 0.08); }
 }
+
+// --- Roster tiles (Lobbyists and Newsroom pages) ------------------------------
+// Square, clickable, one per organization. Shows the logo from
+// files/images/logos/ when one exists; otherwise a colored monogram.
+.tile-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(10.5rem, 1fr));
+  gap: 0.9rem;
+  margin: 1rem 0;
+}
+
+.tile {
+  aspect-ratio: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 0.8rem;
+  position: relative;
+  background: var(--tile-color, $navy);
+  color: #fff;
+  border-radius: 3px;
+  text-decoration: none;
+  box-shadow: 1px 2px 4px rgba(0, 0, 0, 0.15);
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
+
+  &:hover {
+    color: #fff;
+    transform: translateY(-3px);
+    box-shadow: 2px 5px 10px rgba(0, 0, 0, 0.22);
+    outline: 2px solid $gold;
+    text-decoration: none;
+  }
+
+  .tile-mono {
+    font-family: $headings-font-family;
+    font-weight: 600;
+    font-size: 2.1rem;
+    line-height: 1;
+    letter-spacing: 0.04em;
+  }
+
+  .tile-plate {
+    background: #fff;
+    border-radius: 3px;
+    width: 74%;
+    height: 52%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.4rem;
+
+    img { max-width: 100%; max-height: 100%; object-fit: contain; }
+  }
+
+  .tile-name {
+    margin-top: 0.45rem;
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    line-height: 1.3;
+    opacity: 0.94;
+  }
+
+  .tile-badge {
+    position: absolute;
+    top: 0.45rem;
+    right: 0.45rem;
+    font-size: 0.56rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    background: rgba(0, 0, 0, 0.28);
+    padding: 0.08rem 0.38rem;
+    border-radius: 2px;
+  }
+}
+
+// A tile with no page/link yet renders as a plain div
+div.tile { cursor: default; }
 
 // Static gt tables (headers on non-interactive tables)
 .gt_table {
