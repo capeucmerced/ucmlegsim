@@ -294,37 +294,6 @@ h1, h2, h3 {
     letter-spacing: 0.04em;
   }
 
-  .tile-plate {
-    background: #fff;
-    border-radius: 3px;
-    width: 78%;
-    height: 56%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 0.35rem;
-
-    // min-width/height 0: flex children otherwise refuse to shrink below
-    // an image's intrinsic size, cropping wide wordmarks
-    img {
-      max-width: 100%;
-      max-height: 100%;
-      min-width: 0;
-      min-height: 0;
-      width: auto;
-      height: auto;
-      object-fit: contain;
-    }
-
-    // Conglomerates: several member logos compose a small cluster
-    &.multi {
-      flex-wrap: wrap;
-      gap: 4%;
-
-      img { max-width: 44%; max-height: 44%; flex: 0 1 auto; }
-    }
-  }
-
   .tile-name {
     margin-top: 0.45rem;
     font-size: 0.68rem;
@@ -351,6 +320,127 @@ h1, h2, h3 {
 
 // A tile with no page/link yet renders as a plain div
 div.tile { cursor: default; }
+
+// --- Stat blocks, leaderboards, and share bars --------------------------------
+// The house infographic components: used on senator pages (contributions),
+// lobby pages (spending), and the Stats page.
+
+.stat-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.8rem;
+  margin: 0.4rem 0 1rem;
+}
+
+.stat {
+  flex: 1 1 11rem;
+  background: $card;
+  border: 1px solid rgba($navy, 0.2);
+  border-top: 3px solid $navy;
+  border-radius: 2px;
+  padding: 0.55rem 0.9rem 0.65rem;
+
+  .stat-label {
+    @extend .label-caps;
+    display: block;
+    margin-bottom: 0.15rem;
+  }
+
+  .stat-value {
+    font-family: $headings-font-family;
+    font-size: 1.9rem;
+    line-height: 1.1;
+    color: $navy;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .stat-sub {
+    display: block;
+    font-size: 0.76rem;
+    color: $muted;
+    margin-top: 0.1rem;
+  }
+}
+
+.lb-label {
+  @extend .label-caps;
+  border-bottom: 2px solid $gold;
+  padding-bottom: 0.3rem;
+  margin: 1rem 0 0.4rem;
+}
+
+ol.leaderboard {
+  list-style: none;
+  margin: 0 0 1rem;
+  padding: 0;
+  max-width: 34rem;
+
+  li {
+    display: flex;
+    align-items: baseline;
+    gap: 0.7rem;
+    padding: 0.35rem 0.1rem;
+    border-bottom: 1px solid rgba($navy, 0.1);
+    font-size: 0.92rem;
+
+    &:last-child { border-bottom: none; }
+  }
+
+  .lb-rank {
+    font-family: $headings-font-family;
+    font-size: 1.15rem;
+    color: $gold-text;
+    min-width: 1.4rem;
+    text-align: right;
+  }
+
+  .lb-name { flex: 1 1 auto; }
+
+  .lb-amt {
+    font-variant-numeric: tabular-nums;
+    font-weight: 700;
+    color: $navy;
+    white-space: nowrap;
+  }
+}
+
+// Side-by-side leaderboards (Stats page)
+.lb-cols {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 2.5rem;
+
+  .lb-block { flex: 1 1 18rem; min-width: 0; }
+}
+
+// Party split of spending: one slim bar, D blue / R red / paper remainder
+.share-bar {
+  display: flex;
+  height: 0.7rem;
+  max-width: 34rem;
+  border: 1px solid rgba($navy, 0.25);
+  border-radius: 2px;
+  overflow: hidden;
+  margin: 0.3rem 0 0.25rem;
+  background: $paper;
+
+  .share-d { background: $party-dem; }
+  .share-r { background: $party-rep; }
+}
+
+.share-legend {
+  display: flex;
+  gap: 1.4rem;
+  max-width: 34rem;
+  font-size: 0.78rem;
+  color: $muted;
+  margin-bottom: 0.9rem;
+
+  b { color: $ink; }
+  .dot { font-size: 0.9rem; }
+  .dot-d { color: $party-dem; }
+  .dot-r { color: $party-rep; }
+}
 
 // --- Margin quick-links (Newsroom: class-newspaper editions) ------------------
 .margin-editions {

@@ -79,7 +79,44 @@ for (i in seq_len(nrow(lobbys))) {
   }
 
   spending_code <- paste(capture.output(dput(spending_df)), collapse = "\n")
-  top_code      <- paste(capture.output(dput(top_recipients)), collapse = "\n")
+
+  # The spending infographic (stat blocks + party share bar + leaderboard),
+  # built here as plain HTML in the site's own components
+  if (nrow(spending_df) > 0) {
+    spent <- d_support + r_support
+    spend_html <- c(
+      '<div class="stat-strip">',
+      sprintf('<div class="stat"><span class="stat-label">Total Budget</span><span class="stat-value">%s</span></div>',
+              ifelse(is.na(total_spend), "—", scales::dollar(total_spend))),
+      sprintf('<div class="stat"><span class="stat-label">Contributed So Far</span><span class="stat-value">%s</span><span class="stat-sub">across %d contributions</span></div>',
+              scales::dollar(sum(spending_df$Contribution, na.rm = TRUE)), nrow(spending_df)),
+      '</div>'
+    )
+    if (!is.na(total_spend) && total_spend > 0) {
+      spend_html <- c(
+        spend_html,
+        '<div class="lb-label">Where the Money Went</div>',
+        sprintf('<div class="share-bar"><span class="share-d" style="width:%.1f%%"></span><span class="share-r" style="width:%.1f%%"></span></div>',
+                100 * d_share, 100 * r_share),
+        sprintf('<div class="share-legend"><span><span class="dot dot-d">●</span> Democrats <b>%s</b> (%s)</span><span><span class="dot dot-r">●</span> Republicans <b>%s</b> (%s)</span><span>Remaining budget <b>%s</b></span></div>',
+                scales::dollar(d_support), scales::percent(d_share, accuracy = 1),
+                scales::dollar(r_support), scales::percent(r_share, accuracy = 1),
+                scales::dollar(max(total_spend - spent, 0)))
+      )
+    }
+    if (nrow(top_recipients) > 0) {
+      spend_html <- c(
+        spend_html,
+        '<div class="lb-label">Top Recipients</div>',
+        '<ol class="leaderboard">',
+        sprintf('<li><span class="lb-rank">%d</span><span class="lb-name">%s</span><span class="lb-amt">%s</span></li>',
+                top_recipients$rank, top_recipients$Recipient, scales::dollar(top_recipients$contributions)),
+        '</ol>'
+      )
+    }
+  } else {
+    spend_html <- "No spending data available for this lobby group."
+  }
 
   # --- Assemble the page ---------------------------------------------------
   yaml <- c(
@@ -120,80 +157,17 @@ for (i in seq_len(nrow(lobbys))) {
     "",
     "## Spending",
     "",
+    spend_html,
+    "",
     "```{r}",
     "#| echo: false",
     "#| warning: false",
     "#| message: false",
-    "library(scales)",
-    "library(bslib)",
-    "library(bsicons)",
-    "library(fontawesome)",
+    "library(dplyr)",
+    "library(gt)",
     "",
     paste("spending_df <-", spending_code),
-    paste("total_spend <-", deparse(total_spend)),
-    paste("d_support <-", deparse(d_support)),
-    paste("d_share <-", deparse(d_share)),
-    paste("r_support <-", deparse(r_support)),
-    paste("r_share <-", deparse(r_share)),
-    paste("top_recipients <-", top_code),
     "",
-    "if (nrow(spending_df) > 0) {",
-    "  layout_column_wrap(",
-    "    width = 1/3,",
-    "    value_box(",
-    "      title = 'Total Contributions',",
-    "      value = dollar(total_spend),",
-    "      showcase = bs_icon('currency-dollar'),",
-    "      theme = 'purple'",
-    "    ),",
-    "    value_box(",
-    "      title = 'Democratic Contributions',",
-    "      value = dollar(d_support),",
-    "      showcase = fa('democrat', fill = 'blue', height = '3em'),",
-    "      theme = 'primary',",
-    "      paste0(percent(d_share, accuracy = 0.1), ' of total')",
-    "    ),",
-    "    value_box(",
-    "      title = 'Republican Contributions',",
-    "      value = dollar(r_support),",
-    "      showcase = fa('republican', fill = '#c40000ff', height = '3em'),",
-    "      theme = 'danger',",
-    "      paste0(percent(r_share, accuracy = 0.1), ' of total')",
-    "    )",
-    "  )",
-    "}",
-    "```",
-    "",
-    "```{r}",
-    "#| echo: false",
-    "#| warning: false",
-    "# Top recipients, tolerating ties at each rank",
-    "if (nrow(spending_df) > 0 && nrow(top_recipients) > 0) {",
-    "  titles <- c('Top Recipient', '2nd Recipient', '3rd Recipient')",
-    "  icons  <- c('trophy-fill', 'award-fill', 'award-fill')",
-    "  themes <- c('success', 'secondary', 'secondary')",
-    "  box_args <- list()",
-    "  for (r in 1:3) {",
-    "    rows <- top_recipients[top_recipients$rank == r, ]",
-    "    if (nrow(rows) > 0) {",
-    "      box_args <- c(box_args, list(value_box(",
-    "        title = titles[r],",
-    "        value = paste(rows$Recipient, collapse = ', '),",
-    "        showcase = bs_icon(icons[r]),",
-    "        theme = themes[r],",
-    "        dollar(rows$contributions[1])",
-    "      )))",
-    "    }",
-    "  }",
-    "  if (length(box_args) > 0) {",
-    "    do.call(layout_column_wrap, c(list(width = 1 / length(box_args)), box_args))",
-    "  }",
-    "}",
-    "```",
-    "",
-    "```{r}",
-    "#| echo: false",
-    "#| warning: false",
     "if (nrow(spending_df) > 0) {",
     "  spending_df |>",
     "    mutate(",
@@ -212,7 +186,7 @@ for (i in seq_len(nrow(lobbys))) {
     "    fmt_date(columns = Date, date_style = 'yMd') |>",
     "    opt_interactive(use_sorting = TRUE, use_search = TRUE)",
     "} else {",
-    "  cat('No spending data available for this lobby group.')",
+    "  invisible(NULL)  # the section text above already says there is no data",
     "}",
     "```",
     "",

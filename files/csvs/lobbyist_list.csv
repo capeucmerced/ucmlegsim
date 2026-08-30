@@ -1,16 +1,16 @@
-Lobby,Code,Spending Power,Color,Logos
-CA Chamber of Commerce,coc,High,#8c1d40,cal_chambers.png
-CA Labor Federation,fed,High,#b3541e,calaborfed.jpeg
-PG&E/ Edison/ Sempra,pge,High,#b06f00,pge.png;edison.png;sempra.png
-Chevron/ WSPA,chv,,#0b6e99,chevron.png
-CA Bankers Association/ Personal Insurance Federation,bank,Medium,#3d5a80,bankers.png;personal_insurance.png
-CA Teachers Association,cta,Medium,#5b3a8c,
-Uber/ Meta/ OpenAI,tech,,#c2185b,meta.png;openai.jpg
-Cal Medical Association/ CA Dental Association/ CA Nurses Association/ CA Hospital Association,med,,#00695c,medical.jpg;dental.png;nurses.png;hospitals.png
-Farm Bureau,fb,Low,#6f8a21,farm_bureau.png
-Sierra Club/ Natural Resources Defense Fund,sc,Low,#2e6b46,sierra_club.png;nrdf.png
-League of California Cities/ CA State Association of Counties/ University of California,lcc,Low,#757083,cities.png;counties.png
-California Association of Highway Patrolmen/ CCPOA/ PORAC,leo,,#263843,highway_patrol.png;ccpoa.png;porac.png
-"Tribes: San Manuel, Pechange, Santa Ynez Chumash, United Auburn, Chukchansi, Table Mountain",tribes,,#5c4033,san_manuel.png;pechanga.png;santa_ynez.png;chukchansi.png
-Consumer Attorneys of CA,caoc,,#8e24aa,consumer_attorneys.jpg
-CA Building Industry Association/ CA Apartment Association/ CA Association of Realtors,bia,,#01579b,builders.jpg;apartments.png;realtors.png
+Lobby,Code,Spending Power,Color
+CA Chamber of Commerce,coc,High,#8c1d40
+CA Labor Federation,fed,High,#b3541e
+PG&E/ Edison/ Sempra,pge,High,#b06f00
+Chevron/ WSPA,chv,,#0b6e99
+CA Bankers Association/ Personal Insurance Federation,bank,Medium,#3d5a80
+CA Teachers Association,cta,Medium,#5b3a8c
+Uber/ Meta/ OpenAI,tech,,#c2185b
+Cal Medical Association/ CA Dental Association/ CA Nurses Association/ CA Hospital Association,med,,#00695c
+Farm Bureau,fb,Low,#6f8a21
+Sierra Club/ Natural Resources Defense Fund,sc,Low,#2e6b46
+League of California Cities/ CA State Association of Counties/ University of California,lcc,Low,#757083
+California Association of Highway Patrolmen/ CCPOA/ PORAC,leo,,#263843
+"Tribes: San Manuel, Pechange, Santa Ynez Chumash, United Auburn, Chukchansi, Table Mountain",tribes,,#5c4033
+Consumer Attorneys of CA,caoc,,#8e24aa
+CA Building Industry Association/ CA Apartment Association/ CA Association of Realtors,bia,,#01579b

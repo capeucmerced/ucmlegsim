@@ -13,31 +13,16 @@ execute:
 #| results: asis
 source("scripts/shared.R")
 
-# One square tile per organization, linking to its page. The Logos column
-# of lobbyist_list.csv lists member-logo files (";"-separated) from
-# files/images/lobbyist_logos/ — one logo fills the plate, several compose
-# a small cluster (how conglomerate lobbies are shown). No logos = a
-# monogram in the org's color. Spending power (when set) is a corner badge.
+# One square tile per organization, linking to its page: the org's code
+# as a monogram on its color, name beneath, spending power (when set) as
+# a corner badge.
 lobbys <- read.csv(LOBBY_CSV) |> mutate(Code = toupper(Code))
 
 tiles <- vapply(seq_len(nrow(lobbys)), function(i) {
   l <- lobbys[i, ]
   color <- if (!is.na(l$Color) && l$Color != "") l$Color else "#17345a"
 
-  logo_files <- character(0)
-  if ("Logos" %in% names(l) && !is.na(l$Logos) && l$Logos != "") {
-    logo_files <- trimws(strsplit(l$Logos, ";")[[1]])
-    logo_files <- logo_files[file.exists(file.path("files/images/lobbyist_logos", logo_files))]
-  }
-
-  face <- if (length(logo_files) > 0) {
-    imgs <- sprintf('<img src="files/images/lobbyist_logos/%s" alt="">', logo_files)
-    sprintf('<span class="tile-plate%s">%s</span>',
-            if (length(logo_files) > 1) " multi" else "",
-            paste(imgs, collapse = ""))
-  } else {
-    sprintf('<span class="tile-mono">%s</span>', l$Code)
-  }
+  face <- sprintf('<span class="tile-mono">%s</span>', l$Code)
 
   badge <- if (!is.na(l$Spending.Power) && l$Spending.Power != "") {
     sprintf('<span class="tile-badge">%s</span>', l$Spending.Power)

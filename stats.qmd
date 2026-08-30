@@ -1,0 +1,195 @@
+---
+title: "Session Stats"
+format:
+  html:
+    page-layout: article
+    toc: false
+execute:
+  echo: false
+  warning: false
+  message: false
+---
+
+```{r data}
+#| results: asis
+library(plotly)
+source("scripts/shared.R")
+
+senators <- load_senators()
+ns       <- senator_name_sets(senators)
+votes    <- load_all_votes(ns)
+bills    <- load_bills() |> bill_statuses(votes)
+contribs <- load_all_contributions()
+
+sen_link <- function(name, district) {
+  sprintf('<a href="%s/district_%s.html">%s</a>', SENATOR_PAGES_DIR, district, name)
+}
+lb <- function(label, ranks, names, amounts) {
+  cat('<div class="lb-block"><div class="lb-label">', label, '</div><ol class="leaderboard">',
+      paste(sprintf('<li><span class="lb-rank">%s</span><span class="lb-name">%s</span><span class="lb-amt">%s</span></li>',
+                    ranks, names, amounts), collapse = ""),
+      '</ol></div>', sep = "")
+}
+```
+
+## The Money
+
+```{r money}
+#| results: asis
+if (nrow(contribs) > 0) {
+  total   <- sum(contribs$Contribution, na.rm = TRUE)
+  biggest <- contribs |> filter(!is.na(Contribution)) |> slice_max(Contribution, n = 1, with_ties = FALSE)
+  big_who <- senators |> filter(District == biggest$Recipient.District)
+  big_txt <- sprintf("%s → %s, %s", biggest$Lobby_Code,
+                     if (nrow(big_who) > 0) big_who$Name else biggest$Recipient.Name,
+                     format(biggest$Date, "%b %d"))
+
+  cat(sprintf('
+<div class="stat-strip">
+  <div class="stat"><span class="stat-label">Total Contributed</span><span class="stat-value">%s</span><span class="stat-sub">across %d contributions</span></div>
+  <div class="stat"><span class="stat-label">Largest Single Gift</span><span class="stat-value">%s</span><span class="stat-sub">%s</span></div>
+</div>', scales::dollar(total), nrow(contribs), scales::dollar(biggest$Contribution), big_txt))
+
+  cat('<div class="lb-cols">')
+
+  # Senators who received the most
+  top_received <- contribs |>
+    filter(!is.na(Recipient.District)) |>
+    group_by(Recipient.District) |>
+    summarize(total = sum(Contribution, na.rm = TRUE)) |>
+    left_join(senators |> select(District, Name, Party), by = c("Recipient.District" = "District")) |>
+    arrange(desc(total)) |>
+    mutate(rank = dense_rank(desc(total))) |>
+    filter(rank <= 5)
+  lb("Deepest Pockets — Most Money Received",
+     top_received$rank,
+     sprintf("%s (%s-%d)", sen_link(top_received$Name, top_received$Recipient.District),
+             top_received$Party, top_received$Recipient.District),
+     scales::dollar(top_received$total))
+
+  # Lobbies that spent the most
+  top_spent <- contribs |>
+    group_by(Lobby_Code, Lobby) |>
+    summarize(total = sum(Contribution, na.rm = TRUE), .groups = "drop") |>
+    arrange(desc(total)) |>
+    mutate(rank = dense_rank(desc(total))) |>
+    filter(rank <= 5)
+  lb("Biggest Spenders",
+     top_spent$rank,
+     ifelse(is.na(top_spent$Lobby), top_spent$Lobby_Code, top_spent$Lobby),
+     scales::dollar(top_spent$total))
+
+  cat('</div>')
+  cat('<div class="lb-label">Money Over Time</div>')
+} else {
+  cat('<p>No contributions have been reported yet.</p>')
+}
+```
+
+```{r money-chart}
+#| fig-height: 3.2
+if (nrow(contribs) > 0) {
+  daily <- contribs |>
+    filter(!is.na(Date)) |>
+    arrange(Date) |>
+    group_by(Date) |>
+    summarize(day_total = sum(Contribution, na.rm = TRUE)) |>
+    mutate(cumulative = cumsum(day_total))
+
+  plot_ly(daily, x = ~Date, y = ~cumulative, type = "scatter", mode = "lines+markers",
+          line = list(color = "#17345a", width = 2.5),
+          marker = list(color = "#d4a821", size = 6),
+          fill = "tozeroy", fillcolor = "rgba(23,52,90,0.08)",
+          hovertemplate = "%{x|%b %d}: %{y:$,.0f}<extra></extra>") |>
+    layout(
+      xaxis = list(title = "", gridcolor = "rgba(23,52,90,0.08)"),
+      yaxis = list(title = "", tickprefix = "$", gridcolor = "rgba(23,52,90,0.08)"),
+      plot_bgcolor = "rgba(0,0,0,0)", paper_bgcolor = "rgba(0,0,0,0)",
+      font = list(family = "Atkinson Hyperlegible"),
+      margin = list(t = 10, b = 30, l = 60, r = 20)
+    ) |>
+    config(displayModeBar = FALSE)
+}
+```
+
+## The Votes
+
+```{r loyalty}
+#| results: asis
+if (length(votes) > 0) {
+  # Per senator: votes cast, votes with their party's plurality, misses
+  loyalty <- do.call(rbind, lapply(seq_len(nrow(senators)), function(i) {
+    s <- senators[i, ]
+    choice_col <- if (s$Party == "D") "Dem_choice" else "Rep_choice"
+    cast <- 0; agree <- 0; missed <- 0
+    for (df in votes) {
+      if (!s$name_period %in% names(df)) next
+      v  <- df[[s$name_period]]
+      ch <- df[[choice_col]]
+      is_cast <- !is.na(v) & v %in% c("Aye", "No", "Abstain")
+      cast   <- cast + sum(is_cast)
+      agree  <- agree + sum(is_cast & v == ch, na.rm = TRUE)
+      missed <- missed + sum(is.na(v) | v == "")
+    }
+    data.frame(Name = s$Name, District = s$District, Party = s$Party,
+               cast = cast, agree = agree, missed = missed)
+  })) |>
+    mutate(pct = ifelse(cast >= 5, round(100 * agree / cast), NA))
+
+  eligible <- loyalty |> filter(!is.na(pct))
+
+  cat('<div class="lb-cols">')
+  for (p in c("D", "R")) {
+    top <- eligible |> filter(Party == p) |>
+      arrange(desc(pct), desc(cast)) |>
+      mutate(rank = dense_rank(desc(pct))) |>
+      filter(rank <= 3)
+    lb(paste0("Most Loyal ", ifelse(p == "D", "Democrats", "Republicans")),
+       top$rank,
+       sen_link(top$Name, top$District),
+       sprintf("%d%% of %d votes", top$pct, top$cast))
+  }
+  cat('</div><div class="lb-cols">')
+
+  mavericks <- eligible |>
+    arrange(pct, desc(cast)) |>
+    mutate(rank = dense_rank(pct)) |>
+    filter(rank <= 3)
+  lb("The Mavericks — Most Votes Against Party",
+     mavericks$rank,
+     sprintf("%s (%s)", sen_link(mavericks$Name, mavericks$District), mavericks$Party),
+     sprintf("%d%% with party", mavericks$pct))
+
+  most_missed <- loyalty |>
+    filter(missed > 0) |>
+    arrange(desc(missed)) |>
+    mutate(rank = dense_rank(desc(missed))) |>
+    filter(rank <= 3)
+  if (nrow(most_missed) > 0) {
+    lb("Most Missed Votes",
+       most_missed$rank,
+       sprintf("%s (%s)", sen_link(most_missed$Name, most_missed$District), most_missed$Party),
+       sprintf("%d missed", most_missed$missed))
+  }
+  cat('</div>')
+} else {
+  cat('<p>No votes have been taken yet.</p>')
+}
+```
+
+## The Bills
+
+```{r bills}
+#| results: asis
+n_passed <- sum(bills$status == "Passed Senate")
+n_failed <- sum(grepl("^Failed", bills$status))
+n_moving <- nrow(bills) - n_passed - n_failed
+
+cat(sprintf('
+<div class="stat-strip">
+  <div class="stat"><span class="stat-label">Bills Introduced</span><span class="stat-value">%d</span></div>
+  <div class="stat"><span class="stat-label">Passed the Senate</span><span class="stat-value">%d</span></div>
+  <div class="stat"><span class="stat-label">Failed</span><span class="stat-value">%d</span></div>
+  <div class="stat"><span class="stat-label">Still Moving</span><span class="stat-value">%d</span></div>
+</div>', nrow(bills), n_passed, n_failed, n_moving))
+```

@@ -41,6 +41,8 @@ website:
         href: lobby.qmd
       - text: News
         href: news.qmd
+      - text: Stats
+        href: stats.qmd
       - text: Districts
         href: map.qmd
       - text: Playbook

@@ -115,7 +115,32 @@ for (i in seq_len(nrow(senators))) {
     }
   }
   contribs_code  <- paste(capture.output(dput(their_contribs)), collapse = "\n")
-  top_code       <- paste(capture.output(dput(top_contributors)), collapse = "\n")
+
+  # The contributions infographic (stat blocks + leaderboard), built here
+  # as plain HTML in the site's own components
+  if (nrow(their_contribs) > 0) {
+    rank_txt <- if (!is.na(senator_rank)) paste0("#", senator_rank) else "—"
+    contrib_html <- c(
+      '<div class="stat-strip">',
+      sprintf('<div class="stat"><span class="stat-label">Total Received</span><span class="stat-value">%s</span></div>',
+              scales::dollar(total_received)),
+      sprintf('<div class="stat"><span class="stat-label">Rank Among Senators</span><span class="stat-value">%s</span><span class="stat-sub">of 40 districts</span></div>',
+              rank_txt),
+      '</div>'
+    )
+    if (nrow(top_contributors) > 0) {
+      contrib_html <- c(
+        contrib_html,
+        '<div class="lb-label">Top Contributors</div>',
+        '<ol class="leaderboard">',
+        sprintf('<li><span class="lb-rank">%d</span><span class="lb-name">%s</span><span class="lb-amt">%s</span></li>',
+                top_contributors$rank, top_contributors$Lobby, scales::dollar(top_contributors$total)),
+        '</ol>'
+      )
+    }
+  } else {
+    contrib_html <- "No contribution data available for this senator."
+  }
 
   # --- Assemble the page ---------------------------------------------------
   profile_pdf <- sprintf("../%s/%s_%s_profile.pdf", SEN_PROFILE_DIR, s$name_link, district)
@@ -250,67 +275,17 @@ for (i in seq_len(nrow(senators))) {
     "",
     "## Campaign Contributions",
     "",
+    contrib_html,
+    "",
     "```{r}",
     "#| echo: false",
     "#| warning: false",
     "#| message: false",
-    "library(scales)",
+    "library(dplyr)",
+    "library(gt)",
     "",
     paste("senator_contributions <-", contribs_code),
-    paste("total_received <-", deparse(total_received)),
-    paste("senator_rank <-", deparse(senator_rank)),
-    paste("top_contributors <-", top_code),
     "",
-    "if (nrow(senator_contributions) > 0) {",
-    "  layout_column_wrap(",
-    "    width = 1/2,",
-    "    value_box(",
-    "      title = 'Total Contributions Received',",
-    "      value = dollar(total_received),",
-    "      showcase = bs_icon('currency-dollar'),",
-    "      theme = 'purple'",
-    "    ),",
-    "    value_box(",
-    "      title = 'Rank Among All Senators',",
-    "      value = if (!is.na(senator_rank)) paste0('#', senator_rank) else 'N/A',",
-    "      showcase = bs_icon('bar-chart-fill'),",
-    "      theme = 'primary',",
-    "      if (!is.na(senator_rank)) 'Out of 40 senators' else ''",
-    "    )",
-    "  )",
-    "}",
-    "```",
-    "",
-    "```{r}",
-    "#| echo: false",
-    "#| warning: false",
-    "# Top contributors, tolerating ties at each rank",
-    "if (nrow(senator_contributions) > 0 && nrow(top_contributors) > 0) {",
-    "  titles <- c('Top Contributor', '2nd Contributor', '3rd Contributor')",
-    "  icons  <- c('trophy-fill', 'award-fill', 'award-fill')",
-    "  themes <- c('success', 'secondary', 'secondary')",
-    "  box_args <- list()",
-    "  for (r in 1:3) {",
-    "    rows <- top_contributors[top_contributors$rank == r, ]",
-    "    if (nrow(rows) > 0) {",
-    "      box_args <- c(box_args, list(value_box(",
-    "        title = titles[r],",
-    "        value = paste(rows$Lobby, collapse = ', '),",
-    "        showcase = bs_icon(icons[r]),",
-    "        theme = themes[r],",
-    "        dollar(rows$total[1])",
-    "      )))",
-    "    }",
-    "  }",
-    "  if (length(box_args) > 0) {",
-    "    do.call(layout_column_wrap, c(list(width = 1 / length(box_args)), box_args))",
-    "  }",
-    "}",
-    "```",
-    "",
-    "```{r}",
-    "#| echo: false",
-    "#| warning: false",
     "if (nrow(senator_contributions) > 0) {",
     "  senator_contributions |>",
     "    gt() |>",
@@ -319,7 +294,7 @@ for (i in seq_len(nrow(senators))) {
     "    fmt_date(columns = Date, date_style = 'yMd') |>",
     "    opt_interactive(use_sorting = TRUE, use_search = TRUE)",
     "} else {",
-    "  cat('No contribution data available for this senator.')",
+    "  invisible(NULL)  # the section text above already says there is no data",
     "}",
     "```",
     "",

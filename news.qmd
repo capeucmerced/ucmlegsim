@@ -47,24 +47,16 @@ Live dispatches from the press corps — newest first.
 
 ```{r outlets}
 #| results: asis
-# The outlet directory as tiles. A tile links to the outlet's article page
-# when a Link is set; until then it stands as a nameplate. Each outlet's
-# Logo column names its file in files/images/newspaper_logos/.
+# The outlet directory as tiles: each paper's initials as a monogram,
+# name beneath. A tile links to the outlet's article page when a Link is
+# set; until then it stands as a nameplate.
 news <- tryCatch(read.csv(JOURNALIST_CSV), error = function(e) data.frame())
 
 if (nrow(news) > 0) {
   tiles <- vapply(seq_len(nrow(news)), function(i) {
     outlet <- news$Newspaper[i]
-    logo <- if ("Logo" %in% names(news) && !is.na(news$Logo[i]) && news$Logo[i] != "") {
-      file.path("files/images/newspaper_logos", trimws(news$Logo[i]))
-    } else ""
-
-    face <- if (logo != "" && file.exists(logo)) {
-      sprintf('<span class="tile-plate"><img src="%s" alt="%s"></span>', logo, outlet)
-    } else {
-      initials <- paste(substr(strsplit(outlet, "\\s+")[[1]], 1, 1), collapse = "")
-      sprintf('<span class="tile-mono">%s</span>', toupper(substr(initials, 1, 3)))
-    }
+    initials <- paste(substr(strsplit(outlet, "\\s+")[[1]], 1, 1), collapse = "")
+    face <- sprintf('<span class="tile-mono">%s</span>', toupper(substr(initials, 1, 3)))
 
     link <- news$Link[i]
     inner <- sprintf('%s<span class="tile-name">%s</span>', face, outlet)
