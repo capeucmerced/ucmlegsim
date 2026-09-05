@@ -26,10 +26,20 @@ the instructor's personal account as *Editor* for day-to-day admin; when an
 instructor leaves, revoking that access is the entire handover. The
 department account's credentials must be kept department-side.
 
-Same continuity rule for the rest of the stack: the GitHub org should have
-a departmental owner, the rebuild PAT is per-user/expiring (recreate on
-handover), and the ucmlegsim.com domain registration/renewal should be in
-department hands and documented.
+After setup, the department login is only needed again for four rare
+events (everything else is editor-level): (1) re-authorizing the on-submit
+trigger if Google asks (password change, or the script code gains a new
+service); (2) publishing a new version of the newsfeed web app after its
+code changes — only the owner can update the deployment without changing
+its URL; (3) creating any NEW form/workbook/doc that must be
+department-owned; (4) account security/recovery events.
+
+Same continuity rule for the rest of the stack: the repo lives in the CAPE
+GitHub org — keep at least one org OWNER who isn't the departing
+instructor; the rebuild PAT is per-user and expiring, so a successor
+simply creates their own and updates the GITHUB_TOKEN script property
+(two minutes); and the ucmlegsim.com domain registration/renewal should be
+in department hands and documented.
 
 Roughly one sitting, in this order:
 
