@@ -17,6 +17,20 @@ runs from the repository.
 
 ## Deploy checklist (when the course Google account exists)
 
+**Do every step below signed in AS the department's Google account.** It
+must OWN everything — forms, workbooks, Drive folder, scripts, triggers,
+web app. Ownership can't be cleanly transferred later (copies get new file
+IDs, which breaks every published URL), and triggers/web apps run as the
+account that created them. After setup, share the folder and workbooks to
+the instructor's personal account as *Editor* for day-to-day admin; when an
+instructor leaves, revoking that access is the entire handover. The
+department account's credentials must be kept department-side.
+
+Same continuity rule for the rest of the stack: the GitHub org should have
+a departmental owner, the rebuild PAT is per-user/expiring (recreate on
+handover), and the ucmlegsim.com domain registration/renewal should be in
+department hands and documented.
+
 Roughly one sitting, in this order:
 
 1. **Drive**: create folder `LegSim Files` with subfolders `bills`,
