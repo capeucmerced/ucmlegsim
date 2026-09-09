@@ -35,16 +35,25 @@ function doGet() {
     }
   }
 
+  // Response-sheet columns are titled with the FULL question text
+  // ("Headline (max 100 characters)"), so match by prefix.
+  function colStartingWith(head, prefix) {
+    for (var i = 0; i < head.length; i++) {
+      if (String(head[i]).toLowerCase().indexOf(prefix.toLowerCase()) === 0) return i;
+    }
+    return -1;
+  }
+
   var posts = [];
   var sheet = ss.getSheetByName('Posts');
   if (sheet && sheet.getLastRow() > 1) {
     var rows = sheet.getDataRange().getValues();
     var head = rows[0];
-    var cTime = head.indexOf('Timestamp');
-    var cMail = head.indexOf('Email Address');
-    var cHead = head.indexOf('Headline');
-    var cDesc = head.indexOf('Description');
-    var cLink = head.indexOf('Link');
+    var cTime = colStartingWith(head, 'Timestamp');
+    var cMail = colStartingWith(head, 'Email Address');
+    var cHead = colStartingWith(head, 'Headline');
+    var cDesc = colStartingWith(head, 'Description');
+    var cLink = colStartingWith(head, 'Link');
 
     for (var j = 1; j < rows.length; j++) {
       var r = rows[j];
@@ -52,12 +61,13 @@ function doGet() {
       if (!who || !r[cHead]) continue;  // unregistered account or empty row -> skip
       posts.push({
         time:     new Date(r[cTime]).toISOString(),
-        name:     who.name,
+        // A roster row with no First/Last name falls back to the outlet
+        name:     String(who.name || '').trim() || who.outlet || 'Staff',
         outlet:   who.outlet || '',
         handle:   who.handle || '',
         headline: String(r[cHead]),
-        dek:      String(r[cDesc] || ''),
-        link:     String(r[cLink] || '')
+        dek:      cDesc >= 0 ? String(r[cDesc] || '') : '',
+        link:     cLink >= 0 ? String(r[cLink] || '') : ''
       });
     }
   }
