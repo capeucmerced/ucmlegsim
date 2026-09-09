@@ -64,6 +64,30 @@ function buildAllForms() {
   Logger.log('==== NOW DO THE MANUAL FINISH LIST (see file header) ====');
 }
 
+/**
+ * Run this once after buildAllForms(): adds the two hand-maintained tabs
+ * (Roster, Budgets) with their header rows, per intake/schemas.md.
+ */
+function addAdminTabs() {
+  var ss = SpreadsheetApp.openById(INTAKE_SPREADSHEET_ID);
+
+  var tabs = {
+    'Roster': ['Email', 'Role', 'District', 'First Name', 'Last Name',
+               'Org Code', 'Outlet', 'Handle', 'Chair', 'Vice Chair',
+               'Leadership', 'Bill Doc 1', 'Bill Doc 2'],
+    'Budgets': ['Org Code', 'Budget', 'Spent', 'Remaining']
+  };
+
+  Object.keys(tabs).forEach(function (name) {
+    var sheet = ss.getSheetByName(name) || ss.insertSheet(name);
+    sheet.getRange(1, 1, 1, tabs[name].length).setValues([tabs[name]])
+      .setFontWeight('bold');
+    sheet.setFrozenRows(1);
+  });
+
+  Logger.log('Roster and Budgets tabs are ready.');
+}
+
 // --- Shared plumbing --------------------------------------------------------
 
 /** Create a form, point its responses at the intake workbook, rename the
