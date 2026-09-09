@@ -7,6 +7,10 @@ runs from the repository.
 
 - `schemas.md` — the data contract: every sheet tab, its columns, who edits it.
 - `apps-script/` — the Google Apps Script sources, one file per concern:
+  - `forms_builder.gs` — **creates all thirteen forms programmatically**
+    on whatever account runs it (see its header for the run steps and the
+    short manual-finish list). Forms are code, not clicks: rebuildable on
+    any account, any year.
   - `rebuild.gs` — triggers a site rebuild via the GitHub API (+ admin menu)
   - `intake_workbook.gs` — routes form submissions (letters filing,
     registration → roster) and requests rebuilds
@@ -14,6 +18,27 @@ runs from the repository.
   - `vote_sheet.gs` — auto date-stamp for the vote-entry workbook
   - `bills_assembler.gs`, `agenda_builder.gs` — document assembly
     (drafted; must be tested live at deploy)
+
+## Beta on a personal account (supported)
+
+The whole Google side can be stood up on a personal account for testing
+before the department deploy, because every binding between Google and the
+site sits in three known places (the **swap surface**):
+
+1. the published-CSV URL block in `scripts/shared.R`
+2. `FEED_URL` in `js/feed.js`
+3. the deploy constants at the top of the `.gs` files
+   (spreadsheet/folder/template IDs, `GITHUB_TOKEN` property)
+
+Beta flow: run `forms_builder.gs` + the setup steps below on the personal
+account, wire those three places to it, and test freely. Cutover: repeat
+the same steps on the department account (the builder makes the forms
+identical) and re-point the swap surface — about fifteen minutes plus one
+render. **Hard rule: the beta retires before the first real student
+submission.** Response rows, uploaded PDFs, and pre-provisioned bill docs
+do not migrate between accounts — test data is disposable, student data is
+not. Whenever form links get embedded in site pages, put the URLs in
+`scripts/shared.R` too, so they stay inside the swap surface.
 
 ## Deploy checklist (when the course Google account exists)
 
