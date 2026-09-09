@@ -38,8 +38,7 @@ function doGet() {
     if (email) {
       roster[email] = {
         name:   row[rHead.indexOf('First Name')] + ' ' + row[rHead.indexOf('Last Name')],
-        outlet: row[rHead.indexOf('Outlet')],
-        handle: row[rHead.indexOf('Handle')]
+        outlet: row[rHead.indexOf('Outlet')]
       };
     }
   }
@@ -73,7 +72,6 @@ function doGet() {
         // A roster row with no First/Last name falls back to the outlet
         name:     String(who.name || '').trim() || who.outlet || 'Staff',
         outlet:   who.outlet || '',
-        handle:   who.handle || '',
         headline: String(r[cHead]),
         dek:      cDesc >= 0 ? String(r[cDesc] || '') : '',
         link:     cLink >= 0 ? String(r[cLink] || '') : ''

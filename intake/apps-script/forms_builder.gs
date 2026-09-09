@@ -75,7 +75,7 @@ function addAdminTabs() {
 
   var tabs = {
     'Roster': ['Email', 'Role', 'District', 'First Name', 'Last Name',
-               'Org Code', 'Outlet', 'Handle', 'Chair', 'Vice Chair',
+               'Org Code', 'Outlet', 'Chair', 'Vice Chair',
                'Leadership', 'Bill Doc 1', 'Bill Doc 2'],
     'Budgets': ['Org Code', 'Budget', 'Spent', 'Remaining']
   };
@@ -155,12 +155,10 @@ function finish(form, tabName) {
 // --- The forms, per intake/schemas.md ---------------------------------------
 
 function buildRegistration() {
+  // Registration is purely the account -> identity binding: the verified
+  // email does the real work; the name is for the admin's eyes.
   var f = newForm('Register for the Simulation', 'Registration');
   f.addTextItem().setTitle('Your full name').setRequired(true);
-  f.addParagraphTextItem()
-    .setTitle('A short bio for your role profile (2–4 sentences)').setRequired(true);
-  f.addParagraphTextItem()
-    .setTitle("Your role's top priorities this session (2–3 items)").setRequired(true);
   return finish(f, 'Registration');
 }
 

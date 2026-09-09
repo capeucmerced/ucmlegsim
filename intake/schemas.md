@@ -39,7 +39,6 @@ The master mapping of people to roles. One row per student.
 | First Name / Last Name | Senators: their senator persona's name |
 | Org Code | Lobbyists only: code from `lobbyist_list.csv` (e.g. `ENV`) |
 | Outlet | Journalists only: newspaper name |
-| Handle | Journalists only: display handle for the newsfeed (e.g. `@CVSun_Torres`) |
 | Chair / Vice Chair | Committee code they lead, if any (e.g. `anr`) |
 | Leadership | `Pro Tem`, `Majority Leader`, `Minority Leader`, or blank |
 | Bill Doc 1 / Bill Doc 2 | Senators: Google Doc IDs of their pre-provisioned bill-body docs (filled by the provisioning script) |
@@ -50,8 +49,6 @@ The master mapping of people to roles. One row per student.
 | --- | --- |
 | Timestamp / Email Address | automatic |
 | Full Name | "Your full name" |
-| Bio | "A short bio for your role profile (2–4 sentences)" |
-| Priorities | "Your role's top priorities this session (2–3 items)" |
 
 ## Tab: Bills  (form: "File a Bill")
 
@@ -131,7 +128,7 @@ automatically after passing their policy committee.)
 | Link | "Link to the full story (optional)" (URL validation) |
 
 Served to the site by the `newsfeed_api.gs` JSON endpoint, which joins the
-Roster and returns **only**: time, name, outlet, handle, headline,
+Roster and returns **only**: time, name, outlet, headline,
 description, link. Never the email.
 
 ## Tab: Editions  (form: "Publish a Newspaper Edition")

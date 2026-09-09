@@ -48,7 +48,9 @@ var REFRESH_SECONDS = 60;    // gentle background refresh while the page is open
     outlet.textContent = post.outlet || post.name;
     var byline = document.createElement("span");
     byline.className = "wire-byline";
-    byline.textContent = " · " + post.name + (post.handle ? " " + post.handle : "") +
+    // Skip the name when it just repeats the outlet
+    var showName = post.name && post.name !== (post.outlet || post.name);
+    byline.textContent = (showName ? " · " + post.name : "") +
                          " · " + timeLabel(post.time);
     meta.appendChild(outlet);
     meta.appendChild(byline);
