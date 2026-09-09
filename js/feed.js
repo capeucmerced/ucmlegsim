@@ -14,7 +14,9 @@
 // data-journalist="Name" limits the feed to one journalist's posts
 // (used on the per-journalist pages); empty shows everyone.
 
-var FEED_URL = "";           // <- set at deploy
+// BETA deployment (instructor's personal account). At the department
+// deploy, this swaps to the department web app's /exec URL.
+var FEED_URL = "https://script.google.com/macros/s/AKfycbzV8j7CpZvdkmS44vdWTzUxw0_tLufgwN0gz-QCdswe_5wujNiS4YXVLZVkQUqGDMLJ/exec";
 var REFRESH_SECONDS = 60;    // gentle background refresh while the page is open
 
 (function () {
