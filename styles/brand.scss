@@ -617,6 +617,21 @@ ol.leaderboard {
 
 .monitor-wide { grid-column: 1 / -1; }
 
+// The Wire's card runs double height — a full ticker column — with
+// tighter type than the feed gets on the Newsroom page.
+.monitor-card.monitor-tall {
+  grid-row: span 2;
+  max-height: 44.8rem;
+}
+
+.monitor-card {
+  .wire-post { padding: 0.5rem 0; }
+  .wire-meta { font-size: 0.66rem; }
+  .wire-headline { font-size: 0.98rem; line-height: 1.3; }
+  .wire-dek { font-size: 0.8rem; }
+  .wire-more { font-size: 0.72rem; }
+}
+
 // --- The Wire (newsfeed posts, rendered by js/feed.js) -----------------------
 .wire-post {
   padding: 0.65rem 0;

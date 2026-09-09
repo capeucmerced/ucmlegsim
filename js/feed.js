@@ -107,35 +107,57 @@ var REFRESH_SECONDS = 60;    // gentle background refresh while the page is open
     shown.forEach(function (p) { container.appendChild(renderPost(p)); });
   }
 
-  function refresh() {
-    var containers = document.querySelectorAll(".wire-feed");
-    if (containers.length === 0) return;
+  var CACHE_KEY = "wire-cache-v1";
 
-    if (!FEED_URL) {
-      containers.forEach(function (c) {
-        var note = document.createElement("p");
-        note.className = "wire-empty";
-        note.textContent = "The Wire connects when the session begins.";
-        c.textContent = "";
-        c.appendChild(note);
-      });
-      return;
-    }
+  function fillAll(posts) {
+    document.querySelectorAll(".wire-feed").forEach(function (c) {
+      fillContainer(c, posts);
+    });
+  }
+
+  function showNote(text) {
+    document.querySelectorAll(".wire-feed").forEach(function (c) {
+      var note = document.createElement("p");
+      note.className = "wire-empty";
+      note.textContent = text;
+      c.textContent = "";
+      c.appendChild(note);
+    });
+  }
+
+  function refresh() {
+    if (document.querySelectorAll(".wire-feed").length === 0) return;
 
     fetch(FEED_URL)
       .then(function (r) { return r.json(); })
       .then(function (data) {
-        containers.forEach(function (c) { fillContainer(c, data.posts || []); });
+        fillAll(data.posts || []);
+        // Remember the feed so the next page load paints instantly
+        // (the endpoint takes a couple of seconds to answer)
+        try { localStorage.setItem(CACHE_KEY, JSON.stringify(data)); } catch (e) {}
       })
       .catch(function () { /* keep whatever is currently shown */ });
   }
 
   document.addEventListener("DOMContentLoaded", function () {
-    refresh();
-    if (FEED_URL) {
-      setInterval(function () {
-        if (!document.hidden) refresh();
-      }, REFRESH_SECONDS * 1000);
+    if (document.querySelectorAll(".wire-feed").length === 0) return;
+
+    if (!FEED_URL) {
+      showNote("The Wire connects when the session begins.");
+      return;
     }
+
+    // Instant paint from the last-seen feed; fall back to a fetching note
+    var painted = false;
+    try {
+      var cached = JSON.parse(localStorage.getItem(CACHE_KEY));
+      if (cached && cached.posts) { fillAll(cached.posts); painted = true; }
+    } catch (e) {}
+    if (!painted) showNote("Fetching the wire…");
+
+    refresh();
+    setInterval(function () {
+      if (!document.hidden) refresh();
+    }, REFRESH_SECONDS * 1000);
   });
 })();

@@ -17,6 +17,15 @@
  */
 
 function doGet() {
+  // Serve from a 30-second cache: a classroom of simultaneous page loads
+  // becomes one spreadsheet read, and warm responses return much faster.
+  var cache = CacheService.getScriptCache();
+  var hit = cache.get('feed-json');
+  if (hit) {
+    return ContentService.createTextOutput(hit)
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+
   var ss = SpreadsheetApp.getActiveSpreadsheet();
 
   // email -> {name, outlet, handle} from the Roster tab
@@ -76,7 +85,9 @@ function doGet() {
   posts.sort(function (a, b) { return a.time < b.time ? 1 : -1; });
   posts = posts.slice(0, 200);
 
-  return ContentService
-    .createTextOutput(JSON.stringify({ posts: posts }))
+  var json = JSON.stringify({ posts: posts });
+  try { cache.put('feed-json', json, 30); } catch (e) {}
+
+  return ContentService.createTextOutput(json)
     .setMimeType(ContentService.MimeType.JSON);
 }

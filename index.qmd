@@ -45,12 +45,15 @@ cat(sprintf('
 #| results: asis
 
 # Helper: one monitor card. `body_html` is already-built HTML.
-card <- function(label, body_html, more_href = NULL, more_text = NULL, wide = FALSE) {
+# tall = the double-height ticker slot (used by The Wire).
+card <- function(label, body_html, more_href = NULL, more_text = NULL,
+                 wide = FALSE, tall = FALSE) {
   more <- if (!is.null(more_href)) {
     sprintf('<a class="card-more" href="%s">%s</a>', more_href, more_text)
   } else ""
+  classes <- paste0(if (wide) " monitor-wide" else "", if (tall) " monitor-tall" else "")
   sprintf('<div class="monitor-card%s"><span class="card-label">%s</span>%s%s</div>',
-          if (wide) " monitor-wide" else "", label, body_html, more)
+          classes, label, body_html, more)
 }
 li <- function(items) {
   if (length(items) == 0) return('<p class="wire-empty">Nothing yet.</p>')
@@ -61,8 +64,9 @@ esc <- function(x) gsub("<", "&lt;", gsub("&", "&amp;", as.character(x)))
 # --- The Wire (live via js/feed.js) ----------------------------------------
 wire_card <- card(
   "The Wire",
-  '<div class="wire-feed" data-limit="8"></div>',
-  "news.html", "All news →"
+  '<div class="wire-feed" data-limit="20"></div>',
+  "news.html", "All news →",
+  tall = TRUE
 )
 
 # --- Floor & Committee Action: latest votes --------------------------------
