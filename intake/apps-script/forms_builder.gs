@@ -165,31 +165,29 @@ function buildRegistration() {
 function buildBills() {
   var f = newForm('File a Bill', 'Bills');
 
-  // Branch: amendments answer one extra question
-  var amendSection = f.addPageBreakItem().setTitle('Amendment details');
-  var mainSection  = f.addPageBreakItem().setTitle('The bill');
-  amendSection.setGoToPage(mainSection);
-
+  // Items are added in their FINAL on-form order — no repositioning.
+  // Page 1: the fork. Page 2 ("Amendment details"): the amending
+  // dropdown, amendments only. Page 3 ("The bill"): everything else.
   var filing = f.addMultipleChoiceItem()
     .setTitle('Is this a new bill or an amended version of one of your bills?')
     .setRequired(true);
+
+  var amendSection = f.addPageBreakItem().setTitle('Amendment details');
+  f.addListItem()
+    .setTitle('Which of your bills does this amend?')
+    .setChoiceValues([PLACEHOLDER]);
+
+  var mainSection = f.addPageBreakItem().setTitle('The bill');
+
+  // Now that both sections exist, wire the fork: "New bill" skips the
+  // amendment page entirely.
   filing.setChoices([
     filing.createChoice('New bill', mainSection),
     filing.createChoice('Amendment', amendSection)
   ]);
-  // Order on the form: filing question sits before the sections
-  f.moveItem(filing.getIndex(), 0);
-
-  // Amendment section content
-  var amending = f.addListItem()
-    .setTitle('Which of your bills does this amend?')
-    .setChoiceValues([PLACEHOLDER]);
-  f.moveItem(amending.getIndex(), f.getItems().length - 1);
-  // (items added after page breaks land in document order; verify in the
-  // editor that "Which of your bills..." sits inside Amendment details)
 
   f.addTextItem()
-    .setTitle('Short subject for the bill tables (2–4 words, e.g. Affordable Housing)')
+    .setTitle('Short subject for the bill tables — a few concise words (e.g. Affordable Housing)')
     .setRequired(true);
   f.addParagraphTextItem()
     .setTitle('Digest: one paragraph summarizing what the bill does')
