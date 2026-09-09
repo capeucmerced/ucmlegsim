@@ -93,8 +93,9 @@ function addAdminTabs() {
 // --- Shared plumbing --------------------------------------------------------
 
 /** Create a form, point its responses at the intake workbook, and ask for
- *  email collection. (Tab renaming happens afterward, in
- *  renameResponseTabs — matching by form title is the only reliable way.) */
+ *  email collection. The response tab is renamed IMMEDIATELY: right after
+ *  linking, exactly one tab still matches "Form Responses N" (all earlier
+ *  ones are already renamed), so no fragile URL/title matching is needed. */
 function newForm(title, tabName) {
   var form = FormApp.create(title);
   form.setDescription('UC Merced California Legislative Simulation');
@@ -102,6 +103,15 @@ function newForm(title, tabName) {
     Logger.log(title + ': setCollectEmail not available — set it by hand.');
   }
   form.setDestination(FormApp.DestinationType.SPREADSHEET, INTAKE_SPREADSHEET_ID);
+
+  SpreadsheetApp.flush();
+  var sheets = SpreadsheetApp.openById(INTAKE_SPREADSHEET_ID).getSheets();
+  for (var i = 0; i < sheets.length; i++) {
+    if (/^Form Responses/i.test(sheets[i].getName())) {
+      sheets[i].setName(tabName);
+      break;
+    }
+  }
   return form;
 }
 
