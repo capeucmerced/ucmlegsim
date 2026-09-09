@@ -57,6 +57,8 @@ function buildAllForms() {
   results.push(buildPosts());
   results.push(buildEditions());
 
+  renameResponseTabs();
+
   Logger.log('==== ALL FORMS CREATED ====');
   results.forEach(function (r) {
     Logger.log(r.tab + '\n  edit:  ' + r.editUrl + '\n  share: ' + r.shareUrl);
@@ -90,8 +92,9 @@ function addAdminTabs() {
 
 // --- Shared plumbing --------------------------------------------------------
 
-/** Create a form, point its responses at the intake workbook, rename the
- *  new response tab to `tabName`, and ask for email collection. */
+/** Create a form, point its responses at the intake workbook, and ask for
+ *  email collection. (Tab renaming happens afterward, in
+ *  renameResponseTabs — matching by form title is the only reliable way.) */
 function newForm(title, tabName) {
   var form = FormApp.create(title);
   form.setDescription('UC Merced California Legislative Simulation');
@@ -99,20 +102,40 @@ function newForm(title, tabName) {
     Logger.log(title + ': setCollectEmail not available — set it by hand.');
   }
   form.setDestination(FormApp.DestinationType.SPREADSHEET, INTAKE_SPREADSHEET_ID);
-
-  // The destination call just created a "Form Responses N" tab — rename it
-  SpreadsheetApp.flush();
-  var ss = SpreadsheetApp.openById(INTAKE_SPREADSHEET_ID);
-  var sheets = ss.getSheets();
-  for (var i = 0; i < sheets.length; i++) {
-    if (sheets[i].getFormUrl() === form.getPublishedUrl() ||
-        sheets[i].getFormUrl() === form.getEditUrl()) {
-      sheets[i].setName(tabName);
-      break;
-    }
-  }
-
   return form;
+}
+
+/**
+ * Rename the "Form Responses N" tabs to their schema names by looking up
+ * each linked form's title. Safe to rerun anytime. (Called automatically
+ * at the end of buildAllForms; run it alone if tabs ever lose their names.)
+ */
+function renameResponseTabs() {
+  var titleToTab = {
+    'Register for the Simulation': 'Registration',
+    'File a Bill': 'Bills',
+    'File a Position Letter': 'Letters',
+    'Report a Contribution': 'Spending',
+    'Committee Assignments & Leadership': 'Assignments',
+    'Refer Bills to Committee': 'Referrals',
+    'Post to the Wire': 'Posts',
+    'Publish a Newspaper Edition': 'Editions'
+  };
+  ['LGL', 'ANR', 'BLH', 'APP', 'Floor'].forEach(function (body) {
+    titleToTab['File an Agenda — ' + body] = 'Agenda ' + body;
+  });
+
+  var ss = SpreadsheetApp.openById(INTAKE_SPREADSHEET_ID);
+  ss.getSheets().forEach(function (sheet) {
+    var url = sheet.getFormUrl();
+    if (!url) return;
+    var title = FormApp.openByUrl(url).getTitle();
+    if (titleToTab[title] && sheet.getName() !== titleToTab[title]) {
+      sheet.setName(titleToTab[title]);
+      Logger.log('Renamed to: ' + titleToTab[title]);
+    }
+  });
+  Logger.log('Tab renaming done.');
 }
 
 function finish(form, tabName) {
