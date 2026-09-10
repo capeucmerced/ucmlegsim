@@ -138,6 +138,27 @@ function bodyDocFor(who, sheet, head, email, sbNumber, isAmendment) {
   return who['Bill Doc 2'];
 }
 
+/** Struck text -> red, italic text -> blue, from fromIndex to the end of
+ *  the body (the region the student's legal text was imported into). */
+function colorizeAmendmentMarks(body, fromIndex) {
+  for (var i = fromIndex; i < body.getNumChildren(); i++) {
+    var el = body.getChild(i);
+    if (el.getType() !== DocumentApp.ElementType.PARAGRAPH &&
+        el.getType() !== DocumentApp.ElementType.LIST_ITEM) continue;
+    var t = el.asText();
+    var txt = t.getText();
+    if (!txt) continue;
+    var idx = t.getTextAttributeIndices();
+    for (var j = 0; j < idx.length; j++) {
+      var start = idx[j];
+      var end = (j + 1 < idx.length ? idx[j + 1] : txt.length) - 1;
+      if (end < start) continue;
+      if (t.isStrikethrough(start)) t.setForegroundColor(start, end, '#c00000');
+      else if (t.isItalic(start))   t.setForegroundColor(start, end, '#1155cc');
+    }
+  }
+}
+
 /** Fill the template, append the body doc's content, export a named PDF. */
 function assembleBillPdf(spec) {
   var working = DriveApp.getFileById(BILL_TEMPLATE_DOC_ID)
@@ -168,6 +189,12 @@ function assembleBillPdf(spec) {
     }
   }
   body.removeChild(marker);
+
+  // leginfo-style amendment colors, applied to the imported legal text
+  // only (the template's own italics stay black): struck = red,
+  // italic (added language) = blue. Students never color by hand.
+  colorizeAmendmentMarks(body, markerIndex);
+
   doc.saveAndClose();
 
   var pdf = working.getAs(MimeType.PDF).setName(spec.fileName);
