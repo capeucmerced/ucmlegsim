@@ -32,6 +32,10 @@
 
 var INTAKE_SPREADSHEET_ID = 'PUT-INTAKE-WORKBOOK-ID-HERE';
 
+// All form FILES are prefixed "LegSim — " and collected in this Drive
+// folder (created if missing). Respondents still see the clean titles.
+var FORMS_FOLDER_NAME = 'LegSim Forms';
+
 var PLACEHOLDER = '(choices sync once data exists)';
 
 // The policy topic list for bills. Update here when the instructor
@@ -96,8 +100,17 @@ function addAdminTabs() {
  *  email collection. The response tab is renamed IMMEDIATELY: right after
  *  linking, exactly one tab still matches "Form Responses N" (all earlier
  *  ones are already renamed), so no fragile URL/title matching is needed. */
+function formsFolder() {
+  var it = DriveApp.getFoldersByName(FORMS_FOLDER_NAME);
+  return it.hasNext() ? it.next() : DriveApp.createFolder(FORMS_FOLDER_NAME);
+}
+
 function newForm(title, tabName) {
-  var form = FormApp.create(title);
+  // File name carries the LegSim prefix (Drive organization); the form's
+  // displayed title stays clean for respondents.
+  var form = FormApp.create('LegSim — ' + title);
+  form.setTitle(title);
+  DriveApp.getFileById(form.getId()).moveTo(formsFolder());
   form.setDescription('UC Merced California Legislative Simulation');
   try { form.setCollectEmail(true); } catch (e) {
     Logger.log(title + ': setCollectEmail not available — set it by hand.');
