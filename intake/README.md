@@ -95,6 +95,14 @@ Roughly one sitting, in this order:
 7. **Test with a dummy account**: register, file a bill, file a letter,
    report spending, post to the wire, submit an agenda — confirm each lands,
    files correctly, and the site rebuild fires.
+8. **The fixture reset (before students start)**: delete the 2025 fixture
+   data from the repo — `files/csvs/lobbyist_contributions/*`, the letter
+   PDFs in `files/pdfs/lobbyist_letters/`, and (when the bills slice is
+   live) the 2025 bill/profile PDFs and `bill_list.csv` rows. The 2025
+   site keeps its own copies under `archive/`, so nothing is lost. Mixed
+   eras cause ghosts — e.g. a fixture Support letter coexisting with an
+   intake Oppose from the same org, which the sheet-based supersede logic
+   cannot see.
 
 ## Open items to settle at deploy
 
