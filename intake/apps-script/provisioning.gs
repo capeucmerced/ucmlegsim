@@ -95,6 +95,11 @@ function provisionBillDocs() {
       try { DriveApp.getFileById(doc.getId()).addEditor(email); }
       catch (err) { /* provisioning under the student's own account (beta) */ }
 
+      // Tidy the drafts into the LegSim folder (cosmetic — the roster's
+      // doc IDs are what the assembler uses, wherever the files live)
+      try { DriveApp.getFileById(doc.getId()).moveTo(filesSubfolder('bill_drafts')); }
+      catch (err) { /* no valid FILES_FOLDER_ID yet — drafts stay in My Drive */ }
+
       roster.getRange(i + 1, (n === 1 ? cDoc1 : cDoc2) + 1).setValue(doc.getId());
     }
     made++;
