@@ -212,6 +212,10 @@ function buildBills() {
     .setTitle('Primary Topic').setChoiceValues(POLICY_TOPICS).setRequired(true);
   f.addListItem()
     .setTitle('Secondary Topic').setChoiceValues(POLICY_TOPICS);
+  f.addMultipleChoiceItem()
+    .setTitle('Which of your two draft docs holds this bill’s text?')
+    .setChoiceValues(['Draft 1', 'Draft 2'])
+    .setRequired(true);
   f.addCheckboxItem()
     .setTitle('Body Ready')
     .setChoiceValues(['I confirm the legal text in my bill doc is final'])

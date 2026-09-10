@@ -50,10 +50,11 @@ function handleBillSubmit(e) {
   // amendments can find it
   sheet.getRange(e.range.getRow(), head.indexOf('SB Number') + 1).setValue(sbNumber);
 
-  // Which body doc: their first live bill uses Doc 1, the second Doc 2.
-  // For amendments, match by the order of their filed bills.
-  var docId = bodyDocFor(who, sheet, head, row['Email Address'], sbNumber, isAmendment);
-  if (!docId) { console.error('No body doc found for ' + row['Email Address']); return; }
+  // Which body doc: the form asks outright ("Draft 1" / "Draft 2") —
+  // explicit beats inferring it from filing order.
+  var draftChoice = String(valueByPrefix(row, 'Which of your two draft docs'));
+  var docId = draftChoice.indexOf('2') >= 0 ? who['Bill Doc 2'] : who['Bill Doc 1'];
+  if (!docId) { console.error('No body doc on the roster for ' + row['Email Address']); return; }
 
   var subject = String(valueByPrefix(row, 'Short subject'));
   var pdf = assembleBillPdf({
@@ -113,29 +114,6 @@ function flagsLine(flagsAnswer) {
          '. Fiscal committee: ' + has('Fiscal committee') +
          '. Local program: ' + has('Local program') +
          '. Urgency: ' + has('Urgency') + '.';
-}
-
-/** The Doc ID holding this filing's legal text. */
-function bodyDocFor(who, sheet, head, email, sbNumber, isAmendment) {
-  var cMail   = headIndexByPrefix(head, 'Email Address');
-  var cFiling = headIndexByPrefix(head, 'Is this a new bill');
-  var cSb     = head.indexOf('SB Number');
-  var cStatus = head.indexOf('Status');
-
-  // Their bills in filing order
-  var mine = [];
-  var vals = sheet.getDataRange().getValues();
-  for (var i = 1; i < vals.length; i++) {
-    if (String(vals[i][cMail]).toLowerCase().trim() ===
-        String(email).toLowerCase().trim() &&
-        vals[i][cFiling] === 'New bill' &&
-        (cStatus < 0 || !vals[i][cStatus])) {
-      mine.push(parseInt(vals[i][cSb], 10));
-    }
-  }
-  var position = isAmendment ? (mine.indexOf(sbNumber) + 1) : mine.length; // 1-based
-  if (position <= 1) return who['Bill Doc 1'];
-  return who['Bill Doc 2'];
 }
 
 /** Struck text -> red, italic text -> blue, from fromIndex to the end of
