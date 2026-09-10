@@ -61,7 +61,7 @@ INTAKE_API_URL <- "https://script.google.com/macros/s/AKfycbzV8j7CpZvdkmS44vdWTz
 
 # Which intake streams are live (their loaders merge rows in; the 2025
 # fixture files stay alongside until the semester-start data reset)
-INTAKE_LIVE <- c("spending")
+INTAKE_LIVE <- c("spending", "letters")
 
 read_intake_json <- function(view) {
   tryCatch({
@@ -305,9 +305,55 @@ LETTER_POSITIONS <- c(
   oppose  = "Oppose"
 )
 
-# Scan the letters folder once. Returns one row per letter with the org's
-# full name joined in from the lobby list (empty data frame if none).
+# Letters filed through the 2026 form, from the gateway's letters view.
+# Rows carry org/bill/position/file id (no emails); the conventional
+# filename is composed here so everything downstream stays unchanged.
+load_intake_letters <- function() {
+  if (!"letters" %in% INTAKE_LIVE) return(data.frame())
+  j <- read_intake_json("letters")
+  if (is.null(j) || length(j$letters) == 0) return(data.frame())
+
+  as.data.frame(j$letters) |>
+    transmute(
+      org_code    = toupper(as.character(org)),
+      bill_number = suppressWarnings(as.integer(bill)),
+      token       = names(LETTER_POSITIONS)[match(as.character(position), LETTER_POSITIONS)],
+      file_id     = as.character(fileId)
+    ) |>
+    filter(!is.na(bill_number) & !is.na(token) & file_id != "") |>
+    mutate(filename = paste0(org_code, "_SB", bill_number, "_", token, ".pdf"))
+}
+
+# Download filed letter PDFs into the letters folder so links and the
+# filename-based scan work exactly as with the fixture files. Runs once
+# per R session. CI builds start from a clean checkout, so superseded
+# letters disappear there automatically; a local working copy may keep a
+# stray until deleted by hand.
+sync_intake_letters <- function() {
+  if (isTRUE(getOption("legsim.letters_synced"))) return(invisible())
+  rows <- load_intake_letters()
+  if (nrow(rows) > 0) {
+    for (i in seq_len(nrow(rows))) {
+      dest <- file.path(LETTERS_DIR, rows$filename[i])
+      tryCatch(
+        curl::curl_download(
+          paste0("https://drive.google.com/uc?export=download&id=", rows$file_id[i]),
+          dest, quiet = TRUE
+        ),
+        error = function(e) message("WARNING: could not fetch letter ",
+                                    rows$filename[i], ": ", conditionMessage(e))
+      )
+    }
+  }
+  options(legsim.letters_synced = TRUE)
+  invisible()
+}
+
+# Scan the letters folder once (after syncing any letters filed through
+# the intake form). Returns one row per letter with the org's full name
+# joined in from the lobby list (empty data frame if none).
 scan_letters <- function() {
+  sync_intake_letters()
   token_pattern <- paste(names(LETTER_POSITIONS), collapse = "|")
   files <- list.files(LETTERS_DIR,
                       pattern = paste0("^[A-Za-z]+_SB[0-9]+_(", token_pattern, ")\\.pdf$"))

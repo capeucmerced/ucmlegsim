@@ -107,6 +107,9 @@ function handleLetterSubmit(e) {
   var file = DriveApp.getFileById(idMatch[0]);
   file.setName(org + '_SB' + billNo + '_' + token + '.pdf');
   file.moveTo(filesSubfolder('lobbyist_letters'));
+  // Letters are public documents on the site; link-view sharing lets the
+  // build download them by file id
+  file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
 
   // Mark older letters by this org on this bill as superseded (paper trail:
   // the rows stay; the site shows the current one and lists priors).

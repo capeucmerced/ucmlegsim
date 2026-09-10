@@ -25,6 +25,8 @@
  *   .../exec                 -> the newsfeed (posts view, default)
  *   .../exec?view=spending   -> contributions: date, district, recipient,
  *                               amount, org — never the email
+ *   .../exec?view=letters    -> position letters: date, org, bill,
+ *                               position, Drive file id — never the email
  */
 function doGet(e) {
   var view = (e && e.parameter && e.parameter.view) || 'posts';
@@ -38,26 +40,70 @@ function doGet(e) {
       .setMimeType(ContentService.MimeType.JSON);
   }
 
-  var json = view === 'spending' ? buildSpendingJson() : buildPostsJson();
+  var json = view === 'spending' ? buildSpendingJson()
+           : view === 'letters'  ? buildLettersJson()
+           : buildPostsJson();
 
   try { cache.put('json-' + view, json, 30); } catch (err) {}
   return ContentService.createTextOutput(json)
     .setMimeType(ContentService.MimeType.JSON);
 }
 
-/** Contributions with the org resolved from the Roster; emails stripped. */
-function buildSpendingJson() {
-  var ss = SpreadsheetApp.getActiveSpreadsheet();
-
-  // email -> org code
-  var orgByEmail = {};
-  var rosterRows = ss.getSheetByName('Roster').getDataRange().getValues();
+/** email -> org code, from the Roster tab */
+function rosterOrgMap() {
+  var rosterRows = SpreadsheetApp.getActiveSpreadsheet()
+    .getSheetByName('Roster').getDataRange().getValues();
   var rHead = rosterRows[0];
+  var orgByEmail = {};
   for (var i = 1; i < rosterRows.length; i++) {
     var email = String(rosterRows[i][rHead.indexOf('Email')]).toLowerCase().trim();
     var org   = String(rosterRows[i][rHead.indexOf('Org Code')] || '').toUpperCase().trim();
     if (email && org) orgByEmail[email] = org;
   }
+  return orgByEmail;
+}
+
+/** Current position letters; the build downloads the PDFs by file id. */
+function buildLettersJson() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var orgByEmail = rosterOrgMap();
+
+  var out = [];
+  var sheet = ss.getSheetByName('Letters');
+  if (sheet && sheet.getLastRow() > 1) {
+    var rows = sheet.getDataRange().getValues();
+    var head = rows[0];
+    var cTime   = colStartingWith(head, 'Timestamp');
+    var cMail   = colStartingWith(head, 'Email Address');
+    var cBill   = colStartingWith(head, 'Which bill');
+    var cPos    = colStartingWith(head, 'Position');
+    var cFile   = colStartingWith(head, 'Letter PDF');
+    var cStatus = colStartingWith(head, 'Status');
+
+    for (var j = 1; j < rows.length; j++) {
+      var r = rows[j];
+      if (cStatus >= 0 && r[cStatus]) continue; // superseded/void rows stay private history
+      var who = orgByEmail[String(r[cMail]).toLowerCase().trim()];
+      if (!who || !r[cBill] || cFile < 0 || !r[cFile]) continue;
+      var billMatch = String(r[cBill]).match(/(\d+)/);
+      var idMatch   = String(r[cFile]).match(/[-\w]{25,}/);
+      if (!billMatch || !idMatch) continue;
+      out.push({
+        time:     new Date(r[cTime]).toISOString(),
+        org:      who,
+        bill:     parseInt(billMatch[1], 10),
+        position: String(r[cPos]),
+        fileId:   idMatch[0]
+      });
+    }
+  }
+  return JSON.stringify({ letters: out });
+}
+
+/** Contributions with the org resolved from the Roster; emails stripped. */
+function buildSpendingJson() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var orgByEmail = rosterOrgMap();
 
   var out = [];
   var sheet = ss.getSheetByName('Spending');
