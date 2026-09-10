@@ -276,12 +276,14 @@ function buildReferrals() {
 }
 
 function buildPosts() {
+  // Paragraph boxes (not one-line short answers) so writers can actually
+  // see and edit what they're composing; the character caps still apply.
   var f = newForm('Post to the Wire', 'Posts');
-  var head = f.addTextItem().setTitle('Headline (max 100 characters)').setRequired(true);
-  head.setValidation(FormApp.createTextValidation()
+  var head = f.addParagraphTextItem().setTitle('Headline (max 100 characters)').setRequired(true);
+  head.setValidation(FormApp.createParagraphTextValidation()
     .requireTextLengthLessThanOrEqualTo(100).build());
-  var dek = f.addTextItem().setTitle('Description line (max 250 characters)').setRequired(true);
-  dek.setValidation(FormApp.createTextValidation()
+  var dek = f.addParagraphTextItem().setTitle('Description line (max 250 characters)').setRequired(true);
+  dek.setValidation(FormApp.createParagraphTextValidation()
     .requireTextLengthLessThanOrEqualTo(250).build());
   var link = f.addTextItem().setTitle('Link to the full story (optional)');
   link.setValidation(FormApp.createTextValidation().requireTextIsUrl()
