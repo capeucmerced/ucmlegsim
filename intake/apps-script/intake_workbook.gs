@@ -29,8 +29,18 @@ function onAnyFormSubmit(e) {
     if (tab.indexOf('Agenda') === 0) handleAgendaSubmit(e); // agenda_builder.gs
   } catch (err) {
     // A handler problem should never stop the rebuild (the row is still
-    // in the sheet; the admin can fix and re-run by editing it).
+    // in the sheet) — but it must not be silent either: the Executions
+    // list shows these runs as successful, so email the admin.
     console.error('Handler error on tab ' + tab + ': ' + err);
+    try {
+      MailApp.sendEmail(
+        Session.getEffectiveUser().getEmail(),
+        'LegSim intake: handler error on ' + tab,
+        'A form submission on tab "' + tab + '" was recorded in the sheet, ' +
+        'but its follow-up processing failed:\n\n' + err + '\n\n' +
+        'Fix the cause, then resubmit or re-process the row.'
+      );
+    } catch (mailErr) {}
   }
 
   requestSiteRebuild();
