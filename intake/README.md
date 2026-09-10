@@ -16,8 +16,12 @@ runs from the repository.
     registration → roster) and requests rebuilds
   - `newsfeed_api.gs` — the JSON endpoint the live newsfeed reads
   - `vote_sheet.gs` — auto date-stamp for the vote-entry workbook
-  - `bills_assembler.gs`, `agenda_builder.gs` — document assembly
-    (drafted; must be tested live at deploy)
+  - `bills_assembler.gs` — assembles filed bills into numbered, formatted
+    PDFs (leginfo-style red/blue amendment marks); beta-tested end to end
+  - `provisioning.gs` — one-time runs: the bill-template Doc and each
+    senator's two draft docs
+  - `agenda_builder.gs` — agenda assembly (drafted; the one script not
+    yet walked live — test at deploy)
 
 ## Beta on a personal account (supported)
 
@@ -25,10 +29,11 @@ The whole Google side can be stood up on a personal account for testing
 before the department deploy, because every binding between Google and the
 site sits in three known places (the **swap surface**):
 
-1. the published-CSV URL block in `scripts/shared.R`
+1. `INTAKE_API_URL` in `scripts/shared.R`
 2. `FEED_URL` in `js/feed.js`
-3. the deploy constants at the top of the `.gs` files
-   (spreadsheet/folder/template IDs, `GITHUB_TOKEN` property)
+3. the Script Properties in the Apps Script project
+   (`GITHUB_TOKEN`, `FILES_FOLDER_ID`, `BILL_TEMPLATE_DOC_ID`,
+   `SB_NUMBER_FLOOR`) plus `INTAKE_SPREADSHEET_ID` in `forms_builder.gs`
 
 Beta flow: run `forms_builder.gs` + the setup steps below on the personal
 account, wire those three places to it, and test freely. Cutover: repeat
@@ -105,7 +110,7 @@ live in the Sep 2026 beta — the scripts carry those fixes):
    correctly, and the site rebuild fires. Remember the deployment rule:
    after any change to `newsfeed_api.gs`, Manage deployments → ✏ →
    **New version** (same URL); form-trigger code only needs saving.
-10. **The fixture reset (before students start)**: delete the 2025 fixture
+9. **The fixture reset (before students start)**: delete the 2025 fixture
    data from the repo — `files/csvs/lobbyist_contributions/*`, the letter
    PDFs in `files/pdfs/lobbyist_letters/`, and (when the bills slice is
    live) the 2025 bill/profile PDFs and `bill_list.csv` rows. The 2025
@@ -114,11 +119,12 @@ live in the Sep 2026 beta — the scripts carry those fixes):
    intake Oppose from the same org, which the sheet-based supersede logic
    cannot see.
 
-## Open items to settle at deploy
+## Open items
 
-- How CI fetches the uploaded PDFs from Drive for the site build
-  (service-account fetch vs. published-folder download) — decide and wire
-  in the workflow when the account exists.
-- The bill and agenda Doc templates themselves (built in Google Docs at
-  deploy; specs live alongside the assembler scripts).
-- The policy topic tag list (user is drafting).
+- The policy topic tag list (instructor drafting; placeholder list lives
+  in `forms_builder.gs`).
+- The agenda template Doc + first live run of `agenda_builder.gs`.
+- (Settled by the beta, for the record: PDFs reach the build by file id —
+  filed documents share themselves link-view and the site downloads them
+  anonymously, identical locally and in CI; no service account needed.
+  Templates are created by `createBillTemplate()`, not built by hand.)
