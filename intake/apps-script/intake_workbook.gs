@@ -58,6 +58,24 @@ function rowAsObject(e) {
   return out;
 }
 
+/** Row value looked up by question-title PREFIX — response columns carry
+ *  the full question text ("Which bill?"), so exact keys don't match. */
+function valueByPrefix(row, prefix) {
+  var keys = Object.keys(row);
+  for (var i = 0; i < keys.length; i++) {
+    if (keys[i].toLowerCase().indexOf(prefix.toLowerCase()) === 0) return row[keys[i]];
+  }
+  return '';
+}
+
+/** Same idea for a header ARRAY: column index by title prefix, or -1. */
+function headIndexByPrefix(head, prefix) {
+  for (var i = 0; i < head.length; i++) {
+    if (String(head[i]).toLowerCase().indexOf(prefix.toLowerCase()) === 0) return i;
+  }
+  return -1;
+}
+
 /** Roster row for an email (lowercased match), or null. */
 function rosterLookup(email) {
   var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Roster');
@@ -106,11 +124,11 @@ function handleLetterSubmit(e) {
   }
 
   var org = String(who['Org Code']).toUpperCase();
-  var billNo = billNumberFrom(row['Bill']);
-  var token = POSITION_TOKENS[row['Position']] || 'support';
+  var billNo = billNumberFrom(valueByPrefix(row, 'Which bill'));
+  var token = POSITION_TOKENS[valueByPrefix(row, 'Position')] || 'support';
 
   // The upload question stores a Drive URL like .../d/FILE_ID/view or ?id=FILE_ID
-  var url = String(row['Letter PDF']);
+  var url = String(valueByPrefix(row, 'Letter PDF'));
   var idMatch = url.match(/[-\w]{25,}/);
   if (!idMatch) { console.error('Could not parse Drive file ID from: ' + url); return; }
 
@@ -125,17 +143,19 @@ function handleLetterSubmit(e) {
   // the rows stay; the site shows the current one and lists priors).
   var sheet = e.range.getSheet();
   var head = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
-  var statusCol = head.indexOf('Status') + 1;
-  if (statusCol === 0) return;
+  var cStatus = headIndexByPrefix(head, 'Status');
+  var cMail   = headIndexByPrefix(head, 'Email Address');
+  var cBill   = headIndexByPrefix(head, 'Which bill');
+  if (cStatus < 0 || cMail < 0 || cBill < 0) return;
   var data = sheet.getDataRange().getValues();
   for (var i = 1; i < data.length; i++) {
     var r = i + 1;
     if (r === e.range.getRow()) continue;
-    var sameOrg = rosterLookup(data[i][head.indexOf('Email Address')]);
+    var sameOrg = rosterLookup(data[i][cMail]);
     if (sameOrg && String(sameOrg['Org Code']).toUpperCase() === org &&
-        billNumberFrom(data[i][head.indexOf('Bill')]) === billNo &&
-        !data[i][head.indexOf('Status')]) {
-      sheet.getRange(r, statusCol).setValue('superseded');
+        billNumberFrom(data[i][cBill]) === billNo &&
+        !data[i][cStatus]) {
+      sheet.getRange(r, cStatus + 1).setValue('superseded');
     }
   }
 }
@@ -153,7 +173,7 @@ function handleRegistrationSubmit(e) {
   newRow[head.indexOf('Email')] = email;
   // Their real name goes in First/Last for now; the admin assigns the role
   // (and for senators, replaces the name with the senator persona's name).
-  var parts = String(row['Full Name']).trim().split(/\s+/);
+  var parts = String(valueByPrefix(row, 'Your full name')).trim().split(/\s+/);
   newRow[head.indexOf('First Name')] = parts.slice(0, -1).join(' ') || parts[0];
   newRow[head.indexOf('Last Name')]  = parts.length > 1 ? parts[parts.length - 1] : '';
   roster.appendRow(newRow);
