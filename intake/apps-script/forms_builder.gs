@@ -79,7 +79,7 @@ function addAdminTabs() {
 
   var tabs = {
     'Roster': ['Email', 'Role', 'District', 'First Name', 'Last Name',
-               'Org Code', 'Outlet', 'Chair', 'Vice Chair',
+               'Party', 'Org Code', 'Outlet', 'Chair', 'Vice Chair',
                'Leadership', 'Bill Doc 1', 'Bill Doc 2'],
     'Budgets': ['Org Code', 'Budget', 'Spent', 'Remaining']
   };

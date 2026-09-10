@@ -20,6 +20,10 @@
 
 var BILL_TEMPLATE_DOC_ID = 'PUT-TEMPLATE-DOC-ID-HERE-AT-DEPLOY';
 
+// New bills are numbered above this floor. BETA (2025 fixtures still on
+// the site, occupying SB-1..75): set to 75. At the real launch: 0.
+var SB_NUMBER_FLOOR = 0;
+
 function handleBillSubmit(e) {
   var row = rowAsObject(e);
   var who = rosterLookup(row['Email Address']);
@@ -32,11 +36,11 @@ function handleBillSubmit(e) {
   var head = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
   var lastNameSlug = String(who['Last Name']).toUpperCase().replace(/ /g, '_');
 
-  var isAmendment = row['Filing Type'] === 'Amendment';
+  var isAmendment = valueByPrefix(row, 'Is this a new bill') === 'Amendment';
   var sbNumber;
 
   if (isAmendment) {
-    sbNumber = billNumberFrom(row['Amending']);
+    sbNumber = billNumberFrom(valueByPrefix(row, 'Which of your bills'));
     archiveCurrentVersion(lastNameSlug, sbNumber);
   } else {
     sbNumber = nextSbNumber(sheet, head);
@@ -51,19 +55,21 @@ function handleBillSubmit(e) {
   var docId = bodyDocFor(who, sheet, head, row['Email Address'], sbNumber, isAmendment);
   if (!docId) { console.error('No body doc found for ' + row['Email Address']); return; }
 
+  var subject = String(valueByPrefix(row, 'Short subject'));
   var pdf = assembleBillPdf({
     sb: sbNumber,
-    author: who['First Name'] + ' ' + who['Last Name'] + ' (D-' + who['District'] + ')',
-    title: row['Short Subject'],
-    digest: row['Digest'],
-    flags: flagsLine(row['Flags']),
+    author: who['First Name'] + ' ' + who['Last Name'] +
+            ' (' + (who['Party'] || 'D') + '-' + who['District'] + ')',
+    title: subject,
+    digest: String(valueByPrefix(row, 'Digest')),
+    flags: flagsLine(valueByPrefix(row, 'Flags')),
     bodyDocId: docId,
     fileName: lastNameSlug + '_SB' + sbNumber + '.pdf'
   });
 
   GmailApp.sendEmail(
     row['Email Address'],
-    'Filed: SB-' + sbNumber + ' — ' + row['Short Subject'],
+    'Filed: SB-' + sbNumber + ' — ' + subject,
     'Your bill has been filed and will appear on the site shortly. ' +
     'The formatted text is attached — if anything looks wrong, fix your ' +
     'bill doc and submit an amendment.',
@@ -71,10 +77,10 @@ function handleBillSubmit(e) {
   );
 }
 
-/** Highest assigned SB number so far + 1 (starts at 1). */
+/** Highest assigned SB number so far (or the floor) + 1. */
 function nextSbNumber(sheet, head) {
   var col = head.indexOf('SB Number');
-  var max = 0;
+  var max = SB_NUMBER_FLOOR;
   var vals = sheet.getDataRange().getValues();
   for (var i = 1; i < vals.length; i++) {
     var n = parseInt(vals[i][col], 10);
@@ -111,15 +117,20 @@ function flagsLine(flagsAnswer) {
 
 /** The Doc ID holding this filing's legal text. */
 function bodyDocFor(who, sheet, head, email, sbNumber, isAmendment) {
+  var cMail   = headIndexByPrefix(head, 'Email Address');
+  var cFiling = headIndexByPrefix(head, 'Is this a new bill');
+  var cSb     = head.indexOf('SB Number');
+  var cStatus = head.indexOf('Status');
+
   // Their bills in filing order
   var mine = [];
   var vals = sheet.getDataRange().getValues();
   for (var i = 1; i < vals.length; i++) {
-    if (String(vals[i][head.indexOf('Email Address')]).toLowerCase().trim() ===
+    if (String(vals[i][cMail]).toLowerCase().trim() ===
         String(email).toLowerCase().trim() &&
-        vals[i][head.indexOf('Filing Type')] === 'New bill' &&
-        !vals[i][head.indexOf('Status')]) {
-      mine.push(parseInt(vals[i][head.indexOf('SB Number')], 10));
+        vals[i][cFiling] === 'New bill' &&
+        (cStatus < 0 || !vals[i][cStatus])) {
+      mine.push(parseInt(vals[i][cSb], 10));
     }
   }
   var position = isAmendment ? (mine.indexOf(sbNumber) + 1) : mine.length; // 1-based

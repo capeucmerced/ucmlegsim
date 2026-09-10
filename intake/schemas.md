@@ -41,7 +41,8 @@ The master mapping of people to roles. One row per student.
 | Email | The Google account the student registered with (lowercase) |
 | Role | `senator` / `lobbyist` / `journalist` |
 | District | Senators only: 1–40 |
-| First Name / Last Name | Senators: their senator persona's name |
+| First Name / Last Name | Senators: their senator persona’s name |
+| Party | Senators only: `D` / `R` |
 | Org Code | Lobbyists only: code from `lobbyist_list.csv` (e.g. `ENV`) |
 | Outlet | Journalists only: newspaper name |
 | Chair / Vice Chair | Committee code they lead, if any (e.g. `anr`) |
