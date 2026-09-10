@@ -66,36 +66,46 @@ simply creates their own and updates the GITHUB_TOKEN script property
 (two minutes); and the ucmlegsim.com domain registration/renewal should be
 in department hands and documented.
 
-Roughly one sitting, in this order:
+Roughly one sitting, in this order (every manual step here was walked
+live in the Sep 2026 beta — the scripts carry those fixes):
 
-1. **Drive**: create folder `LegSim Files` with subfolders `bills`,
-   `previous_bills`, `lobbyist_letters`, `agendas`, `role_profiles`.
-   Create the Google Doc templates (bill template, agenda template)
-   from the specs in this folder.
-2. **Workbook `LegSim Intake`**: create it; add tabs `Roster` and `Budgets`
-   per `schemas.md`.
-3. **Forms**: build each form per `schemas.md` (question titles must match
-   exactly), set *Collect email addresses → Verified*, and point every
-   form's responses at the `LegSim Intake` workbook (Responses → link icon →
-   Select destination). Rename each new response tab to its schema name.
-4. **Apps Script**: open Extensions → Apps Script in the intake workbook;
-   paste in `rebuild.gs`, `intake_workbook.gs`, `newsfeed_api.gs`,
-   `bills_assembler.gs`, `agenda_builder.gs`. Fill the deploy constants at
-   the top of each (folder ID, template doc IDs). Add the Script property
-   `GITHUB_TOKEN` (fine-grained token for this repo). Add the installable
-   trigger: `onAnyFormSubmit` → From spreadsheet → On form submit.
-   Deploy `newsfeed_api.gs` as a web app (Execute as me / Anyone) and put
-   the /exec URL into the site's feed code.
-5. **Votes workbook**: paste `vote_sheet.gs` into its own Apps Script
+1. **Drive**: create folder `LegSim Files` and copy its folder ID from the
+   URL. (Subfolders are created automatically by the scripts.)
+2. **Workbook `LegSim Intake`**: create an empty spreadsheet; copy its ID.
+3. **Apps Script** (Extensions → Apps Script in that workbook): paste in
+   ALL the `.gs` files from `apps-script/`; set `INTAKE_SPREADSHEET_ID` in
+   `forms_builder.gs`. Under ⚙ Project Settings → **Script properties**,
+   add: `GITHUB_TOKEN` (fine-grained PAT for this repo),
+   `FILES_FOLDER_ID`, `SB_NUMBER_FLOOR` = `0` — and later
+   `BILL_TEMPLATE_DOC_ID` (step 5). Properties survive code re-pastes;
+   never edit constants in the code.
+4. **Build the forms**: run `buildAllForms()`, then `addAdminTabs()`.
+   Manual finish per the builder's header: the Letters form's file-upload
+   question (title exactly `Letter PDF`), and Settings → *Collect email
+   addresses → Verified* on every form. Add the script columns by hand:
+   `Status` on the Letters and Bills tabs, `SB Number` on Bills.
+5. **Bill machinery**: run `createBillTemplate()` and put the logged ID
+   into the `BILL_TEMPLATE_DOC_ID` script property (restyle the template
+   doc freely — keep the `{{PLACEHOLDERS}}`). After the Roster has its
+   senators (roles, districts, names, Party), run `provisionBillDocs()`
+   — rerun it whenever senators are added.
+6. **Wire up**: add the installable trigger (`onAnyFormSubmit` → From
+   spreadsheet → On form submit). Deploy `newsfeed_api.gs` as a Web app
+   (Execute as: Me / Access: Anyone); put the /exec URL into
+   `INTAKE_API_URL` in `scripts/shared.R` AND `FEED_URL` in `js/feed.js`.
+   **Never publish intake tabs to the web** — the gateway is the only
+   data exit (see the privacy rule above).
+7. **Votes workbook**: paste `vote_sheet.gs` into its own Apps Script
    project. Set up the hidden `BillLists` tab (IMPORTRANGE from the intake
    workbook's Bills tab, FILTERed per committee) and point each tab's Bill
    column validation at it.
-6. **Publish tabs to the web** (CSV) for every tab the site reads; put the
-   URLs into `scripts/shared.R`.
-7. **Test with a dummy account**: register, file a bill, file a letter,
-   report spending, post to the wire, submit an agenda — confirm each lands,
-   files correctly, and the site rebuild fires.
-8. **The fixture reset (before students start)**: delete the 2025 fixture
+8. **Test with a dummy account**: register, file a bill (check the PDF
+   receipt's red/blue amendment marks), file a letter, report spending,
+   post to the wire, submit an agenda — confirm each lands, files
+   correctly, and the site rebuild fires. Remember the deployment rule:
+   after any change to `newsfeed_api.gs`, Manage deployments → ✏ →
+   **New version** (same URL); form-trigger code only needs saving.
+10. **The fixture reset (before students start)**: delete the 2025 fixture
    data from the repo — `files/csvs/lobbyist_contributions/*`, the letter
    PDFs in `files/pdfs/lobbyist_letters/`, and (when the bills slice is
    live) the 2025 bill/profile PDFs and `bill_list.csv` rows. The 2025
