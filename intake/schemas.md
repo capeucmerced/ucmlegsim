@@ -90,10 +90,11 @@ The master mapping of people to roles. One row per student.
 | --- | --- |
 | Timestamp / Email Address | automatic |
 | Meeting Date | date question |
-| Time | "Meeting time (blank = usual class time)" (optional) |
-| Room | "Room (blank = usual room)" (optional) |
-| Item 1 … Item 10 | dropdowns of that body's eligible bills, in file order (blank = unused) |
+| Bills in file order — one per line | paragraph: one bill per line (e.g. `SB-12`), up to 30; the listed order is the file order |
 | — Revision | **script column**: revision number within the same Meeting Date |
+
+(No time/room questions — chairs control those day-of; the generated
+agenda prints the standing class time and room.)
 
 ## Tab: Assignments  (form: "Committee Assignments & Leadership")
 
@@ -113,7 +114,7 @@ One row per submission; the newest row is the current state of the body.
 | Column | Question |
 | --- | --- |
 | Timestamp / Email Address | automatic |
-| LGL Referrals / ANR Referrals / BLH Referrals | slot dropdowns of *unreferred* bills (synced by script) |
+| LGL referrals — one bill per line / ANR … / BLH … | one paragraph box per policy committee: bills one per line, no count limit (leadership refers everything in one sitting) |
 
 (Appropriations has no referral question: fiscal-flagged bills route there
 automatically after passing their policy committee.)

@@ -54,12 +54,17 @@ function handleAgendaSubmit(e) {
   var revCol = head.indexOf('Revision');
   if (revCol !== -1) sheet.getRange(e.range.getRow(), revCol + 1).setValue(revision);
 
-  // Numbered items: "1. SB 12    Torres    Affordable Housing"
-  var items = [];
-  for (var n = 1; n <= 10; n++) {
-    var v = row['Item ' + n];
-    if (v) items.push(items.length + 1 + '.\t' + itemLine(v));
-  }
+  // Bills come as one paragraph, one per line, in file order (cap 30).
+  // Find the column by prefix — its header is the full question title.
+  var fileOrderKey = Object.keys(row).filter(function (k) {
+    return k.indexOf('Bills in file order') === 0;
+  })[0];
+  var items = String(row[fileOrderKey] || '')
+    .split(/\r?\n/)
+    .map(function (s) { return s.trim(); })
+    .filter(function (s) { return s !== ''; })
+    .slice(0, 30)
+    .map(function (v, idx) { return (idx + 1) + '.\t' + itemLine(v); });
 
   var membership = latestAssignments(committee.code);
 
@@ -67,8 +72,9 @@ function handleAgendaSubmit(e) {
     committeeName: committee.name.toUpperCase(),
     chair: membership.chair, vice: membership.vice, members: membership.members,
     date: Utilities.formatDate(meetingDate, Session.getScriptTimeZone(), 'EEEE, MMMM d, yyyy'),
-    time: row['Time'] || DEFAULT_TIME,
-    room: row['Room'] || DEFAULT_ROOM,
+    // Chairs control time/room day-of; the agenda prints the standing defaults
+    time: DEFAULT_TIME,
+    room: DEFAULT_ROOM,
     revised: revision > 1
       ? 'REVISED — Revision ' + revision + ', issued ' +
         Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'M/d h:mm a') +
@@ -100,7 +106,7 @@ function itemLine(value) {
       return 'SB ' + no + '\t' + author + '\t' + vals[i][head.indexOf('Short Subject')];
     }
   }
-  return String(value);
+  return String(value) + '\t\t[not found among filed bills — check the number]';
 }
 
 /** Chair/vice/member names for a committee, from the newest Assignments row. */

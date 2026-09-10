@@ -187,7 +187,7 @@ function buildBills() {
   ]);
 
   f.addTextItem()
-    .setTitle('Short subject for the bill tables — a few concise words (e.g. Affordable Housing)')
+    .setTitle('Short subject for the bill tables — a few concise words (e.g. Clean Air Near Schools Act)')
     .setRequired(true);
   f.addParagraphTextItem()
     .setTitle('Digest: one paragraph summarizing what the bill does')
@@ -233,14 +233,18 @@ function buildSpending() {
 }
 
 function buildAgenda(body) {
+  // Meeting date + ONE paragraph box: bills one per line, in file order.
+  // Handles any agenda length (up to 30) without thirty dropdowns; typos
+  // surface immediately in the receipt email's rendered agenda, and a
+  // resubmission is just a revision. No time/room questions — chairs
+  // control those day-of; the template prints the standing defaults.
   var tab = 'Agenda ' + body;
   var f = newForm('File an Agenda — ' + body, tab);
   f.addDateItem().setTitle('Meeting Date').setRequired(true);
-  f.addTextItem().setTitle('Meeting time (blank = usual class time)');
-  f.addTextItem().setTitle('Room (blank = usual room)');
-  for (var i = 1; i <= 10; i++) {
-    f.addListItem().setTitle('Item ' + i).setChoiceValues([PLACEHOLDER]);
-  }
+  f.addParagraphTextItem()
+    .setTitle('Bills in file order — one per line')
+    .setHelpText('One bill per line, e.g. SB-12. Up to 30 items; the order you list is the file order.')
+    .setRequired(true);
   return finish(f, tab);
 }
 
@@ -260,12 +264,13 @@ function buildAssignments() {
 }
 
 function buildReferrals() {
+  // Leadership refers everything in one sitting, so: one paragraph box
+  // per policy committee, bills one per line, no count limit.
   var f = newForm('Refer Bills to Committee', 'Referrals');
   ['LGL', 'ANR', 'BLH'].forEach(function (c) {
-    f.addSectionHeaderItem().setTitle(c + ' referrals');
-    for (var i = 1; i <= 8; i++) {
-      f.addListItem().setTitle(c + ' Referral ' + i).setChoiceValues([PLACEHOLDER]);
-    }
+    f.addParagraphTextItem()
+      .setTitle(c + ' referrals — one bill per line')
+      .setHelpText('One bill per line, e.g. SB-12. Leave empty if none.');
   });
   return finish(f, 'Referrals');
 }
