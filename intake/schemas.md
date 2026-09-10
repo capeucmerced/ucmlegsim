@@ -68,7 +68,7 @@ The master mapping of people to roles. One row per student.
 | Flags | checkboxes: `Appropriation` / `Fiscal committee` / `Local program` / `Urgency` (comma-joined by Forms) |
 | Primary Topic | dropdown from the policy tag list (single choice, required) |
 | Secondary Topic | same list, optional |
-| Draft Doc | "Which of your two draft docs holds this bill’s text?" (`Draft 1` / `Draft 2`) |
+| Draft Doc | "Which of your two draft docs holds this bill’s text?" (`Draft A` / `Draft B`) |
 | Body Ready | "Confirm the legal text in your bill doc is final" (checkbox) |
 | — SB Number | **written by the on-submit script**, not a question |
 | — Status | **written by scripts/admin**: blank = live; `void` = ignore this row |

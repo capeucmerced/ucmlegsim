@@ -82,8 +82,11 @@ function provisionBillDocs() {
     var name  = (vals[i][cFirst] + ' ' + vals[i][cLast]).trim();
     var email = String(vals[i][cMail]).trim();
 
+    // Drafts are lettered A/B for students, so nobody confuses a draft
+    // label with an SB number (roster columns stay Bill Doc 1/2: A = 1).
+    var letters = ['A', 'B'];
     for (var n = 1; n <= 2; n++) {
-      var doc = DocumentApp.create('LegSim — SB Draft ' + n + ' — Sen. ' + name);
+      var doc = DocumentApp.create('LegSim — SB Draft ' + letters[n - 1] + ' — Sen. ' + name);
       var body = doc.getBody();
       [
         'HOW TO WRITE YOUR BILL — delete these instructions when you start.',

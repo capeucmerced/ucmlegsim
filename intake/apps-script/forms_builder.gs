@@ -214,7 +214,7 @@ function buildBills() {
     .setTitle('Secondary Topic').setChoiceValues(POLICY_TOPICS);
   f.addMultipleChoiceItem()
     .setTitle('Which of your two draft docs holds this bill’s text?')
-    .setChoiceValues(['Draft 1', 'Draft 2'])
+    .setChoiceValues(['Draft A', 'Draft B'])
     .setRequired(true);
   f.addCheckboxItem()
     .setTitle('Body Ready')

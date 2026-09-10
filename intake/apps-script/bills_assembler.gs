@@ -52,8 +52,9 @@ function handleBillSubmit(e) {
 
   // Which body doc: the form asks outright ("Draft 1" / "Draft 2") —
   // explicit beats inferring it from filing order.
+  // "Draft A"/"Draft B" (accepts legacy "Draft 1"/"Draft 2"): A = Doc 1
   var draftChoice = String(valueByPrefix(row, 'Which of your two draft docs'));
-  var docId = draftChoice.indexOf('2') >= 0 ? who['Bill Doc 2'] : who['Bill Doc 1'];
+  var docId = /[B2]/.test(draftChoice) ? who['Bill Doc 2'] : who['Bill Doc 1'];
   if (!docId) { console.error('No body doc on the roster for ' + row['Email Address']); return; }
 
   var subject = String(valueByPrefix(row, 'Short subject'));
