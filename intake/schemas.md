@@ -57,7 +57,7 @@ The master mapping of people to roles. One row per student.
 | Timestamp / Email Address | automatic |
 | Filing Type | "Is this a new bill or an amended version of one of your bills?" (`New bill` / `Amendment`) |
 | Amending | shown for amendments: "Which of your bills does this amend?" (dropdown, their bills) |
-| Short Subject | "Short subject for the bill tables — a few concise words (e.g. Affordable Housing)" |
+| Short Subject | "Short subject for the bill tables — a few concise words (e.g. Clean Air Near Schools Act)" |
 | Digest | "Digest: one paragraph summarizing what the bill does" |
 | Flags | checkboxes: `Appropriation` / `Fiscal committee` / `Local program` / `Urgency` (comma-joined by Forms) |
 | Primary Topic | dropdown from the policy tag list (single choice, required) |
