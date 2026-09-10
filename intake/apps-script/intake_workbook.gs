@@ -15,8 +15,18 @@
  *   - Everything: the site rebuild is requested (rebuild.gs).
  */
 
-// Drive folder that holds the filed PDFs (set at deploy: the ID of the
-// "LegSim Files" folder; subfolders are created/found by name).
+// Deploy settings live in SCRIPT PROPERTIES (Project Settings -> Script
+// properties), so re-pasting code never wipes them. Set once per account:
+//   FILES_FOLDER_ID       id of the "LegSim Files" Drive folder
+//   BILL_TEMPLATE_DOC_ID  id of the bill-template Doc
+//   SB_NUMBER_FLOOR       e.g. 75 during the beta, 0 at launch
+// (GITHUB_TOKEN already lives there.) The constants below are only
+// fallbacks for anything not yet set as a property.
+function deployProp(key, fallback) {
+  var v = PropertiesService.getScriptProperties().getProperty(key);
+  return v !== null && v !== '' ? v : fallback;
+}
+
 var FILES_FOLDER_ID = 'PUT-FOLDER-ID-HERE-AT-DEPLOY';
 
 function onAnyFormSubmit(e) {
@@ -94,7 +104,7 @@ function rosterLookup(email) {
 
 /** Get (or create) a subfolder of the LegSim Files folder by name. */
 function filesSubfolder(name) {
-  var parent = DriveApp.getFolderById(FILES_FOLDER_ID);
+  var parent = DriveApp.getFolderById(deployProp('FILES_FOLDER_ID', FILES_FOLDER_ID));
   var it = parent.getFoldersByName(name);
   return it.hasNext() ? it.next() : parent.createFolder(name);
 }

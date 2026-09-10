@@ -42,6 +42,7 @@ function doGet(e) {
 
   var json = view === 'spending' ? buildSpendingJson()
            : view === 'letters'  ? buildLettersJson()
+           : view === 'bills'    ? buildBillsJson()
            : buildPostsJson();
 
   try { cache.put('json-' + view, json, 30); } catch (err) {}
@@ -61,6 +62,79 @@ function rosterOrgMap() {
     if (email && org) orgByEmail[email] = org;
   }
   return orgByEmail;
+}
+
+/** Filed bills: one entry per SB number (the newest non-void row wins, so
+ *  an amendment's subject/digest replaces the original's). Author identity
+ *  comes from the Roster; emails never leave. */
+function buildBillsJson() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+
+  // email -> senator identity
+  var senByEmail = {};
+  var rosterRows = ss.getSheetByName('Roster').getDataRange().getValues();
+  var rHead = rosterRows[0];
+  for (var i = 1; i < rosterRows.length; i++) {
+    var em = String(rosterRows[i][rHead.indexOf('Email')]).toLowerCase().trim();
+    if (em && String(rosterRows[i][rHead.indexOf('Role')]).toLowerCase().trim() === 'senator') {
+      senByEmail[em] = {
+        first:    rosterRows[i][rHead.indexOf('First Name')],
+        last:     rosterRows[i][rHead.indexOf('Last Name')],
+        district: rosterRows[i][rHead.indexOf('District')],
+        party:    rosterRows[i][rHead.indexOf('Party')] || 'D'
+      };
+    }
+  }
+
+  var bySb = {};
+  var sheet = ss.getSheetByName('Bills');
+  if (sheet && sheet.getLastRow() > 1) {
+    var rows = sheet.getDataRange().getValues();
+    var head = rows[0];
+    var cTime  = colStartingWith(head, 'Timestamp');
+    var cMail  = colStartingWith(head, 'Email Address');
+    var cSubj  = colStartingWith(head, 'Short subject');
+    var cDig   = colStartingWith(head, 'Digest');
+    var cFlags = colStartingWith(head, 'Flags');
+    var cTopic = colStartingWith(head, 'Primary Topic');
+    var cTop2  = colStartingWith(head, 'Secondary Topic');
+    var cSb    = head.indexOf('SB Number');
+    var cStat  = head.indexOf('Status');
+
+    var billsFolder = filesSubfolder('bills');
+    for (var j = 1; j < rows.length; j++) {
+      var r = rows[j];
+      if (cStat >= 0 && r[cStat]) continue;          // void rows are ignored
+      var sb = parseInt(r[cSb], 10);
+      if (isNaN(sb)) continue;                       // never got a number
+      var who = senByEmail[String(r[cMail]).toLowerCase().trim()];
+      if (!who) continue;
+
+      var slug = String(who.last).toUpperCase().replace(/ /g, '_');
+      var entry = {
+        time:     new Date(r[cTime]).toISOString(),
+        sb:       sb,
+        subject:  String(r[cSubj] || ''),
+        digest:   String(r[cDig] || ''),
+        flags:    String(r[cFlags] || ''),
+        topic:    cTopic >= 0 ? String(r[cTopic] || '') : '',
+        topic2:   cTop2 >= 0 ? String(r[cTop2] || '') : '',
+        first:    String(who.first),
+        last:     String(who.last),
+        district: parseInt(who.district, 10),
+        party:    String(who.party),
+        fileId:   ''
+      };
+      var pdfs = billsFolder.getFilesByName(slug + '_SB' + sb + '.pdf');
+      if (pdfs.hasNext()) entry.fileId = pdfs.next().getId();
+
+      // rows are in submission order, so later rows overwrite earlier
+      bySb[sb] = entry;
+    }
+  }
+
+  var out = Object.keys(bySb).map(function (k) { return bySb[k]; });
+  return JSON.stringify({ bills: out });
 }
 
 /** Current position letters; the build downloads the PDFs by file id. */

@@ -61,7 +61,7 @@ INTAKE_API_URL <- "https://script.google.com/macros/s/AKfycbzV8j7CpZvdkmS44vdWTz
 
 # Which intake streams are live (their loaders merge rows in; the 2025
 # fixture files stay alongside until the semester-start data reset)
-INTAKE_LIVE <- c("spending", "letters")
+INTAKE_LIVE <- c("spending", "letters", "bills")
 
 read_intake_json <- function(view) {
   tryCatch({
@@ -162,8 +162,9 @@ senator_name_sets <- function(senators) {
 #   name         author's "First Last"
 #   name_join    join key matching load_senators()$name_join
 #   bill_measure "SB-12" (display)   url_slug "LASTNAME_SB12" (file/page names)
+# Combines the 2025 fixture list with bills filed through the 2026 form.
 load_bills <- function() {
-  read.csv(BILLS_CSV) |>
+  fixture <- read.csv(BILLS_CSV) |>
     mutate(
       name         = trimws(gsub("\\s+", " ", paste(First.Name, Last.Name))),
       name_join    = tolower(gsub(" ", "", paste0(First.Name, Last.Name))),
@@ -173,6 +174,54 @@ load_bills <- function() {
       # A blank fiscal flag counts as "No" (admin can correct the sheet)
       appropriations = ifelse(!is.na(appropriations) & appropriations == 1, "Yes", "No")
     )
+  bind_rows(fixture, load_intake_bills())
+}
+
+# Bills filed through the 2026 form, from the gateway's bills view,
+# shaped like the fixture rows. Also downloads each bill's assembled PDF
+# into BILL_PDF_DIR under the conventional name (once per R session).
+load_intake_bills <- function() {
+  if (!"bills" %in% INTAKE_LIVE) return(data.frame())
+  j <- read_intake_json("bills")
+  if (is.null(j) || length(j$bills) == 0) return(data.frame())
+
+  rows <- as.data.frame(j$bills) |>
+    transmute(
+      bill_number  = suppressWarnings(as.integer(sb)),
+      title        = as.character(subject),
+      First.Name   = as.character(first),
+      Last.Name    = as.character(last),
+      lobbyist     = NA_character_,
+      committee    = "Unassigned",   # referrals come later in the process
+      appropriations = ifelse(grepl("Appropriation", as.character(flags)), "Yes", "No"),
+      digest       = as.character(digest),
+      topic        = as.character(topic),
+      name         = trimws(gsub("\\s+", " ", paste(First.Name, Last.Name))),
+      name_join    = tolower(gsub(" ", "", paste0(First.Name, Last.Name))),
+      bill_measure = paste0("SB-", bill_number),
+      url_slug     = paste0(toupper(gsub(" ", "_", Last.Name)), "_SB", bill_number),
+      file_id      = as.character(fileId)
+    ) |>
+    filter(!is.na(bill_number))
+
+  # Fetch the assembled PDFs so links and iframes work like fixtures'
+  if (!isTRUE(getOption("legsim.bills_synced"))) {
+    for (i in seq_len(nrow(rows))) {
+      if (rows$file_id[i] == "") next
+      dest <- file.path(BILL_PDF_DIR, paste0(rows$url_slug[i], ".pdf"))
+      tryCatch(
+        curl::curl_download(
+          paste0("https://drive.google.com/uc?export=download&id=", rows$file_id[i]),
+          dest, quiet = TRUE
+        ),
+        error = function(e) message("WARNING: could not fetch bill PDF ",
+                                    rows$url_slug[i], ": ", conditionMessage(e))
+      )
+    }
+    options(legsim.bills_synced = TRUE)
+  }
+
+  rows |> select(-file_id)
 }
 
 # --- Votes ------------------------------------------------------------------

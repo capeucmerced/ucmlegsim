@@ -18,10 +18,12 @@
  * formatting including italics/strikethrough.
  */
 
+// Both settings live in Script Properties (see intake_workbook.gs), so
+// re-pasting this file never loses them; these are only fallbacks.
 var BILL_TEMPLATE_DOC_ID = 'PUT-TEMPLATE-DOC-ID-HERE-AT-DEPLOY';
 
 // New bills are numbered above this floor. BETA (2025 fixtures still on
-// the site, occupying SB-1..75): set to 75. At the real launch: 0.
+// the site, occupying SB-1..75): 75. At the real launch: 0.
 var SB_NUMBER_FLOOR = 0;
 
 function handleBillSubmit(e) {
@@ -38,6 +40,8 @@ function handleBillSubmit(e) {
 
   var isAmendment = valueByPrefix(row, 'Is this a new bill') === 'Amendment';
   var sbNumber;
+
+  var templateId = deployProp('BILL_TEMPLATE_DOC_ID', BILL_TEMPLATE_DOC_ID);
 
   if (isAmendment) {
     sbNumber = billNumberFrom(valueByPrefix(row, 'Which of your bills'));
@@ -66,6 +70,7 @@ function handleBillSubmit(e) {
     digest: String(valueByPrefix(row, 'Digest')),
     flags: flagsLine(valueByPrefix(row, 'Flags')),
     bodyDocId: docId,
+    templateId: templateId,
     fileName: lastNameSlug + '_SB' + sbNumber + '.pdf'
   });
 
@@ -82,7 +87,7 @@ function handleBillSubmit(e) {
 /** Highest assigned SB number so far (or the floor) + 1. */
 function nextSbNumber(sheet, head) {
   var col = head.indexOf('SB Number');
-  var max = SB_NUMBER_FLOOR;
+  var max = parseInt(deployProp('SB_NUMBER_FLOOR', SB_NUMBER_FLOOR), 10) || 0;
   var vals = sheet.getDataRange().getValues();
   for (var i = 1; i < vals.length; i++) {
     var n = parseInt(vals[i][col], 10);
@@ -103,7 +108,8 @@ function archiveCurrentVersion(lastNameSlug, sbNumber) {
 
   var v = 1;
   while (prev.getFilesByName(lastNameSlug + '_SB' + sbNumber + '_v' + v + '.pdf').hasNext()) v++;
-  current.makeCopy(lastNameSlug + '_SB' + sbNumber + '_v' + v + '.pdf', prev);
+  var archived = current.makeCopy(lastNameSlug + '_SB' + sbNumber + '_v' + v + '.pdf', prev);
+  try { archived.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW); } catch (e) {}
   current.setTrashed(true); // replaced by the newly assembled PDF
 }
 
@@ -140,7 +146,7 @@ function colorizeAmendmentMarks(body, fromIndex) {
 
 /** Fill the template, append the body doc's content, export a named PDF. */
 function assembleBillPdf(spec) {
-  var working = DriveApp.getFileById(BILL_TEMPLATE_DOC_ID)
+  var working = DriveApp.getFileById(spec.templateId)
     .makeCopy('assembling-' + spec.fileName);
   var doc = DocumentApp.openById(working.getId());
   var body = doc.getBody();
@@ -181,7 +187,9 @@ function assembleBillPdf(spec) {
   // Replace any same-named PDF (amendment case)
   var dupes = bills.getFilesByName(spec.fileName);
   while (dupes.hasNext()) dupes.next().setTrashed(true);
-  bills.createFile(pdf);
+  var created = bills.createFile(pdf);
+  // Bill PDFs are public site documents; link-view lets the build fetch them
+  try { created.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW); } catch (e) {}
 
   working.setTrashed(true); // the working Doc copy is no longer needed
   return pdf;
