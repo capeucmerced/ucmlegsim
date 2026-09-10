@@ -81,7 +81,7 @@ The master mapping of people to roles. One row per student.
 | Column | Question |
 | --- | --- |
 | Timestamp / Email Address | automatic |
-| Recipient | "Who received the contribution?" (dropdown: `D-16 · Torres, Maria (D)` format, synced from Roster) |
+| Recipient | "Who received the contribution?" (dropdown: `SD-16 · Torres, Maria (D)` format, synced from Roster) |
 | Amount | "Amount (dollars)" (number, 100–10000) |
 
 ## Tabs: Agenda LGL / ANR / BLH / APP / Floor  (five forms, one per body)
