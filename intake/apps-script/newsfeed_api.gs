@@ -16,16 +16,87 @@
  * fields only.
  */
 
-function doGet() {
+/**
+ * This web app is the ONLY way intake data leaves Google — the site never
+ * uses publish-to-web on intake tabs, because every response tab carries
+ * the submitter's email. Each view joins the Roster server-side and emits
+ * de-identified fields only, so this URL is safe to sit in public code.
+ *
+ *   .../exec                 -> the newsfeed (posts view, default)
+ *   .../exec?view=spending   -> contributions: date, district, recipient,
+ *                               amount, org — never the email
+ */
+function doGet(e) {
+  var view = (e && e.parameter && e.parameter.view) || 'posts';
+
   // Serve from a 30-second cache: a classroom of simultaneous page loads
   // becomes one spreadsheet read, and warm responses return much faster.
   var cache = CacheService.getScriptCache();
-  var hit = cache.get('feed-json');
+  var hit = cache.get('json-' + view);
   if (hit) {
     return ContentService.createTextOutput(hit)
       .setMimeType(ContentService.MimeType.JSON);
   }
 
+  var json = view === 'spending' ? buildSpendingJson() : buildPostsJson();
+
+  try { cache.put('json-' + view, json, 30); } catch (err) {}
+  return ContentService.createTextOutput(json)
+    .setMimeType(ContentService.MimeType.JSON);
+}
+
+/** Contributions with the org resolved from the Roster; emails stripped. */
+function buildSpendingJson() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+
+  // email -> org code
+  var orgByEmail = {};
+  var rosterRows = ss.getSheetByName('Roster').getDataRange().getValues();
+  var rHead = rosterRows[0];
+  for (var i = 1; i < rosterRows.length; i++) {
+    var email = String(rosterRows[i][rHead.indexOf('Email')]).toLowerCase().trim();
+    var org   = String(rosterRows[i][rHead.indexOf('Org Code')] || '').toUpperCase().trim();
+    if (email && org) orgByEmail[email] = org;
+  }
+
+  var out = [];
+  var sheet = ss.getSheetByName('Spending');
+  if (sheet && sheet.getLastRow() > 1) {
+    var rows = sheet.getDataRange().getValues();
+    var head = rows[0];
+    var cTime  = colStartingWith(head, 'Timestamp');
+    var cMail  = colStartingWith(head, 'Email Address');
+    var cRecip = colStartingWith(head, 'Who received');
+    var cAmt   = colStartingWith(head, 'Amount');
+
+    for (var j = 1; j < rows.length; j++) {
+      var r = rows[j];
+      var who = orgByEmail[String(r[cMail]).toLowerCase().trim()];
+      if (!who || !r[cRecip]) continue; // no org registered -> not a contribution
+      // Recipient format: "SD-16 · Hurtado, Melissa (D)"
+      var recip = String(r[cRecip]);
+      var dm = recip.match(/^SD-(\d+)/);
+      out.push({
+        time:      new Date(r[cTime]).toISOString(),
+        org:       who,
+        district:  dm ? parseInt(dm[1], 10) : null,
+        recipient: recip.replace(/^SD-\d+\s*·\s*/, '').replace(/\s*\([DR]\)\s*$/, ''),
+        amount:    Number(r[cAmt])
+      });
+    }
+  }
+  return JSON.stringify({ contributions: out });
+}
+
+/** Column lookup by prefix — response columns carry full question titles. */
+function colStartingWith(head, prefix) {
+  for (var i = 0; i < head.length; i++) {
+    if (String(head[i]).toLowerCase().indexOf(prefix.toLowerCase()) === 0) return i;
+  }
+  return -1;
+}
+
+function buildPostsJson() {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
 
   // email -> {name, outlet, handle} from the Roster tab
@@ -41,15 +112,6 @@ function doGet() {
         outlet: row[rHead.indexOf('Outlet')]
       };
     }
-  }
-
-  // Response-sheet columns are titled with the FULL question text
-  // ("Headline (max 100 characters)"), so match by prefix.
-  function colStartingWith(head, prefix) {
-    for (var i = 0; i < head.length; i++) {
-      if (String(head[i]).toLowerCase().indexOf(prefix.toLowerCase()) === 0) return i;
-    }
-    return -1;
   }
 
   var posts = [];
@@ -83,9 +145,5 @@ function doGet() {
   posts.sort(function (a, b) { return a.time < b.time ? 1 : -1; });
   posts = posts.slice(0, 200);
 
-  var json = JSON.stringify({ posts: posts });
-  try { cache.put('feed-json', json, 30); } catch (e) {}
-
-  return ContentService.createTextOutput(json)
-    .setMimeType(ContentService.MimeType.JSON);
+  return JSON.stringify({ posts: posts });
 }

@@ -17,6 +17,9 @@ senators <- load_senators() |>
   mutate(Recipient = paste0(Last.Name, ", ", First.Name)) |>
   select(District, Recipient, Party)
 
+# Every org's contributions in one frame (2025 fixtures + 2026 intake rows)
+all_contributions <- load_all_contributions()
+
 for (i in seq_len(nrow(lobbys))) {
   lobby      <- lobbys$Lobby[i]
   lobby_code <- lobbys$Code[i]
@@ -47,14 +50,19 @@ for (i in seq_len(nrow(lobbys))) {
   r_support <- 0; r_share <- 0
   top_recipients <- data.frame()
 
+  # Rows come from the unified frame (fixtures + intake); the fixture file
+  # is only consulted for the org's budget total, when one exists.
   spending_file <- list.files(CONTRIB_DIR,
                               pattern = paste0("^", lobby_code, "_.*\\.csv$"),
                               full.names = TRUE, ignore.case = TRUE)
-  if (length(spending_file) > 0) {
-    contrib <- read_contribution_file(spending_file[1])
-    total_spend <- contrib$total
+  org_rows <- all_contributions |> filter(Lobby_Code == lobby_code)
 
-    spending_df <- contrib$rows |>
+  if (nrow(org_rows) > 0) {
+    if (length(spending_file) > 0) {
+      total_spend <- read_contribution_file(spending_file[1])$total
+    }
+
+    spending_df <- org_rows |>
       arrange(desc(Date)) |>
       left_join(senators, by = c("Recipient.District" = "District")) |>
       # Recipients who aren't senators keep the name typed in the sheet

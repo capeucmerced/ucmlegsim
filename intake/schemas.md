@@ -16,9 +16,14 @@ against these layouts — if a column changes here, it changes in all three.
   subfolders mirroring `files/pdfs/` (bills, previous_bills,
   lobbyist_letters, agendas, role_profiles).
 
-Each tab that the site reads is published to the web as CSV
-(File → Share → Publish to web → that tab → CSV); the URLs go in
-`scripts/shared.R` at deploy time.
+**Intake tabs are NEVER published to the web** — every response tab
+carries the submitter's email, and a published-CSV URL would expose them
+(especially once the URL sits in the public site repo). Instead, ALL
+intake data reaches the site through one Apps Script web app
+(`newsfeed_api.gs`) that joins the Roster server-side and emits
+de-identified JSON per view (`?view=posts`, `?view=spending`, …). Its
+/exec URL goes in `scripts/shared.R` (`INTAKE_API_URL`) and is safe in
+public code because its output contains no emails.
 
 Google Forms always writes `Timestamp` first. Forms set to *verified email
 collection* write `Email Address` second. Question columns use the exact

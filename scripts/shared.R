@@ -49,6 +49,56 @@ NEWSPAPER_SHEET_URL <- "https://docs.google.com/spreadsheets/d/e/2PACX-1vTenWjAn
 # Where votes are entered (link shown on the Votes page)
 VOTE_ENTRY_URL <- "https://docs.google.com/spreadsheets/d/1O3c2ZGWMUwBu_q2Yjr0nbfBOn9qD2T3A_zhYH8Q2ZHs/edit?gid=0#gid=0"
 
+# --- 2026 intake sources (the Google Forms era) -----------------------------
+# All intake data reaches the site through ONE Apps Script endpoint (see
+# intake/apps-script/newsfeed_api.gs) that joins the roster SERVER-SIDE and
+# strips emails before anything leaves Google. Intake tabs are never
+# published to the web — every response tab contains submitter emails, so
+# a published-CSV link would leak them. This URL is safe in public code
+# precisely because its output is de-identified.
+# BETA: the instructor's personal-account deployment; swaps at real deploy.
+INTAKE_API_URL <- "https://script.google.com/macros/s/AKfycbzV8j7CpZvdkmS44vdWTzUxw0_tLufgwN0gz-QCdswe_5wujNiS4YXVLZVkQUqGDMLJ/exec"
+
+# Which intake streams are live (their loaders merge rows in; the 2025
+# fixture files stay alongside until the semester-start data reset)
+INTAKE_LIVE <- c("spending")
+
+read_intake_json <- function(view) {
+  tryCatch({
+    # curl (not base url connections): Apps Script answers through a
+    # redirect that base R handles unreliably, and wants a user agent
+    h <- curl::new_handle(followlocation = TRUE, useragent = "ucmlegsim-build/1.0")
+    resp <- curl::curl_fetch_memory(paste0(INTAKE_API_URL, "?view=", view), handle = h)
+    jsonlite::fromJSON(rawToChar(resp$content))
+  }, error = function(e) {
+    message("WARNING: intake endpoint unreachable (", conditionMessage(e), ") — view: ", view)
+    NULL
+  })
+}
+
+# Contributions filed through the 2026 Spending form, reshaped to the same
+# columns as the fixture contributions. The endpoint has already resolved
+# each submitter to their org and dropped the email.
+load_intake_contributions <- function() {
+  if (!"spending" %in% INTAKE_LIVE) return(data.frame())
+  j <- read_intake_json("spending")
+  if (is.null(j) || length(j$contributions) == 0) return(data.frame())
+
+  lobbys <- read.csv(LOBBY_CSV) |> mutate(Code = toupper(Code))
+
+  as.data.frame(j$contributions) |>
+    transmute(
+      Date = as.Date(substr(time, 1, 10)),
+      Recipient.Name = as.character(recipient),
+      Recipient.District = suppressWarnings(as.integer(district)),
+      Contribution = suppressWarnings(as.numeric(amount)),
+      Lobby_Code = toupper(as.character(org))
+    ) |>
+    filter(!is.na(Contribution)) |>
+    left_join(lobbys |> select(Code, Lobby), by = c("Lobby_Code" = "Code")) |>
+    mutate(Lobby = ifelse(is.na(Lobby), Lobby_Code, Lobby))
+}
+
 # --- Names --------------------------------------------------------------
 
 # Committee codes -> full display names
@@ -305,16 +355,20 @@ read_contribution_file <- function(path) {
 
 # All lobbies' contributions in one tidy frame: Date, Recipient.Name,
 # Recipient.District, Contribution, Lobby_Code, Lobby. Rows with no usable
-# district are kept (some recipients may not be senators).
+# district are kept (some recipients may not be senators). Combines the
+# 2025 fixture files with rows filed through the 2026 Spending form.
 load_all_contributions <- function() {
   files <- list.files(CONTRIB_DIR, pattern = "_contributions\\.csv$", full.names = TRUE)
-  if (length(files) == 0) return(data.frame())
 
-  lobbys <- read.csv(LOBBY_CSV) |> mutate(Code = toupper(Code))
+  fixture_rows <- data.frame()
+  if (length(files) > 0) {
+    lobbys <- read.csv(LOBBY_CSV) |> mutate(Code = toupper(Code))
+    fixture_rows <- map_df(files, function(f) {
+      read_contribution_file(f)$rows |>
+        mutate(Lobby_Code = toupper(gsub("_contributions\\.csv$", "", basename(f))))
+    }) |>
+      left_join(lobbys |> select(Code, Lobby), by = c("Lobby_Code" = "Code"))
+  }
 
-  map_df(files, function(f) {
-    read_contribution_file(f)$rows |>
-      mutate(Lobby_Code = toupper(gsub("_contributions\\.csv$", "", basename(f))))
-  }) |>
-    left_join(lobbys |> select(Code, Lobby), by = c("Lobby_Code" = "Code"))
+  bind_rows(fixture_rows, load_intake_contributions())
 }
