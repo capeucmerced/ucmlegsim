@@ -85,10 +85,19 @@ function provisionBillDocs() {
     for (var n = 1; n <= 2; n++) {
       var doc = DocumentApp.create('LegSim — SB Draft ' + n + ' — Sen. ' + name);
       var body = doc.getBody();
-      body.appendParagraph('Write the legal text of your bill in this document, ' +
-        'using normal formatting — italics for added language, strikethrough ' +
-        'for deleted language. Delete this instruction paragraph when you start.')
-        .setItalic(true).setFontSize(9);
+      [
+        'HOW TO WRITE YOUR BILL — delete these instructions when you start.',
+        'Write your bill’s legal text in this document. Use the standard ' +
+          'amendment marks: italic for language you are ADDING to existing law ' +
+          '(Ctrl+I on Windows, ⌘+I on Mac), strikethrough for language you ' +
+          'are REMOVING (Alt+Shift+5 on Windows, ⌘+Shift+X on Mac). ' +
+          'Brand-new sections need no special formatting.',
+        'Do NOT color any text. Colors are applied automatically when your ' +
+          'bill is published: strikethrough prints red, added language prints ' +
+          'blue — exactly like real bills on leginfo.'
+      ].forEach(function (line) {
+        body.appendParagraph(line).setItalic(true).setFontSize(9);
+      });
       body.appendParagraph('SECTION 1. ');
       doc.saveAndClose();
 
