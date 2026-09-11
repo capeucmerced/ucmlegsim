@@ -8,10 +8,11 @@
  * intake/schemas.md — if that file changes, change this one to match.
  *
  * HOW TO RUN (one time per account):
- *   1. Create the "LegSim Intake" spreadsheet first (empty is fine) and
- *      paste its ID into INTAKE_SPREADSHEET_ID below.
- *   2. In script.google.com, make a project, paste this file, run
- *      buildAllForms(), and grant permissions.
+ *   1. Create the year's "LegSim Intake" spreadsheet (empty is fine).
+ *   2. From THAT spreadsheet: Extensions -> Apps Script, paste this file
+ *      (with the others), run buildAllForms(), grant permissions. Being
+ *      container-bound is what tells the script which workbook is the
+ *      intake workbook — there is no ID to paste anywhere.
  *   3. Read the execution log: it prints every form's edit + share URL,
  *      and the short MANUAL FINISH list (things Google's API can't do).
  *
@@ -37,7 +38,11 @@
  * the senators are entered, and again whenever the Roster changes.
  */
 
-var INTAKE_SPREADSHEET_ID = 'PUT-INTAKE-WORKBOOK-ID-HERE';
+// This project is container-bound to the intake workbook (created via
+// Extensions -> Apps Script from that spreadsheet), so the workbook is
+// simply the active one. Nothing to paste in — and a code re-paste can
+// never wipe it (which once broke a live deploy).
+function intakeWorkbook() { return SpreadsheetApp.getActiveSpreadsheet(); }
 
 // All form FILES are prefixed "LegSim — " and collected in this Drive
 // folder (created if missing). Respondents still see the clean titles.
@@ -83,7 +88,7 @@ function buildAllForms() {
  * (Roster, Budgets) with their header rows, per intake/schemas.md.
  */
 function addAdminTabs() {
-  var ss = SpreadsheetApp.openById(INTAKE_SPREADSHEET_ID);
+  var ss = intakeWorkbook();
 
   var tabs = {
     'Roster': ['Email', 'Role', 'District', 'First Name', 'Last Name',
@@ -135,10 +140,10 @@ function newForm(title, tabName) {
   try { form.setCollectEmail(true); } catch (e) {
     Logger.log(title + ': setCollectEmail not available — set it by hand.');
   }
-  form.setDestination(FormApp.DestinationType.SPREADSHEET, INTAKE_SPREADSHEET_ID);
+  form.setDestination(FormApp.DestinationType.SPREADSHEET, intakeWorkbook().getId());
 
   SpreadsheetApp.flush();
-  var sheets = SpreadsheetApp.openById(INTAKE_SPREADSHEET_ID).getSheets();
+  var sheets = intakeWorkbook().getSheets();
   for (var i = 0; i < sheets.length; i++) {
     if (/^Form Responses/i.test(sheets[i].getName())) {
       sheets[i].setName(tabName);
@@ -169,7 +174,7 @@ function renameResponseTabs() {
     titleToTab['File an Agenda — ' + body] = 'Agenda ' + body;
   });
 
-  var ss = SpreadsheetApp.openById(INTAKE_SPREADSHEET_ID);
+  var ss = intakeWorkbook();
   ss.getSheets().forEach(function (sheet) {
     var url = sheet.getFormUrl();
     if (!url) return;
@@ -200,8 +205,7 @@ function finish(form, tabName) {
  * the gateway's spending view parses exactly this shape.
  */
 function syncRosterDropdowns() {
-  var rows = SpreadsheetApp.openById(INTAKE_SPREADSHEET_ID)
-    .getSheetByName('Roster').getDataRange().getValues();
+  var rows = intakeWorkbook().getSheetByName('Roster').getDataRange().getValues();
   var head = rows[0];
   var senators = [];
   for (var i = 1; i < rows.length; i++) {

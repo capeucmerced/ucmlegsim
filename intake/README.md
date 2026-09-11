@@ -29,11 +29,12 @@ The whole Google side can be stood up on a personal account for testing
 before the department deploy, because every binding between Google and the
 site sits in three known places (the **swap surface**):
 
-1. `INTAKE_API_URL` in `scripts/shared.R`
+1. `INTAKE_API_URL` (and `VOTE_SHEET_URLS` / `VOTE_ENTRY_URL`) in
+   `scripts/shared.R`
 2. `FEED_URL` in `js/feed.js`
-3. the Script Properties in the Apps Script project
-   (`GITHUB_TOKEN`, `FILES_FOLDER_ID`, `BILL_TEMPLATE_DOC_ID`,
-   `SB_NUMBER_FLOOR`) plus `INTAKE_SPREADSHEET_ID` in `forms_builder.gs`
+3. the Script Properties in the Apps Script project (`GITHUB_TOKEN`,
+   `FILES_FOLDER_ID`, `BILL_TEMPLATE_DOC_ID`, `AGENDA_TEMPLATE_DOC_ID`,
+   `SB_NUMBER_FLOOR`, `VOTES_WORKBOOK_ID`)
 
 Beta flow: run `forms_builder.gs` + the setup steps below on the personal
 account, wire those three places to it, and test freely. Cutover: repeat
@@ -81,9 +82,11 @@ live in the Sep 2026 beta — the scripts carry those fixes):
    lives inside the year folder — see **Yearly turnover** below.
 2. **Workbook `LegSim Intake 2026`**: create an empty spreadsheet inside
    the year folder; copy its ID.
-3. **Apps Script** (Extensions → Apps Script in that workbook): paste in
-   ALL the `.gs` files from `apps-script/`; set `INTAKE_SPREADSHEET_ID` in
-   `forms_builder.gs`. Under ⚙ Project Settings → **Script properties**,
+3. **Apps Script** (Extensions → Apps Script in that workbook — being
+   bound to the workbook is how the scripts know which spreadsheet is
+   the intake workbook; no ID to set anywhere): paste in ALL the `.gs`
+   files from `apps-script/` except `vote_sheet.gs` (that one belongs to
+   the votes workbook, step 7). Under ⚙ Project Settings → **Script properties**,
    add: `FILES_FOLDER_ID`, and `SB_NUMBER_FLOOR` = `75` while the 2025
    fixtures are still on the site (test bills then number from 76 and
    can't collide with fixture SB-1..75; the fixture reset in step 9
@@ -101,9 +104,10 @@ live in the Sep 2026 beta — the scripts carry those fixes):
    The builder stores each form's id in Script Properties (`FORM_ID_…`);
    that is what lets every newly numbered bill append itself to the
    amend and letter dropdowns — no manual dropdown upkeep for bills.
-5. **Bill machinery**: run `createBillTemplate()` and put the logged ID
-   into the `BILL_TEMPLATE_DOC_ID` script property (restyle the template
-   doc freely — keep the `{{PLACEHOLDERS}}`). After the Roster has its
+5. **Templates**: run `createBillTemplate()` and put the logged ID into
+   the `BILL_TEMPLATE_DOC_ID` script property; run `createAgendaTemplate()`
+   and put its ID into `AGENDA_TEMPLATE_DOC_ID` (restyle both docs freely
+   — keep the `{{PLACEHOLDERS}}`; drag them into the year folder). After the Roster has its
    senators (roles, districts, names, Party), run `provisionBillDocs()`
    AND `syncRosterDropdowns()` (fills the spending recipient and
    assignment pickers from the Roster) — rerun both whenever senators
