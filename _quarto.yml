@@ -1,5 +1,13 @@
 project:
   type: website
+  # Only these render onto the site. Listing them keeps repo documentation
+  # (README.md, intake/*.md) from quietly becoming public pages — a stray
+  # intake/schemas.html once shipped that way.
+  render:
+    - "*.qmd"
+    - "bills-pages/"
+    - "senator-pages/"
+    - "lobby-pages/"
   # These run before every render and (re)generate the per-bill, per-senator,
   # and per-lobby pages from the data in files/ and the vote sheets.
   pre-render:
