@@ -350,8 +350,8 @@ function buildLetters() {
     .setRequired(true);
   f.addSectionHeaderItem()
     .setTitle('REMINDER FOR THE ADMIN BUILDING THIS FORM')
-    .setHelpText('Add a File upload question here by hand, titled exactly ' +
-                 '"Letter PDF" (PDF only, 10 MB) — then delete this reminder.');
+    .setHelpText('Add a File upload question here by hand (PDF only, 10 MB; ' +
+                 'any title — "Letter PDF" recommended) — then delete this reminder.');
   return finish(f, 'Letters');
 }
 
@@ -363,8 +363,8 @@ function buildProfiles() {
   var f = newForm('Upload Your Role Profile', 'Profiles');
   f.addSectionHeaderItem()
     .setTitle('REMINDER FOR THE ADMIN BUILDING THIS FORM')
-    .setHelpText('Add a File upload question here by hand, titled exactly ' +
-                 '"Profile PDF" (PDF only, 10 MB) — then delete this reminder.');
+    .setHelpText('Add a File upload question here by hand (PDF only, 10 MB; ' +
+                 'any title — "Profile PDF" recommended) — then delete this reminder.');
   return finish(f, 'Profiles');
 }
 
