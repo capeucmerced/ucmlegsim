@@ -79,6 +79,19 @@ function valueByPrefix(row, prefix) {
   return '';
 }
 
+/** The Drive-upload URL in a submission row, found by VALUE — uploads are
+ *  the only cells holding Drive links — never by column title, so the
+ *  upload question's wording can't break filing (it once did: a form
+ *  built with "Attach letter PDF here" silently filed nothing). */
+function uploadUrlFrom(row) {
+  var keys = Object.keys(row);
+  for (var i = 0; i < keys.length; i++) {
+    var v = String(row[keys[i]] || '');
+    if (/https:\/\/(drive|docs)\.google\.com\/\S+/.test(v) && /[-\w]{25,}/.test(v)) return v;
+  }
+  return '';
+}
+
 /** Same idea for a header ARRAY: column index by title prefix, or -1. */
 function headIndexByPrefix(head, prefix) {
   for (var i = 0; i < head.length; i++) {
@@ -144,19 +157,24 @@ var POSITION_TOKENS = {
 function handleLetterSubmit(e) {
   var row = rowAsObject(e);
   var who = rosterLookup(row['Email Address']);
+  // Throw, don't return: thrown errors email the admin (see the router),
+  // and silent skips cost a beta afternoon once.
   if (!who || !who['Org Code']) {
-    console.error('Letter from unregistered or non-lobbyist account: ' + row['Email Address']);
-    return;
+    throw new Error('Letter from ' + row['Email Address'] + ', which has no ' +
+                    'Org Code on the Roster. Add the code (letters and ' +
+                    'spending are attributed by it), then have them resubmit.');
   }
 
   var org = String(who['Org Code']).toUpperCase();
   var billNo = billNumberFrom(valueByPrefix(row, 'Which bill'));
   var token = POSITION_TOKENS[valueByPrefix(row, 'Position')] || 'support';
 
-  // The upload question stores a Drive URL like .../d/FILE_ID/view or ?id=FILE_ID
-  var url = String(valueByPrefix(row, 'Letter PDF'));
+  var url = uploadUrlFrom(row);
   var idMatch = url.match(/[-\w]{25,}/);
-  if (!idMatch) { console.error('Could not parse Drive file ID from: ' + url); return; }
+  if (!idMatch) {
+    throw new Error('No Drive upload link found in the Letters row — ' +
+                    'is the file-upload question missing from the form?');
+  }
 
   var file = DriveApp.getFileById(idMatch[0]);
   file.setName(org + '_SB' + billNo + '_' + token + '.pdf');
@@ -216,19 +234,23 @@ function handleProfileSubmit(e) {
   var row = rowAsObject(e);
   var who = rosterLookup(row['Email Address']);
   if (!who) {
-    console.error('Profile from unregistered account: ' + row['Email Address']);
-    return;
+    throw new Error('Profile from ' + row['Email Address'] + ', which is not ' +
+                    'on the Roster yet. Add the row (or fix the email), then ' +
+                    'have them resubmit.');
   }
   var target = profileTarget(who);
   if (!target) {
-    console.error('Profile from account with no role assigned yet: ' + row['Email Address']);
-    return;
+    throw new Error('Profile from ' + row['Email Address'] + ', whose Roster ' +
+                    'row has no Role assigned yet. Set the Role, then have ' +
+                    'them resubmit.');
   }
 
-  // The upload question stores a Drive URL like .../d/FILE_ID/view or ?id=FILE_ID
-  var url = String(valueByPrefix(row, 'Profile PDF'));
+  var url = uploadUrlFrom(row);
   var idMatch = url.match(/[-\w]{25,}/);
-  if (!idMatch) { console.error('Could not parse Drive file ID from: ' + url); return; }
+  if (!idMatch) {
+    throw new Error('No Drive upload link found in the Profiles row — ' +
+                    'is the file-upload question missing from the form?');
+  }
 
   // role_profiles/<role>/ under the LegSim Files folder
   var parent = filesSubfolder('role_profiles');

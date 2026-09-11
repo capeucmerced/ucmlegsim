@@ -93,7 +93,7 @@ the plain name.
 | Timestamp / Email Address | automatic |
 | Bill | "Which bill?" (dropdown of filed bills, synced by script) |
 | Position | `Support` / `Support If Amended` / `Oppose Unless Amended` / `Oppose` |
-| Letter PDF | file upload (PDF only) — Forms stores a Drive link |
+| Letter PDF | file upload (PDF only) — Forms stores a Drive link. Any question title works: the scripts find the upload by its Drive link, not the column name (`Letter PDF` is just the recommended title) |
 | — Status | script/admin column: blank = current; `superseded` = older letter on the same bill |
 
 ## Tab: Profiles  (form: "Upload Your Role Profile")
@@ -105,7 +105,7 @@ enter nothing but the file.
 | Column | Question |
 | --- | --- |
 | Timestamp / Email Address | automatic |
-| Profile PDF | file upload (PDF only) — Forms stores a Drive link |
+| Profile PDF | file upload (PDF only) — Forms stores a Drive link. Any question title works (found by the link, not the name) |
 
 The submit script renames the upload to its canonical name, moves it into
 `role_profiles/<role>/`, and link-shares it; a resubmission trashes the

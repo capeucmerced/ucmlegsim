@@ -258,16 +258,24 @@ function buildLettersJson() {
     var cMail   = colStartingWith(head, 'Email Address');
     var cBill   = colStartingWith(head, 'Which bill');
     var cPos    = colStartingWith(head, 'Position');
-    var cFile   = colStartingWith(head, 'Letter PDF');
     var cStatus = colStartingWith(head, 'Status');
 
     for (var j = 1; j < rows.length; j++) {
       var r = rows[j];
       if (cStatus >= 0 && r[cStatus]) continue; // superseded/void rows stay private history
       var who = orgByEmail[String(r[cMail]).toLowerCase().trim()];
-      if (!who || !r[cBill] || cFile < 0 || !r[cFile]) continue;
+      if (!who || !r[cBill]) continue;
+      // The upload is found by VALUE (the one cell holding a Drive link),
+      // never by its column title — titles are whatever the form said
+      var idMatch = null;
+      for (var c = 0; c < r.length; c++) {
+        var v = String(r[c] || '');
+        if (/https:\/\/(drive|docs)\.google\.com\//.test(v)) {
+          idMatch = v.match(/[-\w]{25,}/);
+          if (idMatch) break;
+        }
+      }
       var billMatch = String(r[cBill]).match(/(\d+)/);
-      var idMatch   = String(r[cFile]).match(/[-\w]{25,}/);
       if (!billMatch || !idMatch) continue;
       out.push({
         time:     new Date(r[cTime]).toISOString(),

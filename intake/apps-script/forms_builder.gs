@@ -22,9 +22,9 @@
  *     mode may need the toggle confirmed by hand).
  *   - Two forms need their file-upload question added by hand (Add
  *     question -> File upload; PDF only; 10 MB) — scripts cannot create
- *     upload questions. Titles must be exact:
- *       "File a Position Letter"    -> "Letter PDF"
- *       "Upload Your Role Profile"  -> "Profile PDF"
+ *     upload questions: "File a Position Letter" and "Upload Your Role
+ *     Profile". Title them however you like ("Letter PDF" / "Profile
+ *     PDF" recommended) — the scripts find uploads by their Drive link.
  *   - Response tabs land in the intake workbook already renamed; drag
  *     them into a sensible order if you like.
  *
