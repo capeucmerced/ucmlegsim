@@ -13,6 +13,10 @@ execute:
 library(reactable)
 source("scripts/shared.R")
 
+# Pull any newly uploaded role profiles before deciding whether the
+# Profile column appears
+sync_intake_profiles()
+
 senators <- load_senators() |>
   mutate(display_name = paste(Last.Name, First.Name, sep = ", ")) |>
   arrange(District)

@@ -43,6 +43,7 @@ function doGet(e) {
   var json = view === 'spending' ? buildSpendingJson()
            : view === 'letters'  ? buildLettersJson()
            : view === 'bills'    ? buildBillsJson()
+           : view === 'profiles' ? buildProfilesJson()
            : buildPostsJson();
 
   try { cache.put('json-' + view, json, 30); } catch (err) {}
@@ -169,6 +170,25 @@ function buildBillsJson() {
   }
 
   return JSON.stringify({ bills: out });
+}
+
+/** Role-profile PDFs, straight from the role_profiles/ folder tree:
+ *  role subfolder + canonical filename + id, nothing else (the filenames
+ *  are script-made and carry no emails). The build downloads by id. */
+function buildProfilesJson() {
+  var out = [];
+  var parent = filesSubfolder('role_profiles');
+  ['senators', 'lobbyists', 'journalists'].forEach(function (sub) {
+    var it = parent.getFoldersByName(sub);
+    if (!it.hasNext()) return;
+    var files = it.next().getFiles();
+    while (files.hasNext()) {
+      var f = files.next();
+      if (!/_profile\.pdf$/i.test(f.getName())) continue;
+      out.push({ role: sub, name: f.getName(), id: f.getId() });
+    }
+  });
+  return JSON.stringify({ profiles: out });
 }
 
 /** Current position letters; the build downloads the PDFs by file id. */

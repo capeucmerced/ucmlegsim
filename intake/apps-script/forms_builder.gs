@@ -56,6 +56,7 @@ function buildAllForms() {
   results.push(buildRegistration());
   results.push(buildBills());
   results.push(buildLetters());
+  results.push(buildProfiles());
   results.push(buildSpending());
   ['LGL', 'ANR', 'BLH', 'APP', 'Floor'].forEach(function (body) {
     results.push(buildAgenda(body));
@@ -142,6 +143,7 @@ function renameResponseTabs() {
     'Register for the Simulation': 'Registration',
     'File a Bill': 'Bills',
     'File a Position Letter': 'Letters',
+    'Upload Your Role Profile': 'Profiles',
     'Report a Contribution': 'Spending',
     'Committee Assignments & Leadership': 'Assignments',
     'Refer Bills to Committee': 'Referrals',
@@ -282,6 +284,19 @@ function buildLetters() {
     .setHelpText('Add a File upload question here by hand, titled exactly ' +
                  '"Letter PDF" (PDF only, 10 MB) — then delete this reminder.');
   return finish(f, 'Letters');
+}
+
+function buildProfiles() {
+  // One form for every role: the verified email finds the person on the
+  // Roster, which decides the folder and canonical file name (senators ->
+  // their senator page, lobbyists -> their org page, journalists -> held
+  // for when journalist pages exist). Resubmitting replaces the old one.
+  var f = newForm('Upload Your Role Profile', 'Profiles');
+  f.addSectionHeaderItem()
+    .setTitle('REMINDER FOR THE ADMIN BUILDING THIS FORM')
+    .setHelpText('Add a File upload question here by hand, titled exactly ' +
+                 '"Profile PDF" (PDF only, 10 MB) — then delete this reminder.');
+  return finish(f, 'Profiles');
 }
 
 function buildSpending() {

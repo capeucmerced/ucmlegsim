@@ -36,6 +36,7 @@ function onAnyFormSubmit(e) {
     if (tab === 'Letters')      handleLetterSubmit(e);
     if (tab === 'Registration') handleRegistrationSubmit(e);
     if (tab === 'Bills')        handleBillSubmit(e);      // bills_assembler.gs
+    if (tab === 'Profiles')     handleProfileSubmit(e);
     if (tab.indexOf('Agenda') === 0) handleAgendaSubmit(e); // agenda_builder.gs
   } catch (err) {
     // A handler problem should never stop the rebuild (the row is still
@@ -183,6 +184,68 @@ function handleLetterSubmit(e) {
       sheet.getRange(r, cStatus + 1).setValue('superseded');
     }
   }
+}
+
+// --- Role profiles -----------------------------------------------------------
+
+/** Which role_profiles/ subfolder a person's profile goes in, and its
+ *  canonical file name. The site reads these exact paths (see
+ *  SEN_PROFILE_DIR / LOBBY_PROFILE_DIR in scripts/shared.R), so change
+ *  them in both places or not at all. */
+function profileTarget(who) {
+  var role = String(who['Role'] || '').toLowerCase().trim();
+  if (role === 'senator') {
+    // name part mirrors name_link in scripts/shared.R: lowercase, spaces -> _
+    return { sub: 'senators',
+             name: String(who['Last Name']).toLowerCase().replace(/ /g, '_') +
+                   '_' + who['District'] + '_profile.pdf' };
+  }
+  if (role === 'lobbyist') {
+    return { sub: 'lobbyists',
+             name: String(who['Org Code']).toUpperCase() + '_profile.pdf' };
+  }
+  if (role === 'journalist') {
+    var base = String(who['Outlet'] || who['Last Name'] || '').toLowerCase()
+      .trim().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
+    return base ? { sub: 'journalists', name: base + '_profile.pdf' } : null;
+  }
+  return null;
+}
+
+function handleProfileSubmit(e) {
+  var row = rowAsObject(e);
+  var who = rosterLookup(row['Email Address']);
+  if (!who) {
+    console.error('Profile from unregistered account: ' + row['Email Address']);
+    return;
+  }
+  var target = profileTarget(who);
+  if (!target) {
+    console.error('Profile from account with no role assigned yet: ' + row['Email Address']);
+    return;
+  }
+
+  // The upload question stores a Drive URL like .../d/FILE_ID/view or ?id=FILE_ID
+  var url = String(valueByPrefix(row, 'Profile PDF'));
+  var idMatch = url.match(/[-\w]{25,}/);
+  if (!idMatch) { console.error('Could not parse Drive file ID from: ' + url); return; }
+
+  // role_profiles/<role>/ under the LegSim Files folder
+  var parent = filesSubfolder('role_profiles');
+  var it = parent.getFoldersByName(target.sub);
+  var folder = it.hasNext() ? it.next() : parent.createFolder(target.sub);
+
+  // A resubmission replaces the old profile outright — same canonical
+  // name, previous file trashed. (No paper trail needed, unlike letters.)
+  var old = folder.getFilesByName(target.name);
+  while (old.hasNext()) old.next().setTrashed(true);
+
+  var file = DriveApp.getFileById(idMatch[0]);
+  file.setName(target.name);
+  file.moveTo(folder);
+  // Profiles are public pages on the site; link-view sharing lets the
+  // build download them by file id
+  file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
 }
 
 // --- Registration -----------------------------------------------------------

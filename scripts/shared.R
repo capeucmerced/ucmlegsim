@@ -25,7 +25,11 @@ BILL_PDF_DIR      <- "files/pdfs/bills"
 PREV_BILL_PDF_DIR <- "files/pdfs/previous_bills"
 LETTERS_DIR       <- "files/pdfs/lobbyist_letters"
 AGENDAS_DIR       <- "files/pdfs/agendas"
+PROFILE_DIR       <- "files/pdfs/role_profiles"
 SEN_PROFILE_DIR   <- "files/pdfs/role_profiles/senators"
+LOBBY_PROFILE_DIR <- "files/pdfs/role_profiles/lobbyists"
+# journalists' profiles sync into role_profiles/journalists — collected
+# now, displayed once per-journalist pages exist
 
 # Where the generated pages go (created by the make_*.R scripts each render)
 BILL_PAGES_DIR    <- "bills-pages"
@@ -61,7 +65,7 @@ INTAKE_API_URL <- "https://script.google.com/macros/s/AKfycbzV8j7CpZvdkmS44vdWTz
 
 # Which intake streams are live (their loaders merge rows in; the 2025
 # fixture files stay alongside until the semester-start data reset)
-INTAKE_LIVE <- c("spending", "letters", "bills")
+INTAKE_LIVE <- c("spending", "letters", "bills", "profiles")
 
 read_intake_json <- function(view) {
   tryCatch({
@@ -476,6 +480,42 @@ sync_intake_letters <- function() {
     }
   }
   options(legsim.letters_synced = TRUE)
+  invisible()
+}
+
+# Role-profile PDFs (senators / lobbyists / journalists) from the gateway's
+# profiles view into files/pdfs/role_profiles/<role>/. A resubmitted
+# profile keeps the same canonical name, so downloads always overwrite;
+# a download that isn't a real PDF (an unshared file returns a sign-in
+# page) is deleted so it can't linger. Runs once per R session. Called
+# explicitly by senators.qmd and the senator/lobby page generators.
+sync_intake_profiles <- function() {
+  if (!"profiles" %in% INTAKE_LIVE) return(invisible())
+  if (isTRUE(getOption("legsim.profiles_synced"))) return(invisible())
+  j <- read_intake_json("profiles")
+  if (!is.null(j) && length(j$profiles) > 0) {
+    p <- as.data.frame(j$profiles)
+    for (i in seq_len(nrow(p))) {
+      dir <- file.path(PROFILE_DIR, basename(p$role[i]))
+      if (!dir.exists(dir)) dir.create(dir, recursive = TRUE)
+      dest <- file.path(dir, basename(p$name[i]))
+      tryCatch({
+        curl::curl_download(
+          paste0("https://drive.google.com/uc?export=download&id=", p$id[i]),
+          dest, quiet = TRUE
+        )
+        first4 <- tryCatch(readBin(dest, "raw", n = 4), error = function(e) raw(0))
+        if (!identical(first4, charToRaw("%PDF"))) {
+          unlink(dest)
+          message("WARNING: profile ", p$name[i],
+                  " is not shared (got a sign-in page); skipped.")
+        }
+      },
+      error = function(e) message("WARNING: could not fetch profile ",
+                                  p$name[i], ": ", conditionMessage(e)))
+    }
+  }
+  options(legsim.profiles_synced = TRUE)
   invisible()
 }
 

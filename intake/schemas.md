@@ -14,7 +14,8 @@ against these layouts — if a column changes here, it changes in all three.
   use live in class (one tab per committee + floor). Unchanged.
 - **Drive folder "LegSim Files"** — uploaded PDFs land here, in
   subfolders mirroring `files/pdfs/` (bills, previous_bills,
-  lobbyist_letters, agendas, role_profiles).
+  lobbyist_letters, agendas, and role_profiles with its senators/,
+  lobbyists/, journalists/ subfolders).
 
 **Intake tabs are NEVER published to the web** — every response tab
 carries the submitter's email, and a published-CSV URL would expose them
@@ -91,6 +92,31 @@ the plain name.
 | Position | `Support` / `Support If Amended` / `Oppose Unless Amended` / `Oppose` |
 | Letter PDF | file upload (PDF only) — Forms stores a Drive link |
 | — Status | script/admin column: blank = current; `superseded` = older letter on the same bill |
+
+## Tab: Profiles  (form: "Upload Your Role Profile")
+
+One form for every role. The verified email finds the person on the
+Roster, which decides where the PDF goes and what it's named — students
+enter nothing but the file.
+
+| Column | Question |
+| --- | --- |
+| Timestamp / Email Address | automatic |
+| Profile PDF | file upload (PDF only) — Forms stores a Drive link |
+
+The submit script renames the upload to its canonical name, moves it into
+`role_profiles/<role>/`, and link-shares it; a resubmission trashes the
+old file and takes its place (no paper trail — the folder is the state,
+so the tab needs no Status column):
+
+| Role | Folder | Canonical name |
+| --- | --- | --- |
+| senator | `role_profiles/senators/` | `<last_name>_<district>_profile.pdf` (lowercase, spaces → `_` — matches `name_link` in `scripts/shared.R`) |
+| lobbyist | `role_profiles/lobbyists/` | `<ORG CODE>_profile.pdf` |
+| journalist | `role_profiles/journalists/` | `<outlet slug>_profile.pdf` (collected now; shown once journalist pages exist) |
+
+Senator pages and the senators table pick profiles up automatically;
+lobby pages grow a Profile tab when their org's PDF exists.
 
 ## Tab: Spending  (form: "Report a Contribution")
 

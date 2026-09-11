@@ -12,6 +12,10 @@ source("scripts/shared.R")
 
 if (!dir.exists(SENATOR_PAGES_DIR)) dir.create(SENATOR_PAGES_DIR, recursive = TRUE)
 
+# Profiles uploaded through the intake form land in SEN_PROFILE_DIR before
+# the pages bake in their profile section
+sync_intake_profiles()
+
 senators <- load_senators()
 ns       <- senator_name_sets(senators)
 bills    <- load_bills()
@@ -145,7 +149,11 @@ for (i in seq_len(nrow(senators))) {
   }
 
   # --- Assemble the page ---------------------------------------------------
-  profile_pdf <- sprintf("../%s/%s_%s_profile.pdf", SEN_PROFILE_DIR, s$name_link, district)
+  # The profile section only appears once the PDF exists (uploaded through
+  # the profile form, or dropped in the folder by hand) — no broken iframes.
+  profile_file <- sprintf("%s_%s_profile.pdf", s$name_link, district)
+  has_profile  <- file.exists(file.path(SEN_PROFILE_DIR, profile_file))
+  profile_pdf  <- sprintf("../%s/%s", SEN_PROFILE_DIR, profile_file)
 
   yaml <- c(
     "---",
@@ -171,9 +179,13 @@ for (i in seq_len(nrow(senators))) {
     "",
     bill_links_line,
     "",
-    sprintf("[View Profile](%s)", profile_pdf),
-    "",
-    sprintf('<iframe src="%s" width="100%%" height="600px"></iframe>', profile_pdf),
+    if (has_profile) {
+      c(sprintf("[View Profile](%s)", profile_pdf),
+        "",
+        sprintf('<iframe src="%s" width="100%%" height="600px"></iframe>', profile_pdf))
+    } else {
+      "*Role profile not posted yet.*"
+    },
     "",
     "## Vote History",
     "",

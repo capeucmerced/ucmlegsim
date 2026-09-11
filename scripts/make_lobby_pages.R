@@ -10,6 +10,10 @@ source("scripts/shared.R")
 
 if (!dir.exists(LOBBY_PAGES_DIR)) dir.create(LOBBY_PAGES_DIR, recursive = TRUE)
 
+# Profiles uploaded through the intake form land in LOBBY_PROFILE_DIR
+# before the pages bake in their profile tab
+sync_intake_profiles()
+
 lobbys   <- read.csv(LOBBY_CSV) |> mutate(Code = toupper(Code))
 bills    <- load_bills()
 letters  <- scan_letters()
@@ -127,6 +131,24 @@ for (i in seq_len(nrow(lobbys))) {
     spend_html <- "No spending data available for this lobby group."
   }
 
+  # --- Profile tab (only once the org's profile PDF exists) ----------------
+  profile_file <- paste0(lobby_code, "_profile.pdf")
+  has_profile  <- file.exists(file.path(LOBBY_PROFILE_DIR, profile_file))
+  profile_tab  <- if (has_profile) {
+    c(
+      "",
+      "## Profile",
+      "",
+      sprintf("[View Profile](../%s/%s)", LOBBY_PROFILE_DIR, profile_file),
+      "",
+      sprintf('<iframe src="../%s/%s" width="100%%" height="600px"></iframe>',
+              LOBBY_PROFILE_DIR, profile_file),
+      ""
+    )
+  } else {
+    character(0)
+  }
+
   # --- Assemble the page ---------------------------------------------------
   yaml <- c(
     "---",
@@ -204,6 +226,7 @@ for (i in seq_len(nrow(lobbys))) {
     "  invisible(NULL)  # the section text above already says there is no data",
     "}",
     "```",
+    profile_tab,
     "",
     ":::",
     ""

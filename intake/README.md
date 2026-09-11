@@ -85,9 +85,10 @@ live in the Sep 2026 beta — the scripts carry those fixes):
    `BILL_TEMPLATE_DOC_ID` (step 5). Properties survive code re-pastes;
    never edit constants in the code.
 4. **Build the forms**: run `buildAllForms()`, then `addAdminTabs()`.
-   Manual finish per the builder's header: the Letters form's file-upload
-   question (title exactly `Letter PDF`), and Settings → *Collect email
-   addresses → Verified* on every form. Add the script columns by hand:
+   Manual finish per the builder's header: the file-upload questions
+   (title exactly `Letter PDF` on the Letters form, `Profile PDF` on the
+   Role Profile form), and Settings → *Collect email addresses →
+   Verified* on every form. Add the script columns by hand:
    `Status` on the Letters and Bills tabs, `SB Number` on Bills.
    The builder stores each form's id in Script Properties (`FORM_ID_…`);
    that is what lets every newly numbered bill append itself to the
