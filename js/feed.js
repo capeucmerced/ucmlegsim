@@ -14,9 +14,9 @@
 // data-journalist="Name" limits the feed to one journalist's posts
 // (used on the per-journalist pages); empty shows everyone.
 
-// BETA deployment (instructor's personal account). At the department
-// deploy, this swaps to the department web app's /exec URL.
-var FEED_URL = "https://script.google.com/macros/s/AKfycbzV8j7CpZvdkmS44vdWTzUxw0_tLufgwN0gz-QCdswe_5wujNiS4YXVLZVkQUqGDMLJ/exec";
+// The DEPARTMENT account's 2026 gateway (matches INTAKE_API_URL in
+// scripts/shared.R; changes once a year at turnover).
+var FEED_URL = "https://script.google.com/macros/s/AKfycbwcPcwt8LTJri6lBrbarYTzzxuMyDPSR5Ek1nNXrsAzLSDEinia3oXBgt9PEshfqEjoSw/exec";
 var REFRESH_SECONDS = 60;    // gentle background refresh while the page is open
 
 (function () {

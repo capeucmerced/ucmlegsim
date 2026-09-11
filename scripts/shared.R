@@ -57,8 +57,9 @@ VOTE_ENTRY_URL <- "https://docs.google.com/spreadsheets/d/1O3c2ZGWMUwBu_q2Yjr0nb
 # published to the web — every response tab contains submitter emails, so
 # a published-CSV link would leak them. This URL is safe in public code
 # precisely because its output is de-identified.
-# BETA: the instructor's personal-account deployment; swaps at real deploy.
-INTAKE_API_URL <- "https://script.google.com/macros/s/AKfycbzV8j7CpZvdkmS44vdWTzUxw0_tLufgwN0gz-QCdswe_5wujNiS4YXVLZVkQUqGDMLJ/exec"
+# The DEPARTMENT account's 2026 deployment (swapped from the beta
+# Sep 2026; changes once a year at turnover — see intake/README.md).
+INTAKE_API_URL <- "https://script.google.com/macros/s/AKfycbwcPcwt8LTJri6lBrbarYTzzxuMyDPSR5Ek1nNXrsAzLSDEinia3oXBgt9PEshfqEjoSw/exec"
 
 # Which intake streams are live (their loaders merge rows in; the 2025
 # fixture files stay alongside until the semester-start data reset)
