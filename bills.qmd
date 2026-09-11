@@ -10,7 +10,7 @@ execute:
 ---
 
 ```{r}
-library(gt)
+library(reactable)
 source("scripts/shared.R")
 
 senators <- load_senators()
@@ -19,21 +19,7 @@ votes    <- load_all_votes(ns)
 
 bills <- load_bills() |>
   left_join(senators |> select(name_join, District, Party), by = "name_join") |>
-  bill_statuses(votes) |>
-  mutate(
-    # The bill number links to the bill's page; the PDF lives there.
-    bill_link = sprintf("[%s](%s/%s.html)", bill_measure, BILL_PAGES_DIR, url_slug),
-    # Status dot: green = passed, red = dead, gold = moving
-    Status = sprintf(
-      '<span class="status-dot %s"></span> %s',
-      case_when(
-        status == "Passed Senate" ~ "s-pass",
-        grepl("^Failed", status)  ~ "s-fail",
-        TRUE                      ~ "s-active"
-      ),
-      status
-    )
-  )
+  bill_statuses(votes)
 
 # Each bill's most recent vote (if any), from whichever committee took it.
 latest_votes <- bind_rows(votes, .id = "source") |>
@@ -51,28 +37,36 @@ if (nrow(latest_votes) > 0) {
   bills <- bills |> mutate(Vote = NA, Date = NA, source = NA, Result = NA)
 }
 
-bills |>
-  select(bill_link, title, name, Status, committee, appropriations,
-         Vote, Result) |>
-  gt() |>
-  sub_missing(columns = everything(), missing_text = "") |>
-  fmt_markdown(columns = c("Status", "bill_link")) |>
-  tab_options(table.width = pct(100)) |>
-  cols_label(
-    bill_link = "Bill",
-    title = "Subject",
-    name = "Author",
-    Status = "Status",
-    committee = "Committee",
-    appropriations = "Fiscal",
-    Vote = "Latest Vote (A-N-Ab-Abs)",
-    Result = "Result"
-  ) |>
-  opt_interactive(
-    use_sorting = TRUE,
-    use_search = TRUE,
-    use_filters = FALSE,
-    use_highlight = TRUE,
-    page_size_default = 5
+tbl <- bills |>
+  arrange(bill_number) |>
+  select(bill_number, title, name, status, committee, appropriations,
+         Vote, Result, url_slug)
+
+legsim_table(
+  tbl |> select(-url_slug),
+  page_size = 10,
+  columns = list(
+    # Numeric underneath (so sorting is 1, 2, … 76), "SB-n" link on top
+    bill_number = colDef(
+      name = "Bill", width = 90,
+      cell = link_cell("SB-", file.path(BILL_PAGES_DIR, paste0(tbl$url_slug, ".html")))
+    ),
+    title = colDef(name = "Subject", minWidth = 160),
+    name = colDef(name = "Author"),
+    status = colDef(
+      name = "Status", minWidth = 140,
+      # Status dot: green = passed, red = dead, gold = moving
+      cell = function(value) {
+        cls <- if (value == "Passed Senate") "s-pass"
+               else if (startsWith(value, "Failed")) "s-fail"
+               else "s-active"
+        htmltools::tagList(htmltools::span(class = paste("status-dot", cls)), " ", value)
+      }
+    ),
+    committee = colDef(name = "Committee"),
+    appropriations = colDef(name = "Fiscal", width = 70),
+    Vote = colDef(name = "Latest Vote (A-N-Ab-Abs)", minWidth = 120),
+    Result = colDef(name = "Result", width = 85)
   )
+)
 ```

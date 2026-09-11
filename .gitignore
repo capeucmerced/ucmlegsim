@@ -20,3 +20,11 @@
 
 # Box Drive sync-conflict copies ("name (user@email).ext") — never track these
 *(nbrouwer@ucmerced.edu)*
+
+# Rendered HTML that a crashed render strands next to the sources (Quarto
+# normally moves it into _site) — root level only; archive/ stays tracked
+/*.html
+/site_libs/
+
+# Box also numbers repeat conflict copies: "name (user@email 2).ext"
+*(nbrouwer@ucmerced.edu*

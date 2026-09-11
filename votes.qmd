@@ -19,7 +19,7 @@ cat(sprintf(
 ```
 
 ```{r setup}
-library(gt)
+library(reactable)
 source("scripts/shared.R")
 
 senators <- load_senators()
@@ -28,6 +28,8 @@ bills    <- load_bills()
 votes    <- load_all_votes(ns)
 
 # Render one committee's vote table (or a note if it has no votes yet).
+# Summaries only — the full roll call for each vote lives on the bill's
+# own page. Date sorts chronologically, Bill sorts by number.
 vote_table <- function(code) {
   dat <- votes[[code]]
   if (is.null(dat)) {
@@ -35,30 +37,28 @@ vote_table <- function(code) {
     return(invisible(NULL))
   }
 
-  # Summaries only — the full roll call for each vote lives on the
-  # bill's own page.
-  dat |>
+  tbl <- dat |>
     left_join(bills |> select(bill_measure, url_slug), by = c("Bill" = "bill_measure")) |>
-    mutate(Bill = ifelse(is.na(url_slug), Bill,
-                         sprintf("[%s](%s/%s.html)", Bill, BILL_PAGES_DIR, url_slug))) |>
-    select(Date, Bill, Vote, Result, Dem_percent_sign, Rep_percent_sign) |>
-    arrange(desc(Date)) |>
-    gt() |>
-    fmt_markdown(columns = "Bill") |>
-    tab_options(table.width = pct(100)) |>
-    cols_label(
-      Vote = "Vote (Aye-No-Abstain-Absent)",
-      Dem_percent_sign = "Democrat Support",
-      Rep_percent_sign = "Republican Support"
-    ) |>
-    sub_missing(columns = everything(), missing_text = "—") |>
-    opt_interactive(
-      use_sorting = TRUE,
-      use_search = TRUE,
-      use_filters = FALSE,
-      use_highlight = TRUE,
-      page_size_default = 20
+    mutate(bill_no = suppressWarnings(as.integer(sub("SB-", "", Bill)))) |>
+    select(Date, bill_no, Vote, Result, Dem_percent_sign, Rep_percent_sign, url_slug) |>
+    arrange(desc(Date))
+
+  legsim_table(
+    tbl |> select(-url_slug),
+    page_size = 20,
+    columns = list(
+      Date = colDef(format = LEGSIM_DATE, width = 100),
+      bill_no = colDef(
+        name = "Bill", width = 90,
+        cell = link_cell("SB-", ifelse(is.na(tbl$url_slug), NA,
+                                       file.path(BILL_PAGES_DIR, paste0(tbl$url_slug, ".html"))))
+      ),
+      Vote = colDef(name = "Vote (Aye-No-Abstain-Absent)", minWidth = 130),
+      Result = colDef(width = 90),
+      Dem_percent_sign = colDef(name = "Democrat Support", width = 100),
+      Rep_percent_sign = colDef(name = "Republican Support", width = 100)
     )
+  )
 }
 ```
 

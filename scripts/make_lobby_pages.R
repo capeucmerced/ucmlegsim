@@ -25,20 +25,21 @@ for (i in seq_len(nrow(lobbys))) {
   lobby_code <- lobbys$Code[i]
 
   # --- This lobby's position letters, linked to bill pages ----------------
+  # Bill stays a plain number so the column sorts 2, 10, 76 (the renderer
+  # adds "SB-" back); the url columns ride along hidden for the links.
+  # NOTE: links inside table widgets are NOT rewritten by Quarto, so they
+  # must point at the final .html, never the .qmd source.
   letters_df <- data.frame()
   if (nrow(letters) > 0) {
     letters_df <- letters |>
       filter(org_code == lobby_code) |>
       left_join(bills |> select(bill_number, bill_measure, url_slug), by = "bill_number") |>
       mutate(
-        # NOTE: links inside gt tables are NOT rewritten by Quarto, so they
-        # must point at the final .html, never the .qmd source.
-        Bill_Link = ifelse(is.na(url_slug),
-                           paste0("SB-", bill_number),
-                           sprintf("[SB-%s](../%s/%s.html)", bill_number, BILL_PAGES_DIR, url_slug)),
-        Letter_Link = sprintf("[View Letter](../%s/%s)", LETTERS_DIR, filename)
+        bill_url   = ifelse(is.na(url_slug), NA,
+                            sprintf("../%s/%s.html", BILL_PAGES_DIR, url_slug)),
+        letter_url = sprintf("../%s/%s", LETTERS_DIR, filename)
       ) |>
-      select(Bill_Link, Position = position, Letter_Link) |>
+      select(Bill = bill_number, bill_url, Position = position, letter_url) |>
       as.data.frame()
   }
   letters_code <- paste(capture.output(dput(letters_df)), collapse = "\n")
@@ -147,17 +148,25 @@ for (i in seq_len(nrow(lobbys))) {
     "#| echo: false",
     "#| warning: false",
     "#| message: false",
-    "library(dplyr)",
-    "library(gt)",
+    "# Self-contained on purpose: generated pages never source shared.R or",
+    "# read files at render time.",
+    "library(reactable)",
     "",
     paste("letters_df <-", letters_code),
     "",
     "if (nrow(letters_df) > 0) {",
-    "  letters_df |>",
-    "    gt() |>",
-    "    cols_label(Bill_Link = 'Bill', Position = 'Position', Letter_Link = 'Letter') |>",
-    "    fmt_markdown(columns = c(Bill_Link, Letter_Link)) |>",
-    "    opt_interactive(use_sorting = TRUE, use_search = TRUE)",
+    "  reactable(letters_df, sortable = TRUE, highlight = TRUE,",
+    "    defaultPageSize = 20, showPageSizeOptions = FALSE,",
+    "    defaultColDef = colDef(na = ''),",
+    "    columns = list(",
+    "      Bill = colDef(width = 90, cell = function(value, index) {",
+    "        if (is.na(letters_df$bill_url[index])) return(paste0('SB-', value))",
+    "        htmltools::tags$a(href = letters_df$bill_url[index], paste0('SB-', value))",
+    "      }),",
+    "      bill_url = colDef(show = FALSE),",
+    "      letter_url = colDef(name = 'Letter', sortable = FALSE, width = 110,",
+    "        cell = function(value) htmltools::tags$a(href = value, 'View Letter'))",
+    "    ))",
     "} else {",
     "  cat('No position letters available for this lobby group.')",
     "}",
@@ -171,28 +180,26 @@ for (i in seq_len(nrow(lobbys))) {
     "#| echo: false",
     "#| warning: false",
     "#| message: false",
-    "library(dplyr)",
-    "library(gt)",
+    "library(reactable)",
     "",
     paste("spending_df <-", spending_code),
     "",
     "if (nrow(spending_df) > 0) {",
-    "  spending_df |>",
-    "    mutate(",
-    "      Recipient_Link = ifelse(",
-    "        !is.na(Recipient.District),",
-    "        sprintf('[%s](../senator-pages/district_%s.html)', Recipient, Recipient.District),",
-    "        Recipient",
-    "      )",
-    "    ) |>",
-    "    select(Date, Recipient_Link, Party, Contribution) |>",
-    "    gt() |>",
-    "    cols_label(Date = 'Date', Recipient_Link = 'Recipient',",
-    "               Party = 'Party', Contribution = 'Amount') |>",
-    "    fmt_markdown(columns = Recipient_Link) |>",
-    "    fmt_currency(columns = Contribution, currency = 'USD') |>",
-    "    fmt_date(columns = Date, date_style = 'yMd') |>",
-    "    opt_interactive(use_sorting = TRUE, use_search = TRUE)",
+    "  reactable(spending_df, sortable = TRUE, highlight = TRUE,",
+    "    searchable = TRUE, defaultPageSize = 20, showPageSizeOptions = FALSE,",
+    "    defaultColDef = colDef(na = ''),",
+    "    columns = list(",
+    "      Date = colDef(format = colFormat(date = TRUE, locales = 'en-US'), width = 110),",
+    "      Recipient = colDef(cell = function(value, index) {",
+    "        d <- spending_df$Recipient.District[index]",
+    "        if (is.na(d)) return(value)",
+    "        htmltools::tags$a(href = sprintf('../senator-pages/district_%s.html', d), value)",
+    "      }),",
+    "      Recipient.District = colDef(show = FALSE),",
+    "      Party = colDef(width = 70),",
+    "      Contribution = colDef(name = 'Amount', width = 120,",
+    "        format = colFormat(currency = 'USD', separators = TRUE, locales = 'en-US'))",
+    "    ))",
     "} else {",
     "  invisible(NULL)  # the section text above already says there is no data",
     "}",

@@ -10,11 +10,12 @@ execute:
 ---
 
 ```{r}
-library(gt)
+library(reactable)
 source("scripts/shared.R")
 
 senators <- load_senators() |>
-  mutate(display_name = paste(Last.Name, First.Name, sep = ", "))
+  mutate(display_name = paste(Last.Name, First.Name, sep = ", ")) |>
+  arrange(District)
 
 # Profile PDFs exist once role profiles are posted; the column only
 # appears when the folder has files. Filenames follow name_link:
@@ -24,34 +25,27 @@ profiles_exist <- dir.exists(SEN_PROFILE_DIR) && length(list.files(SEN_PROFILE_D
 leadership_has_data <- "Leadership" %in% names(senators) &&
   any(!is.na(senators$Leadership) & senators$Leadership != "")
 
-senators$Name_Link <- sprintf("[%s](%s/district_%s.html)",
-                              senators$display_name, SENATOR_PAGES_DIR, senators$District)
-
-markdown_columns <- c("Name_Link")
+tbl <- senators |> select(District, display_name, Party)
+if (leadership_has_data) tbl$Leadership <- senators$Leadership
 if (profiles_exist) {
-  senators$Profile <- sprintf("[View Profile](%s/%s_%s_profile.pdf)",
-                              SEN_PROFILE_DIR, senators$name_link, senators$District)
-  markdown_columns <- c(markdown_columns, "Profile")
+  tbl$Profile <- sprintf("%s/%s_%s_profile.pdf",
+                         SEN_PROFILE_DIR, senators$name_link, senators$District)
 }
 
-columns_to_show <- c("District", "Name_Link", "Party")
-if (leadership_has_data) columns_to_show <- c(columns_to_show, "Leadership")
-if (profiles_exist)      columns_to_show <- c(columns_to_show, "Profile")
-
-senators |>
-  select(all_of(columns_to_show)) |>
-  gt() |>
-  cols_label(
-    District = "District",
-    Name_Link = "Name",
-    Party = "Party"
-  ) |>
-  cols_align(align = "left", columns = everything()) |>
-  fmt_markdown(columns = all_of(markdown_columns)) |>
-  opt_interactive(
-    use_sorting = TRUE,
-    use_search = TRUE,
-    use_filters = FALSE,
-    page_size_default = 20
+cols <- list(
+  District = colDef(width = 90),   # numeric: sorts 1, 2, … 40
+  display_name = colDef(
+    name = "Name",
+    cell = link_cell("", sprintf("%s/district_%s.html", SENATOR_PAGES_DIR, senators$District))
+  ),
+  Party = colDef(width = 70)
+)
+if (profiles_exist) {
+  cols$Profile <- colDef(
+    sortable = FALSE, width = 110,
+    cell = function(value) htmltools::tags$a(href = value, "View Profile")
   )
+}
+
+legsim_table(tbl, page_size = 20, columns = cols)
 ```

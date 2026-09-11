@@ -31,14 +31,12 @@ for (i in seq_len(nrow(bills))) {
   page_title <- paste(b$bill_measure, b$title)
 
   # --- This bill's vote history (newest first), baked in as data ----------
+  # Date stays a real Date so the rendered table sorts chronologically.
   if (nrow(all_vote_rows) > 0) {
     matches <- all_vote_rows |>
       filter(Bill == b$bill_measure) |>
       arrange(desc(Date)) |>
-      mutate(
-        source = COMMITTEE_NAMES[source],
-        Date   = format(Date, "%m/%d/%y")
-      ) |>
+      mutate(source = unname(COMMITTEE_NAMES[source])) |>
       select(Date, source, Vote, Result, Dem_percent_sign, Rep_percent_sign) |>
       as.data.frame()
   } else {
@@ -212,23 +210,24 @@ for (i in seq_len(nrow(bills))) {
     "#| echo: false",
     "#| warning: false",
     "#| message: false",
-    "library(dplyr)",
-    "library(gt)",
+    "# Self-contained on purpose: generated pages never source shared.R or",
+    "# read files at render time (see header of make_bill_pages.R).",
+    "library(reactable)",
     "",
     paste("matches <-", matches_code),
     "",
     "if (nrow(matches) > 0) {",
-    "  matches |>",
-    "    gt() |>",
-    "    cols_label(",
-    "      Date = 'Date',",
-    "      source = 'Committee',",
-    "      Vote = 'Vote',",
-    "      Result = 'Result',",
-    "      Dem_percent_sign = 'Democratic Support',",
-    "      Rep_percent_sign = 'Republican Support'",
-    "    ) |>",
-    "    opt_interactive(use_sorting = TRUE, use_highlight = TRUE)",
+    "  reactable(matches, sortable = TRUE, highlight = TRUE,",
+    "    defaultPageSize = 10, showPageSizeOptions = FALSE,",
+    "    defaultColDef = colDef(na = ''),",
+    "    columns = list(",
+    "      Date = colDef(format = colFormat(date = TRUE, locales = 'en-US'), width = 100),",
+    "      source = colDef(name = 'Committee'),",
+    "      Vote = colDef(width = 110),",
+    "      Result = colDef(width = 90),",
+    "      Dem_percent_sign = colDef(name = 'Democratic Support', width = 100),",
+    "      Rep_percent_sign = colDef(name = 'Republican Support', width = 100)",
+    "    ))",
     "} else {",
     "  cat('No vote history available for this bill.')",
     "}",

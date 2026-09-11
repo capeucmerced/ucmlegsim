@@ -10,7 +10,7 @@ execute:
 ---
 
 ```{r}
-library(gt)
+library(reactable)
 source("scripts/shared.R")
 
 # Agenda PDFs are named <committee>_<MM>_<DD>_<YY>.pdf, e.g. anr_10_17_25.pdf
@@ -25,27 +25,20 @@ if (length(pdf_files) == 0) {
       month = str_extract(filename, "(?<=_)\\d{2}(?=_\\d{2}_\\d{2})"),
       day   = str_extract(filename, "(?<=_\\d{2}_)\\d{2}(?=_\\d{2})"),
       year  = str_extract(filename, "(?<=_\\d{2}_\\d{2}_)\\d{2}"),
-      date_obj = as.Date(paste0("20", year, "-", month, "-", day)),
-      Meeting.Date = format(date_obj, "%m/%d/%y"),
-      Agenda_Link = sprintf("[View Agenda](%s/%s)", AGENDAS_DIR, filename),
-      Committee_Name = COMMITTEE_NAMES[code]
+      Date = as.Date(paste0("20", year, "-", month, "-", day)),
+      Committee = unname(COMMITTEE_NAMES[code])
     ) |>
-    arrange(desc(date_obj)) |>
-    select(Meeting.Date, Committee_Name, Agenda_Link)
+    arrange(desc(Date))
 
-  agendas |>
-    gt() |>
-    cols_label(
-      Meeting.Date = "Meeting Date",
-      Committee_Name = "Committee",
-      Agenda_Link = "Agenda"
-    ) |>
-    fmt_markdown(columns = Agenda_Link) |>
-    cols_align(align = "left", columns = everything()) |>
-    opt_interactive(
-      use_sorting = TRUE,
-      use_filters = FALSE,
-      page_size_default = 20
+  legsim_table(
+    agendas |> select(Date, Committee),
+    searchable = FALSE,
+    page_size = 20,
+    columns = list(
+      Date = colDef(name = "Meeting Date", format = LEGSIM_DATE, width = 130),
+      Committee = colDef(name = "Committee",
+        cell = link_cell("", file.path(AGENDAS_DIR, agendas$filename)))
     )
+  )
 }
 ```

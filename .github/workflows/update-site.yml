@@ -49,7 +49,7 @@ jobs:
         with:
           extra-packages: |
             any::tidyverse
-            any::gt
+            any::reactable
             any::janitor
             any::readxl
             any::knitr

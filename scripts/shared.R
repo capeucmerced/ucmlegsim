@@ -112,6 +112,46 @@ COMMITTEE_NAMES <- c(
 
 # --- Small helpers ----------------------------------------------------------
 
+# The house interactive table. Direct reactable (not gt's interactive
+# mode) so column TYPES drive sorting: numbers sort as numbers, Dates as
+# dates — gt hands reactable pre-rendered strings, which is why "SB-10"
+# sorted before "SB-2". Styling comes from styles/brand.scss, which
+# targets reactable's classes.
+#
+#   legsim_table(df,
+#     columns = list(col = reactable::colDef(...)),
+#     searchable = TRUE, page_size = 20)
+#
+# For a linked column that must sort numerically, keep the column numeric
+# and draw the link in a cell renderer:
+#   colDef(name = "Bill", cell = link_cell("SB-", urls))
+link_cell <- function(prefix, urls) {
+  force(urls)
+  function(value, index) {
+    if (is.na(urls[index])) return(paste0(prefix, value))  # no page: plain text
+    htmltools::tags$a(href = urls[index], paste0(prefix, value))
+  }
+}
+
+legsim_table <- function(data, columns = list(), searchable = TRUE,
+                         page_size = 20, ...) {
+  reactable::reactable(
+    data,
+    columns = columns,
+    searchable = searchable,
+    sortable = TRUE,
+    highlight = TRUE,
+    defaultPageSize = page_size,
+    showPageSizeOptions = FALSE,
+    defaultColDef = reactable::colDef(na = ""),
+    ...
+  )
+}
+
+# Date columns: pass real Date objects and give the colDef
+# format = LEGSIM_DATE — sorts chronologically, displays like 12/5/25.
+LEGSIM_DATE <- reactable::colFormat(date = TRUE, locales = "en-US")
+
 # Read a published Google Sheet without letting one bad fetch kill the whole
 # site build. On any error this returns an empty data frame, which every
 # downstream table treats as "no data yet".
@@ -248,7 +288,12 @@ clean_votes <- function(dat, ns) {
     rowwise() |>
     mutate(
       Date    = lubridate::mdy(Date),
-      Bill    = as.character(Bill),
+      # Chairs type bill numbers in many shapes ("SB-31", "SB 31", "sb31",
+      # bare "31"). Canonicalize to "SB-<n>" so joins against bill_measure,
+      # the status tracker, and numeric sorting never miss a vote.
+      Bill    = ifelse(grepl("[0-9]", as.character(Bill)),
+                       paste0("SB-", as.integer(gsub("\\D+", "", as.character(Bill)))),
+                       as.character(Bill)),
       yes     = sum(c_across(any_of(ns$s_names_period)) == "Aye", na.rm = TRUE),
       no      = sum(c_across(any_of(ns$s_names_period)) == "No", na.rm = TRUE),
       abstain = sum(c_across(any_of(ns$s_names_period)) == "Abstain", na.rm = TRUE),
@@ -462,7 +507,10 @@ load_all_contributions <- function() {
       read_contribution_file(f)$rows |>
         mutate(Lobby_Code = toupper(gsub("_contributions\\.csv$", "", basename(f))))
     }) |>
-      left_join(lobbys |> select(Code, Lobby), by = c("Lobby_Code" = "Code"))
+      left_join(lobbys |> select(Code, Lobby), by = c("Lobby_Code" = "Code")) |>
+      # A file whose code isn't in lobbyist_list.csv still displays as its
+      # code instead of a literal "NA" on senator pages.
+      mutate(Lobby = coalesce(Lobby, Lobby_Code))
   }
 
   bind_rows(fixture_rows, load_intake_contributions())

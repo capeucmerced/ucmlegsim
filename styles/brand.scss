@@ -140,7 +140,7 @@ h1, h2, h3 {
   margin: 1.2rem 0;
 }
 
-// --- Tables (gt renders interactive tables through reactable) ---------------
+// --- Tables (every interactive table on the site is a reactable) ------------
 .reactable {
   font-family: $font-family-sans-serif;
   font-size: 0.9rem;
@@ -457,26 +457,6 @@ ol.leaderboard {
   ul { list-style: none; margin: 0; padding: 0; }
   li { padding: 0.18rem 0; border-bottom: 1px solid rgba($navy, 0.08); }
   li:last-child { border-bottom: none; }
-}
-
-// Static gt tables (headers on non-interactive tables)
-.gt_table {
-  font-family: $font-family-sans-serif;
-
-  .gt_col_heading {
-    font-size: 0.72rem;
-    font-weight: 700;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-    color: $navy;
-  }
-}
-
-// gt table titles in the display face
-.gt_heading .gt_title, .rt-caption {
-  font-family: $headings-font-family;
-  font-size: 1.3rem;
-  color: $navy;
 }
 
 // --- Tabs -------------------------------------------------------------------

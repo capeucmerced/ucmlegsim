@@ -69,6 +69,8 @@ for (i in seq_len(nrow(senators))) {
   if (length(in_committees) > 0) {
     party_choice_col <- if (s$Party == "D") "Dem_choice" else "Rep_choice"
 
+    # Date stays a Date and Bill becomes its number (the table renderer adds
+    # the "SB-" back) so both columns sort the way people expect.
     their_votes <- bind_rows(in_committees, .id = "Committee") |>
       select(Date, Bill, Committee, all_of(c(s$name_period, party_choice_col))) |>
       mutate(
@@ -77,10 +79,10 @@ for (i in seq_len(nrow(senators))) {
           .data[[party_choice_col]] == .data[[s$name_period]] ~ "Yes",
           TRUE ~ "No"
         ),
-        Committee = COMMITTEE_NAMES[Committee]
+        Committee = unname(COMMITTEE_NAMES[Committee]),
+        Bill = suppressWarnings(as.integer(sub("SB-", "", Bill)))
       ) |>
       arrange(desc(Date)) |>
-      mutate(Date = format(Date, "%m/%d/%y")) |>
       rename("Vote" = all_of(s$name_period),
              "Party Vote" = all_of(party_choice_col),
              "Voted With Party?" = party_aligned) |>
@@ -180,7 +182,7 @@ for (i in seq_len(nrow(senators))) {
     "#| warning: false",
     "#| message: false",
     "library(dplyr)",
-    "library(gt)",
+    "library(reactable)",
     "library(plotly)",
     "library(bslib)",
     "library(bsicons)",
@@ -265,9 +267,18 @@ for (i in seq_len(nrow(senators))) {
     "#| echo: false",
     "#| warning: false",
     "if (nrow(votes_including_s) > 0) {",
-    "  votes_including_s |>",
-    "    gt() |>",
-    "    opt_interactive(use_sorting = TRUE, use_highlight = TRUE)",
+    "  reactable(votes_including_s, sortable = TRUE, highlight = TRUE,",
+    "    defaultPageSize = 20, showPageSizeOptions = FALSE,",
+    "    defaultColDef = colDef(na = ''),",
+    "    columns = list(",
+    "      Date = colDef(format = colFormat(date = TRUE, locales = 'en-US'), width = 100),",
+    "      Bill = colDef(width = 90, cell = function(value) {",
+    "        if (is.na(value)) '' else paste0('SB-', value)",
+    "      }),",
+    "      Vote = colDef(width = 90),",
+    "      `Party Vote` = colDef(width = 110),",
+    "      `Voted With Party?` = colDef(width = 130)",
+    "    ))",
     "} else {",
     "  cat('No vote history available for this senator.')",
     "}",
@@ -281,18 +292,20 @@ for (i in seq_len(nrow(senators))) {
     "#| echo: false",
     "#| warning: false",
     "#| message: false",
-    "library(dplyr)",
-    "library(gt)",
+    "library(reactable)",
     "",
     paste("senator_contributions <-", contribs_code),
     "",
     "if (nrow(senator_contributions) > 0) {",
-    "  senator_contributions |>",
-    "    gt() |>",
-    "    cols_label(Date = 'Date', Lobby = 'Contributor', Contribution = 'Amount') |>",
-    "    fmt_currency(columns = Contribution, currency = 'USD') |>",
-    "    fmt_date(columns = Date, date_style = 'yMd') |>",
-    "    opt_interactive(use_sorting = TRUE, use_search = TRUE)",
+    "  reactable(senator_contributions, sortable = TRUE, highlight = TRUE,",
+    "    searchable = TRUE, defaultPageSize = 20, showPageSizeOptions = FALSE,",
+    "    defaultColDef = colDef(na = ''),",
+    "    columns = list(",
+    "      Date = colDef(format = colFormat(date = TRUE, locales = 'en-US'), width = 110),",
+    "      Lobby = colDef(name = 'Contributor'),",
+    "      Contribution = colDef(name = 'Amount', width = 120,",
+    "        format = colFormat(currency = 'USD', separators = TRUE, locales = 'en-US'))",
+    "    ))",
     "} else {",
     "  invisible(NULL)  # the section text above already says there is no data",
     "}",
