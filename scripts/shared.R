@@ -316,7 +316,10 @@ load_intake_editions <- function() {
   as.data.frame(j$editions) |>
     transmute(
       Edition = as.character(edition),
-      Link    = as.character(link),
+      # Journalists often type bare domains; a protocol-less href would
+      # render as a broken relative link
+      Link    = ifelse(!nzchar(link) | grepl("^https?://", link),
+                       as.character(link), paste0("https://", link)),
       Date    = format(as.Date(substr(as.character(time), 1, 10)), "%b %d"),
       Outlet  = as.character(outlet)
     )

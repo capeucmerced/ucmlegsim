@@ -32,7 +32,12 @@ var REFRESH_SECONDS = 60;    // gentle background refresh while the page is open
   }
 
   function safeUrl(url) {
-    return /^https?:\/\//i.test(url) ? url : "";
+    url = String(url || "").trim();
+    if (/^https?:\/\//i.test(url)) return url;
+    // Students often paste bare domains ("nytimes.com/story") — accept
+    // those as https. Anything else (javascript:, data:, …) is dropped.
+    if (/^[a-z0-9][a-z0-9.-]*\.[a-z]{2,}(\/\S*)?$/i.test(url)) return "https://" + url;
+    return "";
   }
 
   // Build each post with textContent (never innerHTML) so student-written
