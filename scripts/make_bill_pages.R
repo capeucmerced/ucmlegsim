@@ -269,4 +269,15 @@ for (i in seq_len(nrow(bills))) {
       file = file.path(BILL_PAGES_DIR, paste0(b$url_slug, ".qmd")))
 }
 
+# Prune pages for bills that no longer exist (a bill row removed from the
+# data, or an era ending — e.g. the yearly fixture reset). Without this,
+# stale pages linger and keep rendering forever.
+expected <- paste0(bills$url_slug, ".qmd")
+stale <- setdiff(list.files(BILL_PAGES_DIR, pattern = "\\.qmd$"), expected)
+if (length(stale) > 0) {
+  file.remove(file.path(BILL_PAGES_DIR, stale))
+  message("make_bill_pages: pruned ", length(stale), " stale page(s): ",
+          paste(stale, collapse = ", "))
+}
+
 message("make_bill_pages: wrote ", nrow(bills), " pages.")

@@ -38,13 +38,15 @@ LOBBY_PAGES_DIR   <- "lobby-pages"
 
 # --- Live Google Sheets (published-to-web CSV links) ------------------------
 
-# The five vote tally tabs. Names here are the committee codes used everywhere.
+# The five vote tally tabs (the dept's LegSim Votes 2026 workbook — these
+# links change once a year at turnover). Names here are the committee
+# codes used everywhere.
 VOTE_SHEET_URLS <- c(
-  lgl   = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSWsxVKMyPrvGZW1VFD0_DdTsMmH-dzITniXvWusbbG34FPwj7uWsIDB6B_6Sb5AdK94SbZ75eL0vTT/pub?gid=0&single=true&output=csv",
-  anr   = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSWsxVKMyPrvGZW1VFD0_DdTsMmH-dzITniXvWusbbG34FPwj7uWsIDB6B_6Sb5AdK94SbZ75eL0vTT/pub?gid=1077921709&single=true&output=csv",
-  blh   = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSWsxVKMyPrvGZW1VFD0_DdTsMmH-dzITniXvWusbbG34FPwj7uWsIDB6B_6Sb5AdK94SbZ75eL0vTT/pub?gid=1971997036&single=true&output=csv",
-  app   = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSWsxVKMyPrvGZW1VFD0_DdTsMmH-dzITniXvWusbbG34FPwj7uWsIDB6B_6Sb5AdK94SbZ75eL0vTT/pub?gid=578574660&single=true&output=csv",
-  floor = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSWsxVKMyPrvGZW1VFD0_DdTsMmH-dzITniXvWusbbG34FPwj7uWsIDB6B_6Sb5AdK94SbZ75eL0vTT/pub?gid=192921423&single=true&output=csv"
+  lgl   = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSJsQMxkEycDp8_wEucU9S-ZNxlC1ylRprZAMIFwvxM0P9tT3tOU-5uthfaMQR34AKEJyQ5_Fl3Z-sV/pub?gid=1874825266&single=true&output=csv",
+  anr   = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSJsQMxkEycDp8_wEucU9S-ZNxlC1ylRprZAMIFwvxM0P9tT3tOU-5uthfaMQR34AKEJyQ5_Fl3Z-sV/pub?gid=243814767&single=true&output=csv",
+  blh   = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSJsQMxkEycDp8_wEucU9S-ZNxlC1ylRprZAMIFwvxM0P9tT3tOU-5uthfaMQR34AKEJyQ5_Fl3Z-sV/pub?gid=711683643&single=true&output=csv",
+  app   = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSJsQMxkEycDp8_wEucU9S-ZNxlC1ylRprZAMIFwvxM0P9tT3tOU-5uthfaMQR34AKEJyQ5_Fl3Z-sV/pub?gid=890174714&single=true&output=csv",
+  floor = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSJsQMxkEycDp8_wEucU9S-ZNxlC1ylRprZAMIFwvxM0P9tT3tOU-5uthfaMQR34AKEJyQ5_Fl3Z-sV/pub?gid=1361712932&single=true&output=csv"
 )
 
 # Where votes are entered (link shown on the Votes page)
