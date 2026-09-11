@@ -12,13 +12,13 @@
  *
  * The agenda template is a Google Doc modeled on the real CA Senate
  * agenda layout, with placeholders:
- *   {{COMMITTEE}} {{CHAIR}} {{VICE}} {{MEMBERS}} {{DATE}} {{TIME}}
- *   {{ROOM}} {{REVISED}} {{ITEMS}}
+ *   {{COMMITTEE}} {{CHAIR}} {{VICE}} {{MEMBERS}} {{DATE}} {{REVISED}}
+ *   {{ITEMS}}
+ * Agendas carry only the meeting DATE — no time or room, by the
+ * instructor's call: chairs handle those in class.
  */
 
 var AGENDA_TEMPLATE_DOC_ID = 'PUT-TEMPLATE-DOC-ID-HERE-AT-DEPLOY';
-var DEFAULT_TIME = '11:30 a.m.';
-var DEFAULT_ROOM = 'Student Services Building, Room 160';
 
 // Response tab name -> committee code + display name
 var AGENDA_TABS = {
@@ -80,9 +80,6 @@ function handleAgendaSubmit(e) {
     vice:    membership.vice ? membership.vice + ', Vice Chair' : '',
     members: membership.members ? 'Members: ' + membership.members : '',
     date: Utilities.formatDate(meetingDate, Session.getScriptTimeZone(), 'EEEE, MMMM d, yyyy'),
-    // Chairs control time/room day-of; the agenda prints the standing defaults
-    time: DEFAULT_TIME,
-    room: DEFAULT_ROOM,
     revised: revision > 1
       ? 'REVISED — Revision ' + revision + ', issued ' +
         Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'M/d h:mm a') +
@@ -147,8 +144,6 @@ function assembleAgendaPdf(spec) {
   body.replaceText('{{VICE}}', spec.vice);
   body.replaceText('{{MEMBERS}}', spec.members);
   body.replaceText('{{DATE}}', spec.date);
-  body.replaceText('{{TIME}}', spec.time);
-  body.replaceText('{{ROOM}}', spec.room);
   body.replaceText('{{REVISED}}', spec.revised);
   body.replaceText('{{ITEMS}}', spec.items);
   doc.saveAndClose();

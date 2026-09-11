@@ -138,8 +138,8 @@ lobby pages grow a Profile tab when their org's PDF exists.
 | Bills in file order — one per line | paragraph: one bill per line (e.g. `SB-12`), up to 30; the listed order is the file order |
 | — Revision | **script column**: revision number within the same Meeting Date |
 
-(No time/room questions — chairs control those day-of; the generated
-agenda prints the standing class time and room.)
+(No time or room anywhere — the agenda carries only the meeting date;
+chairs handle time and room in class.)
 
 ## Tab: Assignments  (form: "Committee Assignments & Leadership")
 

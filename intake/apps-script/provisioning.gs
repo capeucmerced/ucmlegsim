@@ -89,9 +89,8 @@ function createAgendaTemplate() {
   para('{{CHAIR}}', { align: 'center', size: 10, spacingAfter: 2 });
   para('{{VICE}}',  { align: 'center', size: 10, spacingAfter: 10 });
   para('{{MEMBERS}}', { align: 'center', size: 8, spacingAfter: 14 });
-  para('{{DATE}} — {{TIME}}',
-       { align: 'center', size: 11, bold: true, spacingAfter: 2 });
-  para('{{ROOM}}', { align: 'center', size: 10, spacingAfter: 8 });
+  para('{{DATE}}',
+       { align: 'center', size: 11, bold: true, spacingAfter: 8 });
   para('{{REVISED}}',
        { align: 'center', size: 9, bold: true, color: '#c00000', spacingAfter: 14 });
   para('AGENDA', { align: 'center', size: 12, bold: true, spacingAfter: 10 });
