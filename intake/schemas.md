@@ -5,7 +5,10 @@ feeds it, its exact columns, and who may edit it by hand. The Google Forms,
 the Apps Scripts in `apps-script/`, and the site pipeline are all written
 against these layouts — if a column changes here, it changes in all three.
 
-**Layout of the Google side (one workbook + one folder):**
+**Layout of the Google side (one workbook + one folder, all inside the
+year's `LegSim <year>` container folder — the sim repeats yearly and a
+finished year's folder is left untouched as its archive; see "Yearly
+turnover" in README.md):**
 
 - **Workbook "LegSim Intake"** — every form files its responses into a tab
   of this single workbook, alongside two hand-maintained tabs (Roster,

@@ -108,8 +108,20 @@ function addAdminTabs() {
  *  linking, exactly one tab still matches "Form Responses N" (all earlier
  *  ones are already renamed), so no fragile URL/title matching is needed. */
 function formsFolder() {
-  var it = DriveApp.getFoldersByName(FORMS_FOLDER_NAME);
-  return it.hasNext() ? it.next() : DriveApp.createFolder(FORMS_FOLDER_NAME);
+  // The forms folder lives NEXT TO the LegSim Files folder — i.e. inside
+  // the same per-year container folder (see "Yearly turnover" in
+  // intake/README.md). Scoping the by-name lookup to that parent is what
+  // lets every year have its own "LegSim Forms" without collisions.
+  var parent;
+  try {
+    var parents = DriveApp.getFolderById(
+      deployProp('FILES_FOLDER_ID', FILES_FOLDER_ID)).getParents();
+    parent = parents.hasNext() ? parents.next() : DriveApp.getRootFolder();
+  } catch (e) {
+    parent = DriveApp.getRootFolder();  // FILES_FOLDER_ID not set yet
+  }
+  var it = parent.getFoldersByName(FORMS_FOLDER_NAME);
+  return it.hasNext() ? it.next() : parent.createFolder(FORMS_FOLDER_NAME);
 }
 
 function newForm(title, tabName) {

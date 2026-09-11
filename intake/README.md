@@ -74,9 +74,13 @@ in department hands and documented.
 Roughly one sitting, in this order (every manual step here was walked
 live in the Sep 2026 beta — the scripts carry those fixes):
 
-1. **Drive**: create folder `LegSim Files` and copy its folder ID from the
-   URL. (Subfolders are created automatically by the scripts.)
-2. **Workbook `LegSim Intake`**: create an empty spreadsheet; copy its ID.
+1. **Drive**: create the YEAR container folder, e.g. `LegSim 2026`, and
+   inside it a folder `LegSim Files`; copy the `LegSim Files` folder ID
+   from the URL. (Its subfolders, and the sibling `LegSim Forms` folder,
+   are created automatically by the scripts.) Everything this year makes
+   lives inside the year folder — see **Yearly turnover** below.
+2. **Workbook `LegSim Intake 2026`**: create an empty spreadsheet inside
+   the year folder; copy its ID.
 3. **Apps Script** (Extensions → Apps Script in that workbook): paste in
    ALL the `.gs` files from `apps-script/`; set `INTAKE_SPREADSHEET_ID` in
    `forms_builder.gs`. Under ⚙ Project Settings → **Script properties**,
@@ -112,10 +116,14 @@ live in the Sep 2026 beta — the scripts carry those fixes):
    `INTAKE_API_URL` in `scripts/shared.R` AND `FEED_URL` in `js/feed.js`.
    **Never publish intake tabs to the web** — the gateway is the only
    data exit (see the privacy rule above).
-7. **Votes workbook**: paste `vote_sheet.gs` into its own Apps Script
-   project. Set up the hidden `BillLists` tab (IMPORTRANGE from the intake
-   workbook's Bills tab, FILTERed per committee) and point each tab's Bill
-   column validation at it.
+7. **Votes workbook**: create `LegSim Votes 2026` inside the year folder;
+   paste `vote_sheet.gs` into its own Apps Script project. Set up the
+   hidden `BillLists` tab (IMPORTRANGE from the intake workbook's Bills
+   tab, FILTERed per committee) and point each tab's Bill column
+   validation at it. Publish the five vote tabs to the web (votes hold no
+   emails — the one kind of tab that publishing rule allows) and put the
+   new CSV links + edit link into `VOTE_SHEET_URLS` / `VOTE_ENTRY_URL` in
+   `scripts/shared.R`.
 8. **Test with a dummy account**: register, file a bill (check the PDF
    receipt's red/blue amendment marks), file a letter, report spending,
    post to the wire, submit an agenda — confirm each lands, files
@@ -134,6 +142,36 @@ live in the Sep 2026 beta — the scripts carry those fixes):
    entries, then set `SB_NUMBER_FLOOR` to `0` — numbering reads the max
    SB in the Bills tab even on void rows, so leftover test rows would
    make the first real bill SB-77 instead of SB-1.
+
+## Yearly turnover (the sim repeats — no year ever overwrites another)
+
+Each year gets its own containers on both sides; a finished year is
+never touched again.
+
+**Google side — one folder per year.** Everything a year creates lives
+inside its `LegSim <year>` Drive folder: the intake workbook, `LegSim
+Files` (every filed PDF), `LegSim Forms`, the votes workbook, the bill
+template and draft docs. When the sim ends, that folder simply stays put
+as the archive — no renaming, no cleanup, and old years' student emails
+stay in workbooks shared with nobody. Next year: create `LegSim
+<year+1>` and run the deploy checklist again from step 1 — the builder
+recreates all fourteen forms identically, so the whole rebuild is one
+sitting. A fresh year starts with `SB_NUMBER_FLOOR` = `0` (its Bills tab
+is empty and the site has no fixtures). Once the site is repointed,
+**archive the old year's web-app deployment** (Manage deployments →
+Archive) so a retired /exec URL can't serve stale data.
+
+**Repo side — archive, then reset.** Before new data starts: mirror the
+live site into `archive/<year>/` (`scripts/archive_site.ps1`), add the
+year to `archive/index.html`, then clear the old year's working data
+(contribution CSVs, letter/bill/profile PDFs, `bill_list.csv` rows, vote
+fixtures) — the archived copy keeps everything.
+
+**The cutover is the swap surface.** Repointing the site at a new year
+touches exactly four things: `INTAKE_API_URL` and `VOTE_SHEET_URLS` /
+`VOTE_ENTRY_URL` in `scripts/shared.R`, `FEED_URL` in `js/feed.js`, and
+the new year's own Script Properties. Nothing else on the site knows
+which year it is.
 
 ## Open items
 
