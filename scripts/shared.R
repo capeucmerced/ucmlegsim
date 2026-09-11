@@ -406,7 +406,7 @@ committee_code_from_name <- function(name) {
   hit <- sapply(names(COMMITTEE_NAMES), function(code) {
     grepl(substr(tolower(COMMITTEE_NAMES[code]), 1, 12), n, fixed = TRUE)
   })
-  if (any(hit)) names(COMMITTEE_NAMES)[which(hit)[1]] else NA
+  if (any(hit)) names(COMMITTEE_NAMES)[which(hit)[1]] else NA_character_
 }
 
 # Derive each bill's position in the process from records that already

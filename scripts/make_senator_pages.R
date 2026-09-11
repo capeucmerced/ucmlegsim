@@ -67,9 +67,12 @@ for (i in seq_len(nrow(senators))) {
   }
 
   # --- Their vote record --------------------------------------------------
-  # Committees whose vote sheet has a column for this senator
+  # Committees whose vote sheet has a column for this senator.
+  # vapply, not sapply: over an EMPTY votes list (start of a session,
+  # before any vote is taken) sapply returns list() and the subscript
+  # crashes — the shakedown's first vote-less build found this.
   their_votes <- data.frame()
-  in_committees <- votes[sapply(votes, function(df) s$name_period %in% names(df))]
+  in_committees <- votes[vapply(votes, function(df) s$name_period %in% names(df), logical(1))]
   if (length(in_committees) > 0) {
     party_choice_col <- if (s$Party == "D") "Dem_choice" else "Rep_choice"
 

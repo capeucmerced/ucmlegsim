@@ -19,8 +19,9 @@ ns       <- senator_name_sets(senators)
 votes    <- load_all_votes(ns)
 bills    <- load_bills() |> bill_statuses(votes)
 
-# Bills' committee names -> codes for docket matching
-bills$committee_code <- sapply(bills$committee, committee_code_from_name)
+# Bills' committee names -> codes for docket matching (vapply so an
+# empty bill list — the day after a fixture reset — stays typed)
+bills$committee_code <- vapply(bills$committee, committee_code_from_name, character(1))
 
 # One tab per committee, plus the Floor. Each tab shows the membership,
 # the latest agenda, the docket (bills awaiting action there), and the
