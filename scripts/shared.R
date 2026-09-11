@@ -50,7 +50,7 @@ VOTE_SHEET_URLS <- c(
 )
 
 # Where votes are entered (link shown on the Votes page)
-VOTE_ENTRY_URL <- "https://docs.google.com/spreadsheets/d/1O3c2ZGWMUwBu_q2Yjr0nbfBOn9qD2T3A_zhYH8Q2ZHs/edit?gid=0#gid=0"
+VOTE_ENTRY_URL <- "https://docs.google.com/spreadsheets/d/1chG6ZndlFIyY4aj1GdHC7iEejb23DJHEmnEucCedK2g/edit"
 
 # --- 2026 intake sources (the Google Forms era) -----------------------------
 # All intake data reaches the site through ONE Apps Script endpoint (see

@@ -31,9 +31,10 @@
  * The two BILL dropdowns (amend picker, letters picker) then maintain
  * themselves: every newly numbered bill is appended by the submit
  * handler (addBillToFormDropdowns in bills_assembler.gs, via the
- * FORM_ID_* Script Properties that finish() stores). Roster-driven
- * dropdowns (recipients, leadership) still get a sync run / quick paste
- * once the roster exists.
+ * FORM_ID_* Script Properties that finish() stores). ROSTER-driven
+ * dropdowns (spending recipients, assignment/leadership pickers) fill
+ * from the Roster by running syncRosterDropdowns() below — run it once
+ * the senators are entered, and again whenever the Roster changes.
  */
 
 var INTAKE_SPREADSHEET_ID = 'PUT-INTAKE-WORKBOOK-ID-HERE';
@@ -187,6 +188,56 @@ function finish(form, tabName) {
   // see addBillToFormDropdowns in bills_assembler.gs).
   PropertiesService.getScriptProperties().setProperty('FORM_ID_' + tabName, form.getId());
   return { tab: tabName, editUrl: form.getEditUrl(), shareUrl: form.getPublishedUrl() };
+}
+
+/**
+ * Roster-driven dropdowns: run AFTER the Roster's senators are entered,
+ * and rerun whenever senators change. Fills, from the Roster:
+ *   - the Spending form's recipient list
+ *   - every picker on the Assignments form (chairs, vice chairs,
+ *     members, Pro Tem / floor leaders)
+ * One senator-choice format everywhere: "SD-2 · Tester, New (D)" —
+ * the gateway's spending view parses exactly this shape.
+ */
+function syncRosterDropdowns() {
+  var rows = SpreadsheetApp.openById(INTAKE_SPREADSHEET_ID)
+    .getSheetByName('Roster').getDataRange().getValues();
+  var head = rows[0];
+  var senators = [];
+  for (var i = 1; i < rows.length; i++) {
+    if (String(rows[i][head.indexOf('Role')]).toLowerCase().trim() !== 'senator') continue;
+    senators.push({
+      d: parseInt(rows[i][head.indexOf('District')], 10),
+      label: 'SD-' + rows[i][head.indexOf('District')] + ' · ' +
+             rows[i][head.indexOf('Last Name')] + ', ' +
+             rows[i][head.indexOf('First Name')] +
+             ' (' + (rows[i][head.indexOf('Party')] || 'D') + ')'
+    });
+  }
+  if (senators.length === 0) { Logger.log('No senators on the Roster yet.'); return; }
+  senators.sort(function (a, b) { return a.d - b.d; });
+  var labels = senators.map(function (s) { return s.label; });
+
+  // Spending: the one recipient dropdown
+  var sid = deployProp('FORM_ID_Spending', '');
+  if (sid) {
+    FormApp.openById(sid).getItems(FormApp.ItemType.LIST).forEach(function (it) {
+      if (it.getTitle().indexOf('Who received') === 0) it.asListItem().setChoiceValues(labels);
+    });
+  }
+
+  // Assignments: every list and checkbox on that form is a senator picker
+  var aid = deployProp('FORM_ID_Assignments', '');
+  if (aid) {
+    var form = FormApp.openById(aid);
+    form.getItems(FormApp.ItemType.LIST).forEach(function (it) {
+      it.asListItem().setChoiceValues(labels);
+    });
+    form.getItems(FormApp.ItemType.CHECKBOX).forEach(function (it) {
+      it.asCheckboxItem().setChoiceValues(labels);
+    });
+  }
+  Logger.log('Dropdowns synced for ' + labels.length + ' senator(s).');
 }
 
 // --- The forms, per intake/schemas.md ---------------------------------------

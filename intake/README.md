@@ -105,7 +105,9 @@ live in the Sep 2026 beta — the scripts carry those fixes):
    into the `BILL_TEMPLATE_DOC_ID` script property (restyle the template
    doc freely — keep the `{{PLACEHOLDERS}}`). After the Roster has its
    senators (roles, districts, names, Party), run `provisionBillDocs()`
-   — rerun it whenever senators are added. With a full class (~40
+   AND `syncRosterDropdowns()` (fills the spending recipient and
+   assignment pickers from the Roster) — rerun both whenever senators
+   are added or changed. With a full class (~40
    senators × 2 draft docs) one run may hit Apps Script's 6-minute
    execution limit and stop partway; that is harmless — it skips
    senators who already have docs, so just run it again until it
