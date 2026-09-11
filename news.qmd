@@ -17,7 +17,7 @@ execute:
 source("scripts/shared.R")
 
 # Quick links to the class newspaper's editions, kept in the right margin.
-newspaper <- read_sheet_safe(NEWSPAPER_SHEET_URL)
+newspaper <- load_intake_editions()
 
 if (nrow(newspaper) > 0 && all(c("Edition", "Link") %in% names(newspaper))) {
   eds <- newspaper |> filter(!is.na(Link) & Link != "")

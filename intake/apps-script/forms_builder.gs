@@ -19,9 +19,11 @@
  *   - Each form: Settings -> Responses -> Collect email addresses ->
  *     "Verified" (the script requests email collection, but the Verified
  *     mode may need the toggle confirmed by hand).
- *   - "File a Position Letter": add the file-upload question by hand
- *     (Add question -> File upload; PDF only; 10 MB), titled exactly
- *     "Letter PDF". Scripts cannot create upload questions.
+ *   - Two forms need their file-upload question added by hand (Add
+ *     question -> File upload; PDF only; 10 MB) — scripts cannot create
+ *     upload questions. Titles must be exact:
+ *       "File a Position Letter"    -> "Letter PDF"
+ *       "Upload Your Role Profile"  -> "Profile PDF"
  *   - Response tabs land in the intake workbook already renamed; drag
  *     them into a sensible order if you like.
  *

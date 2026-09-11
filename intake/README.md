@@ -7,7 +7,7 @@ runs from the repository.
 
 - `schemas.md` — the data contract: every sheet tab, its columns, who edits it.
 - `apps-script/` — the Google Apps Script sources, one file per concern:
-  - `forms_builder.gs` — **creates all thirteen forms programmatically**
+  - `forms_builder.gs` — **creates all fourteen forms programmatically**
     on whatever account runs it (see its header for the run steps and the
     short manual-finish list). Forms are code, not clicks: rebuildable on
     any account, any year.
@@ -80,10 +80,14 @@ live in the Sep 2026 beta — the scripts carry those fixes):
 3. **Apps Script** (Extensions → Apps Script in that workbook): paste in
    ALL the `.gs` files from `apps-script/`; set `INTAKE_SPREADSHEET_ID` in
    `forms_builder.gs`. Under ⚙ Project Settings → **Script properties**,
-   add: `GITHUB_TOKEN` (fine-grained PAT for this repo),
-   `FILES_FOLDER_ID`, `SB_NUMBER_FLOOR` = `0` — and later
-   `BILL_TEMPLATE_DOC_ID` (step 5). Properties survive code re-pastes;
-   never edit constants in the code.
+   add: `FILES_FOLDER_ID`, and `SB_NUMBER_FLOOR` = `75` while the 2025
+   fixtures are still on the site (test bills then number from 76 and
+   can't collide with fixture SB-1..75; the fixture reset in step 9
+   flips it to `0`). Later additions: `BILL_TEMPLATE_DOC_ID` (step 5),
+   and `GITHUB_TOKEN` (a fine-grained PAT for this repo) which can wait
+   until launch day — without it, submissions simply skip the automatic
+   rebuild request (a logged no-op), which is right before launch anyway.
+   Properties survive code re-pastes; never edit constants in the code.
 4. **Build the forms**: run `buildAllForms()`, then `addAdminTabs()`.
    Manual finish per the builder's header: the file-upload questions
    (title exactly `Letter PDF` on the Letters form, `Profile PDF` on the
@@ -125,7 +129,11 @@ live in the Sep 2026 beta — the scripts carry those fixes):
    site keeps its own copies under `archive/`, so nothing is lost. Mixed
    eras cause ghosts — e.g. a fixture Support letter coexisting with an
    intake Oppose from the same org, which the sheet-based supersede logic
-   cannot see.
+   cannot see. At the same time: **delete** (don't just void) the step-8
+   test rows from the intake tabs and trash their filed PDFs/dropdown
+   entries, then set `SB_NUMBER_FLOOR` to `0` — numbering reads the max
+   SB in the Bills tab even on void rows, so leftover test rows would
+   make the first real bill SB-77 instead of SB-1.
 
 ## Open items
 

@@ -44,6 +44,7 @@ function doGet(e) {
            : view === 'letters'  ? buildLettersJson()
            : view === 'bills'    ? buildBillsJson()
            : view === 'profiles' ? buildProfilesJson()
+           : view === 'editions' ? buildEditionsJson()
            : buildPostsJson();
 
   try { cache.put('json-' + view, json, 30); } catch (err) {}
@@ -170,6 +171,43 @@ function buildBillsJson() {
   }
 
   return JSON.stringify({ bills: out });
+}
+
+/** Newspaper editions, in submission order: name, link, submission time,
+ *  and the outlet joined from the Roster — never the email. */
+function buildEditionsJson() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+
+  var outletByEmail = {};
+  var rosterRows = ss.getSheetByName('Roster').getDataRange().getValues();
+  var rHead = rosterRows[0];
+  for (var i = 1; i < rosterRows.length; i++) {
+    var em = String(rosterRows[i][rHead.indexOf('Email')]).toLowerCase().trim();
+    var outlet = String(rosterRows[i][rHead.indexOf('Outlet')] || '').trim();
+    if (em && outlet) outletByEmail[em] = outlet;
+  }
+
+  var out = [];
+  var sheet = ss.getSheetByName('Editions');
+  if (sheet && sheet.getLastRow() > 1) {
+    var rows = sheet.getDataRange().getValues();
+    var head = rows[0];
+    var cTime = colStartingWith(head, 'Timestamp');
+    var cMail = colStartingWith(head, 'Email Address');
+    var cEd   = colStartingWith(head, 'Edition name');
+    var cLink = colStartingWith(head, 'Link to the edition');
+    for (var j = 1; j < rows.length; j++) {
+      var r = rows[j];
+      if (!r[cEd] && !r[cLink]) continue;
+      out.push({
+        time:    new Date(r[cTime]).toISOString(),
+        edition: String(r[cEd] || ''),
+        link:    String(r[cLink] || ''),
+        outlet:  outletByEmail[String(r[cMail]).toLowerCase().trim()] || ''
+      });
+    }
+  }
+  return JSON.stringify({ editions: out });
 }
 
 /** Role-profile PDFs, straight from the role_profiles/ folder tree:

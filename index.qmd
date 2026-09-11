@@ -143,7 +143,7 @@ money_card <- card("Money Watch", li(money_items), "lobby.html", "All spending â
 
 # --- The Papers: current newspaper edition ---------------------------------
 papers_html <- '<p class="wire-empty">No editions published yet.</p>'
-newspaper <- read_sheet_safe(NEWSPAPER_SHEET_URL)
+newspaper <- load_intake_editions()
 if (nrow(newspaper) > 0 && all(c("Edition", "Link") %in% names(newspaper))) {
   current <- newspaper |> filter(!is.na(Link) & Link != "") |> tail(1)
   if (nrow(current) == 1) {

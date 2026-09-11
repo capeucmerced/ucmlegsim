@@ -47,9 +47,6 @@ VOTE_SHEET_URLS <- c(
   floor = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSWsxVKMyPrvGZW1VFD0_DdTsMmH-dzITniXvWusbbG34FPwj7uWsIDB6B_6Sb5AdK94SbZ75eL0vTT/pub?gid=192921423&single=true&output=csv"
 )
 
-# Class newspaper editions (News page)
-NEWSPAPER_SHEET_URL <- "https://docs.google.com/spreadsheets/d/e/2PACX-1vTenWjAnSsUSJxazVdGIKxSVhONVPHrgvkxTSJrdZtdaNN4zziuvtTepefp06r_iWL-iuYIq8NsrQW1/pub?gid=0&single=true&output=csv"
-
 # Where votes are entered (link shown on the Votes page)
 VOTE_ENTRY_URL <- "https://docs.google.com/spreadsheets/d/1O3c2ZGWMUwBu_q2Yjr0nbfBOn9qD2T3A_zhYH8Q2ZHs/edit?gid=0#gid=0"
 
@@ -65,7 +62,7 @@ INTAKE_API_URL <- "https://script.google.com/macros/s/AKfycbzV8j7CpZvdkmS44vdWTz
 
 # Which intake streams are live (their loaders merge rows in; the 2025
 # fixture files stay alongside until the semester-start data reset)
-INTAKE_LIVE <- c("spending", "letters", "bills", "profiles")
+INTAKE_LIVE <- c("spending", "letters", "bills", "profiles", "editions")
 
 read_intake_json <- function(view) {
   tryCatch({
@@ -302,6 +299,24 @@ load_intake_bills <- function() {
   }
 
   rows |> select(-file_id)
+}
+
+# Newspaper editions filed through the 2026 form, via the gateway (the
+# Editions tab carries submitter emails, so it is never published to the
+# web — same privacy rule as every intake tab). Shaped like the old
+# hand-kept sheet the News/Home pages already read: Edition, Link, Date.
+load_intake_editions <- function() {
+  if (!"editions" %in% INTAKE_LIVE) return(data.frame())
+  j <- read_intake_json("editions")
+  if (is.null(j) || length(j$editions) == 0) return(data.frame())
+
+  as.data.frame(j$editions) |>
+    transmute(
+      Edition = as.character(edition),
+      Link    = as.character(link),
+      Date    = format(as.Date(substr(as.character(time), 1, 10)), "%b %d"),
+      Outlet  = as.character(outlet)
+    )
 }
 
 # --- Votes ------------------------------------------------------------------

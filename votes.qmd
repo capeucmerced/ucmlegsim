@@ -11,16 +11,17 @@ execute:
 
 ```{r note}
 #| results: asis
+source("scripts/shared.R")
 cat(sprintf(
   '<p class="table-note"><a href="%s">Vote entry sheet</a> · full roll calls are on each bill&#39;s page · updated %s</p>',
-  "https://docs.google.com/spreadsheets/d/1O3c2ZGWMUwBu_q2Yjr0nbfBOn9qD2T3A_zhYH8Q2ZHs/edit?gid=0#gid=0",
+  VOTE_ENTRY_URL,
   format(Sys.time(), "%b %d, %I:%M %p")
 ))
 ```
 
 ```{r setup}
+# shared.R is already sourced by the note chunk above
 library(reactable)
-source("scripts/shared.R")
 
 senators <- load_senators()
 ns       <- senator_name_sets(senators)

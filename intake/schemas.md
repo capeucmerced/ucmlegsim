@@ -182,6 +182,10 @@ description, link. Never the email.
 | Edition | "Edition name/number" |
 | Link | "Link to the edition" (URL validation) |
 
+Served to the site by the gateway's `?view=editions` (edition, link,
+submission time, outlet from the Roster — never the email). The Home
+page's Papers card shows the newest row; the News page lists them all.
+
 ## Tab: Budgets  (hand-maintained)
 
 | Column | Meaning |
