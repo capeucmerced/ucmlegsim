@@ -25,9 +25,13 @@
  *   - Response tabs land in the intake workbook already renamed; drag
  *     them into a sensible order if you like.
  *
- * Dropdowns that must track live data (senators, bills) are seeded with a
- * placeholder — the dropdown-sync script (or a quick paste) fills them
- * once the roster and bills exist.
+ * Dropdowns that must track live data are seeded with a placeholder.
+ * The two BILL dropdowns (amend picker, letters picker) then maintain
+ * themselves: every newly numbered bill is appended by the submit
+ * handler (addBillToFormDropdowns in bills_assembler.gs, via the
+ * FORM_ID_* Script Properties that finish() stores). Roster-driven
+ * dropdowns (recipients, leadership) still get a sync run / quick paste
+ * once the roster exists.
  */
 
 var INTAKE_SPREADSHEET_ID = 'PUT-INTAKE-WORKBOOK-ID-HERE';
@@ -162,6 +166,10 @@ function renameResponseTabs() {
 }
 
 function finish(form, tabName) {
+  // Remember the form's id so submit handlers can push live choices into
+  // its dropdowns later (each new SB lands in the amend + letter lists;
+  // see addBillToFormDropdowns in bills_assembler.gs).
+  PropertiesService.getScriptProperties().setProperty('FORM_ID_' + tabName, form.getId());
   return { tab: tabName, editUrl: form.getEditUrl(), shareUrl: form.getPublishedUrl() };
 }
 
@@ -179,26 +187,52 @@ function buildBills() {
   var f = newForm('File a Bill', 'Bills');
 
   // Items are added in their FINAL on-form order — no repositioning.
-  // Page 1: the fork. Page 2 ("Amendment details"): the amending
-  // dropdown, amendments only. Page 3 ("The bill"): everything else.
+  //   Page 1  the fork
+  //   Page 2  "Amendment details" (amendments only): which bill, plus an
+  //           optional "Updated …" override for every metadata field.
+  //           Blank = keep the current value (the scripts pull it forward
+  //           from the bill's earlier rows), so an amendment can change
+  //           anything but can't wipe anything by accident.
+  //   Page 3  "New bill details" (new bills only): the full metadata.
+  //   Page 4  "File the text" (both): which draft doc, confirmation.
   var filing = f.addMultipleChoiceItem()
     .setTitle('Is this a new bill or an amended version of one of your bills?')
     .setRequired(true);
 
   var amendSection = f.addPageBreakItem().setTitle('Amendment details');
+  amendSection.setHelpText(
+    'Submitting replaces the bill\'s text on the site right away (the old ' +
+    'version is kept under Previous Text). Only fill in what changes — ' +
+    'anything left blank keeps its current value.');
   f.addListItem()
     .setTitle('Which of your bills does this amend?')
-    .setChoiceValues([PLACEHOLDER]);
+    .setChoiceValues([PLACEHOLDER])
+    .setRequired(true);
+  f.addTextItem()
+    .setTitle('Updated short subject')
+    .setHelpText('Leave blank to keep the current subject.');
+  f.addParagraphTextItem()
+    .setTitle('Updated digest')
+    .setHelpText('Leave blank to keep the current digest.');
+  f.addCheckboxItem()
+    .setTitle('Updated flags')
+    .setHelpText('Leave blank to keep the current flags. Otherwise check the ' +
+                 'COMPLETE new set — what you check replaces all current flags. ' +
+                 'Example: a bill flagged Appropriation + Local program that ' +
+                 'should lose Local program means checking only Appropriation. ' +
+                 'To end up with no flags at all, check the None choice.')
+    .setChoiceValues(['Appropriation', 'Fiscal committee', 'Local program',
+                      'Urgency', NO_FLAGS_CHOICE]);
+  f.addListItem()
+    .setTitle('Updated primary topic')
+    .setHelpText('Leave blank to keep the current topic.')
+    .setChoiceValues(POLICY_TOPICS);
+  f.addListItem()
+    .setTitle('Updated secondary topic')
+    .setHelpText('Leave blank to keep it; the None choice removes it.')
+    .setChoiceValues([NO_TOPIC2_CHOICE].concat(POLICY_TOPICS));
 
-  var mainSection = f.addPageBreakItem().setTitle('The bill');
-
-  // Now that both sections exist, wire the fork: "New bill" skips the
-  // amendment page entirely.
-  filing.setChoices([
-    filing.createChoice('New bill', mainSection),
-    filing.createChoice('Amendment', amendSection)
-  ]);
-
+  var newSection = f.addPageBreakItem().setTitle('New bill details');
   f.addTextItem()
     .setTitle('Short subject for the bill tables — a few concise words (e.g. Clean Air Near Schools Act)')
     .setRequired(true);
@@ -212,6 +246,8 @@ function buildBills() {
     .setTitle('Primary Topic').setChoiceValues(POLICY_TOPICS).setRequired(true);
   f.addListItem()
     .setTitle('Secondary Topic').setChoiceValues(POLICY_TOPICS);
+
+  var fileSection = f.addPageBreakItem().setTitle('File the text');
   f.addMultipleChoiceItem()
     .setTitle('Which of your two draft docs holds this bill’s text?')
     .setChoiceValues(['Draft A', 'Draft B'])
@@ -220,6 +256,17 @@ function buildBills() {
     .setTitle('Body Ready')
     .setChoiceValues(['I confirm the legal text in my bill doc is final'])
     .setRequired(true);
+
+  // Wire navigation now that every section exists. The fork picks the
+  // page; a goto on a page break fires when the PREVIOUS page finishes,
+  // so the goto that skips "New bill details" for amendments lives on
+  // newSection (reached linearly only from the amendment page).
+  filing.setChoices([
+    filing.createChoice('New bill', newSection),
+    filing.createChoice('Amendment', amendSection)
+  ]);
+  newSection.setGoToPage(fileSection);
+
   return finish(f, 'Bills');
 }
 

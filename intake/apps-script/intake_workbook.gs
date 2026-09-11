@@ -115,6 +115,21 @@ function billNumberFrom(text) {
   return m ? parseInt(m[1], 10) : null;
 }
 
+// --- Amendment "Updated …" override choices ---------------------------------
+// A blank override means "keep the current value", so clearing a field
+// needs an explicit choice. These strings appear in the form (built by
+// forms_builder.gs) and are parsed by bills_assembler.gs + newsfeed_api.gs.
+var NO_FLAGS_CHOICE  = 'None — clear every flag';
+var NO_TOPIC2_CHOICE = 'None — remove the secondary topic';
+
+/** A flags checkbox answer with the "clear" choice removed ("" if that
+ *  was the only thing checked — i.e. the student cleared the flags). */
+function withoutNoFlags(answer) {
+  return String(answer || '').split(/,\s*/)
+    .filter(function (x) { return x && x !== NO_FLAGS_CHOICE; })
+    .join(', ');
+}
+
 // --- Letters ----------------------------------------------------------------
 
 // Position label -> filename token (the site reads these from filenames)

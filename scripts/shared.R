@@ -258,6 +258,42 @@ load_intake_bills <- function() {
                                     rows$url_slug[i], ": ", conditionMessage(e))
       )
     }
+
+    # Archived pre-amendment versions (the "prev" list on each bill) fill
+    # PREV_BILL_PDF_DIR so bill pages get their Previous Text tab. An
+    # archived version never changes, so an existing file is skipped —
+    # which is why a bad download (an unshared file returns a sign-in
+    # HTML page, not a PDF) must be deleted, or it would stick forever.
+    is_pdf <- function(path) {
+      identical(tryCatch(readBin(path, "raw", n = 4), error = function(e) raw(0)),
+                charToRaw("%PDF"))
+    }
+    raw_bills <- as.data.frame(j$bills)
+    if ("prev" %in% names(raw_bills)) {
+      for (i in seq_len(nrow(raw_bills))) {
+        p <- raw_bills$prev[[i]]
+        if (is.null(p) || NROW(p) == 0) next
+        slug <- paste0(toupper(gsub(" ", "_", raw_bills$last[i])),
+                       "_SB", as.integer(raw_bills$sb[i]))
+        for (k in seq_len(NROW(p))) {
+          dest <- file.path(PREV_BILL_PDF_DIR, paste0(slug, "_v", p$v[k], ".pdf"))
+          if (file.exists(dest) && is_pdf(dest)) next
+          tryCatch({
+            curl::curl_download(
+              paste0("https://drive.google.com/uc?export=download&id=", p$id[k]),
+              dest, quiet = TRUE
+            )
+            if (!is_pdf(dest)) {
+              unlink(dest)
+              message("WARNING: previous bill version ", basename(dest),
+                      " is not shared (got a sign-in page); skipped.")
+            }
+          },
+          error = function(e) message("WARNING: could not fetch previous bill version ",
+                                      basename(dest), ": ", conditionMessage(e)))
+        }
+      }
+    }
     options(legsim.bills_synced = TRUE)
   }
 

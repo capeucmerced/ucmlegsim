@@ -62,16 +62,25 @@ The master mapping of people to roles. One row per student.
 | --- | --- |
 | Timestamp / Email Address | automatic |
 | Filing Type | "Is this a new bill or an amended version of one of your bills?" (`New bill` / `Amendment`) |
-| Amending | shown for amendments: "Which of your bills does this amend?" (dropdown, their bills) |
-| Short Subject | "Short subject for the bill tables — a few concise words (e.g. Clean Air Near Schools Act)" |
-| Digest | "Digest: one paragraph summarizing what the bill does" |
-| Flags | checkboxes: `Appropriation` / `Fiscal committee` / `Local program` / `Urgency` (comma-joined by Forms) |
-| Primary Topic | dropdown from the policy tag list (single choice, required) |
+| Amending | amendments only: "Which of your bills does this amend?" (dropdown — every newly numbered bill is appended automatically on filing) |
+| Updated short subject / digest / flags / primary topic / secondary topic | amendments only, all optional: **blank = keep the current value**. **Updated flags is a wholesale replacement, not a toggle**: anything checked becomes the bill's complete flag set (to de-flag `Local program` from `Appropriation + Local program`, check only `Appropriation`). Because blank means keep, the flags and secondary-topic lists carry an explicit `None — …` choice for clearing entirely. |
+| Short Subject | new bills only: "Short subject for the bill tables — a few concise words (e.g. Clean Air Near Schools Act)" |
+| Digest | new bills only: "Digest: one paragraph summarizing what the bill does" |
+| Flags | new bills only: checkboxes `Appropriation` / `Fiscal committee` / `Local program` / `Urgency` (comma-joined by Forms) |
+| Primary Topic | new bills only: dropdown from the policy tag list (required) |
 | Secondary Topic | same list, optional |
-| Draft Doc | "Which of your two draft docs holds this bill’s text?" (`Draft A` / `Draft B`) |
-| Body Ready | "Confirm the legal text in your bill doc is final" (checkbox) |
+| Draft Doc | both paths: "Which of your two draft docs holds this bill’s text?" (`Draft A` / `Draft B`) |
+| Body Ready | both paths: "Confirm the legal text in your bill doc is final" (checkbox) |
 | — SB Number | **written by the on-submit script**, not a question |
 | — Status | **written by scripts/admin**: blank = live; `void` = ignore this row |
+
+Per field, the site and the assembled PDF use the latest non-empty value
+across the bill's non-void rows — an amendment inherits everything it left
+blank. An amendment filed against a bill the account didn't introduce
+bounces: the row is voided, the student gets an email, nothing changes.
+Undoing an accidental amendment: set its row's Status to `void`, then in
+Drive move the newest `previous_bills/…_vN.pdf` back into `bills/` under
+the plain name.
 
 ## Tab: Letters  (form: "File a Position Letter")
 

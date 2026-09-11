@@ -64,9 +64,12 @@ function rosterOrgMap() {
   return orgByEmail;
 }
 
-/** Filed bills: one entry per SB number (the newest non-void row wins, so
- *  an amendment's subject/digest replaces the original's). Author identity
- *  comes from the Roster; emails never leave. */
+/** Filed bills: one entry per SB number. Per FIELD, the latest non-empty
+ *  value across the bill's non-void rows wins: an amendment row only
+ *  carries the "Updated …" fields the student filled in, and inherits
+ *  everything it left blank (the "None —" choices clear flags/secondary
+ *  topic explicitly). Author identity comes from the Roster; emails
+ *  never leave. */
 function buildBillsJson() {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
 
@@ -91,15 +94,20 @@ function buildBillsJson() {
   if (sheet && sheet.getLastRow() > 1) {
     var rows = sheet.getDataRange().getValues();
     var head = rows[0];
-    var cTime  = colStartingWith(head, 'Timestamp');
-    var cMail  = colStartingWith(head, 'Email Address');
-    var cSubj  = colStartingWith(head, 'Short subject');
-    var cDig   = colStartingWith(head, 'Digest');
-    var cFlags = colStartingWith(head, 'Flags');
-    var cTopic = colStartingWith(head, 'Primary Topic');
-    var cTop2  = colStartingWith(head, 'Secondary Topic');
-    var cSb    = head.indexOf('SB Number');
-    var cStat  = head.indexOf('Status');
+    var cTime   = colStartingWith(head, 'Timestamp');
+    var cMail   = colStartingWith(head, 'Email Address');
+    var cSubj   = colStartingWith(head, 'Short subject');
+    var cDig    = colStartingWith(head, 'Digest');
+    var cFlags  = colStartingWith(head, 'Flags');
+    var cTopic  = colStartingWith(head, 'Primary Topic');
+    var cTop2   = colStartingWith(head, 'Secondary Topic');
+    var cUpSubj = colStartingWith(head, 'Updated short subject');
+    var cUpDig  = colStartingWith(head, 'Updated digest');
+    var cUpFlag = colStartingWith(head, 'Updated flags');
+    var cUpTop  = colStartingWith(head, 'Updated primary topic');
+    var cUpTop2 = colStartingWith(head, 'Updated secondary topic');
+    var cSb     = head.indexOf('SB Number');
+    var cStat   = head.indexOf('Status');
 
     var billsFolder = filesSubfolder('bills');
     for (var j = 1; j < rows.length; j++) {
@@ -111,14 +119,22 @@ function buildBillsJson() {
       if (!who) continue;
 
       var slug = String(who.last).toUpperCase().replace(/ /g, '_');
+      var cellv = function (c) { return c >= 0 ? String(r[c] || '') : ''; };
+      var earlier = bySb[sb] || { subject: '', digest: '', flags: '', topic: '', topic2: '' };
+
+      var flags = cellv(cUpFlag) ? withoutNoFlags(cellv(cUpFlag))
+                : cellv(cFlags) || earlier.flags;
+      var topic2 = cellv(cUpTop2) === NO_TOPIC2_CHOICE ? ''
+                 : cellv(cUpTop2) || cellv(cTop2) || earlier.topic2;
+
       var entry = {
         time:     new Date(r[cTime]).toISOString(),
         sb:       sb,
-        subject:  String(r[cSubj] || ''),
-        digest:   String(r[cDig] || ''),
-        flags:    String(r[cFlags] || ''),
-        topic:    cTopic >= 0 ? String(r[cTopic] || '') : '',
-        topic2:   cTop2 >= 0 ? String(r[cTop2] || '') : '',
+        subject:  cellv(cUpSubj) || cellv(cSubj) || earlier.subject,
+        digest:   cellv(cUpDig)  || cellv(cDig)  || earlier.digest,
+        flags:    flags,
+        topic:    cellv(cUpTop)  || cellv(cTopic) || earlier.topic,
+        topic2:   topic2,
         first:    String(who.first),
         last:     String(who.last),
         district: parseInt(who.district, 10),
@@ -134,6 +150,24 @@ function buildBillsJson() {
   }
 
   var out = Object.keys(bySb).map(function (k) { return bySb[k]; });
+
+  // Archived pre-amendment versions (previous_bills/SLUG_SBn_vN.pdf, created
+  // by archiveCurrentVersion): matched back to their bill so the site can
+  // build each page's Previous Text tab. One folder scan covers all bills.
+  var entryByName = {};
+  out.forEach(function (b) {
+    b.prev = [];
+    entryByName[String(b.last).toUpperCase().replace(/ /g, '_') + '_SB' + b.sb] = b;
+  });
+  var prevFiles = filesSubfolder('previous_bills').getFiles();
+  while (prevFiles.hasNext()) {
+    var pf = prevFiles.next();
+    var m = pf.getName().match(/^(.+_SB\d+)_v(\d+)\.pdf$/);
+    if (m && entryByName[m[1]]) {
+      entryByName[m[1]].prev.push({ v: parseInt(m[2], 10), id: pf.getId() });
+    }
+  }
+
   return JSON.stringify({ bills: out });
 }
 

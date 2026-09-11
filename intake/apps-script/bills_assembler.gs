@@ -43,8 +43,45 @@ function handleBillSubmit(e) {
 
   var templateId = deployProp('BILL_TEMPLATE_DOC_ID', BILL_TEMPLATE_DOC_ID);
 
+  // The bill's metadata: what this row answers, otherwise pulled forward
+  // from the bill's earlier rows. Amendment rows carry optional
+  // "Updated …" overrides — blank means keep, so nothing gets wiped by
+  // an amendment that only changes the text. (Old-layout rows carried
+  // the plain columns instead; both work.)
+  var upFlags = String(valueByPrefix(row, 'Updated flags') || '');
+  var meta = {
+    subject: String(valueByPrefix(row, 'Updated short subject') ||
+                    valueByPrefix(row, 'Short subject') || ''),
+    digest:  String(valueByPrefix(row, 'Updated digest') ||
+                    valueByPrefix(row, 'Digest') || '')
+  };
+  meta.flags = upFlags ? withoutNoFlags(upFlags)
+                       : String(valueByPrefix(row, 'Flags') || '');
+  var flagsAnswered = upFlags !== '' || meta.flags !== '';
+
   if (isAmendment) {
     sbNumber = billNumberFrom(valueByPrefix(row, 'Which of your bills'));
+    var prior = latestBillMeta(sheet, head, sbNumber, e.range.getRow());
+
+    // A wrong pick bounces instead of touching someone else's bill —
+    // the dropdown lists every filed bill, so this is the likely slip.
+    if (!prior.found || (prior.email &&
+        prior.email !== String(row['Email Address']).toLowerCase().trim())) {
+      sheet.getRange(e.range.getRow(), head.indexOf('Status') + 1).setValue('void');
+      GmailApp.sendEmail(
+        row['Email Address'],
+        'Not filed: SB-' + sbNumber + ' is not one of your bills',
+        'Your amendment was not filed: SB-' + sbNumber + ' was not introduced ' +
+        'from this account. Nothing was changed. Pick one of your own bills ' +
+        'in the amendment dropdown and submit again.'
+      );
+      return;
+    }
+
+    if (!meta.subject)  meta.subject = prior.subject;
+    if (!meta.digest)   meta.digest  = prior.digest;
+    if (!flagsAnswered) meta.flags   = prior.flags;
+
     archiveCurrentVersion(lastNameSlug, sbNumber);
   } else {
     sbNumber = nextSbNumber(sheet, head);
@@ -61,14 +98,13 @@ function handleBillSubmit(e) {
   var docId = /[B2]/.test(draftChoice) ? who['Bill Doc 2'] : who['Bill Doc 1'];
   if (!docId) { console.error('No body doc on the roster for ' + row['Email Address']); return; }
 
-  var subject = String(valueByPrefix(row, 'Short subject'));
   var pdf = assembleBillPdf({
     sb: sbNumber,
     author: who['First Name'] + ' ' + who['Last Name'] +
             ' (' + (who['Party'] || 'D') + '-' + who['District'] + ')',
-    title: subject,
-    digest: String(valueByPrefix(row, 'Digest')),
-    flags: flagsLine(valueByPrefix(row, 'Flags')),
+    title: meta.subject,
+    digest: meta.digest,
+    flags: flagsLine(meta.flags),
     bodyDocId: docId,
     templateId: templateId,
     fileName: lastNameSlug + '_SB' + sbNumber + '.pdf'
@@ -76,12 +112,74 @@ function handleBillSubmit(e) {
 
   GmailApp.sendEmail(
     row['Email Address'],
-    'Filed: SB-' + sbNumber + ' — ' + subject,
+    'Filed: SB-' + sbNumber + ' — ' + meta.subject,
     'Your bill has been filed and will appear on the site shortly. ' +
     'The formatted text is attached — if anything looks wrong, fix your ' +
     'bill doc and submit an amendment.',
     { attachments: [pdf] }
   );
+
+  // Every dropdown that lists filed bills learns the new one immediately
+  if (!isAmendment) addBillToFormDropdowns(sbNumber, meta.subject);
+}
+
+/** Newest non-empty metadata (and owner email) across a bill's earlier
+ *  non-void rows. Rows are in submission order; skipRow is the sheet row
+ *  being handled right now. Applies the same override rules per row, so
+ *  chains of amendments resolve correctly. */
+function latestBillMeta(sheet, head, sbNumber, skipRow) {
+  var vals    = sheet.getDataRange().getValues();
+  var cSb     = head.indexOf('SB Number');
+  var cStat   = head.indexOf('Status');
+  var cMail   = colStartingWith(head, 'Email Address');
+  var cSubj   = colStartingWith(head, 'Short subject');
+  var cUpSubj = colStartingWith(head, 'Updated short subject');
+  var cDig    = colStartingWith(head, 'Digest');
+  var cUpDig  = colStartingWith(head, 'Updated digest');
+  var cFlag   = colStartingWith(head, 'Flags');
+  var cUpFlag = colStartingWith(head, 'Updated flags');
+
+  var cell = function (r, c) { return c >= 0 ? String(vals[r][c] || '') : ''; };
+  var meta = { found: false, email: '', subject: '', digest: '', flags: '' };
+  for (var i = 1; i < vals.length; i++) {
+    if (i === skipRow - 1) continue;               // the row being handled
+    if (cell(i, cStat)) continue;                  // void rows are ignored
+    if (parseInt(vals[i][cSb], 10) !== sbNumber) continue;
+    meta.found = true;
+    if (cell(i, cMail)) meta.email = cell(i, cMail).toLowerCase().trim();
+    var s = cell(i, cUpSubj) || cell(i, cSubj); if (s) meta.subject = s;
+    var d = cell(i, cUpDig)  || cell(i, cDig);  if (d) meta.digest  = d;
+    if (cell(i, cUpFlag))      meta.flags = withoutNoFlags(cell(i, cUpFlag));
+    else if (cell(i, cFlag))   meta.flags = cell(i, cFlag);
+  }
+  return meta;
+}
+
+/** Push "SB-n — Subject" into every dropdown that lists filed bills: the
+ *  Bills form's amend picker and the Letters form's bill picker. Form ids
+ *  come from Script Properties (stored by forms_builder's finish());
+ *  forms built before that existed are skipped harmlessly. */
+function addBillToFormDropdowns(sbNumber, subject) {
+  [['Bills', 'Which of your bills'], ['Letters', 'Which bill']].forEach(function (t) {
+    try {
+      var fid = deployProp('FORM_ID_' + t[0], '');
+      if (!fid) return;
+      var items = FormApp.openById(fid).getItems(FormApp.ItemType.LIST);
+      for (var i = 0; i < items.length; i++) {
+        var li = items[i].asListItem();
+        if (li.getTitle().indexOf(t[1]) !== 0) continue;
+        var vals = li.getChoices().map(function (c) { return c.getValue(); })
+          .filter(function (v) {
+            return v.indexOf('(choices sync') !== 0 &&      // builder placeholder
+                   v.indexOf('SB-' + sbNumber + ' ') !== 0; // re-added fresh below
+          });
+        vals.push('SB-' + sbNumber + ' — ' + subject);
+        li.setChoiceValues(vals);
+      }
+    } catch (err) {
+      console.error('Could not update the ' + t[0] + ' form dropdown: ' + err);
+    }
+  });
 }
 
 /** Highest assigned SB number so far (or the floor) + 1. */

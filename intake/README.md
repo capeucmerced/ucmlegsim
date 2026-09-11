@@ -89,11 +89,18 @@ live in the Sep 2026 beta — the scripts carry those fixes):
    question (title exactly `Letter PDF`), and Settings → *Collect email
    addresses → Verified* on every form. Add the script columns by hand:
    `Status` on the Letters and Bills tabs, `SB Number` on Bills.
+   The builder stores each form's id in Script Properties (`FORM_ID_…`);
+   that is what lets every newly numbered bill append itself to the
+   amend and letter dropdowns — no manual dropdown upkeep for bills.
 5. **Bill machinery**: run `createBillTemplate()` and put the logged ID
    into the `BILL_TEMPLATE_DOC_ID` script property (restyle the template
    doc freely — keep the `{{PLACEHOLDERS}}`). After the Roster has its
    senators (roles, districts, names, Party), run `provisionBillDocs()`
-   — rerun it whenever senators are added.
+   — rerun it whenever senators are added. With a full class (~40
+   senators × 2 draft docs) one run may hit Apps Script's 6-minute
+   execution limit and stop partway; that is harmless — it skips
+   senators who already have docs, so just run it again until it
+   reports nothing left to do.
 6. **Wire up**: add the installable trigger (`onAnyFormSubmit` → From
    spreadsheet → On form submit). Deploy `newsfeed_api.gs` as a Web app
    (Execute as: Me / Access: Anyone); put the /exec URL into
