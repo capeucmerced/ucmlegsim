@@ -45,6 +45,7 @@ function doGet(e) {
            : view === 'bills'    ? buildBillsJson()
            : view === 'profiles' ? buildProfilesJson()
            : view === 'editions' ? buildEditionsJson()
+           : view === 'agendas'  ? buildAgendasJson()
            : buildPostsJson();
 
   try { cache.put('json-' + view, json, 30); } catch (err) {}
@@ -171,6 +172,20 @@ function buildBillsJson() {
   }
 
   return JSON.stringify({ bills: out });
+}
+
+/** Current committee agendas: the canonical-named PDFs in agendas/
+ *  (code_MM_DD_YY.pdf). Superseded revisions (_prevN) stay in Drive as
+ *  the paper trail and are not served. Filenames only — no emails. */
+function buildAgendasJson() {
+  var out = [];
+  var files = filesSubfolder('agendas').getFiles();
+  while (files.hasNext()) {
+    var f = files.next();
+    if (!/^[a-z]+_\d{2}_\d{2}_\d{2}\.pdf$/i.test(f.getName())) continue;
+    out.push({ name: f.getName(), id: f.getId() });
+  }
+  return JSON.stringify({ agendas: out });
 }
 
 /** Newspaper editions, in submission order: name, link, submission time,

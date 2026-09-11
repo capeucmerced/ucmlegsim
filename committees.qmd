@@ -25,6 +25,7 @@ bills$committee_code <- sapply(bills$committee, committee_code_from_name)
 # One tab per committee, plus the Floor. Each tab shows the membership,
 # the latest agenda, the docket (bills awaiting action there), and the
 # most recent votes taken.
+sync_intake_agendas()
 agenda_files <- list.files(AGENDAS_DIR, pattern = "\\.pdf$")
 
 cat("::: {.panel-tabset}\n\n")

@@ -39,7 +39,9 @@ function handleAgendaSubmit(e) {
   var row = rowAsObject(e);
 
   var meetingDate = new Date(row['Meeting Date']);
-  var dateSlug = (meetingDate.getMonth() + 1) + '_' + meetingDate.getDate() + '_' +
+  // Zero-padded to match the site's filename convention (anr_10_07_25.pdf)
+  var p2 = function (n) { return ('0' + n).slice(-2); };
+  var dateSlug = p2(meetingDate.getMonth() + 1) + '_' + p2(meetingDate.getDate()) + '_' +
                  String(meetingDate.getFullYear()).slice(-2);
   var fileName = committee.code + '_' + dateSlug + '.pdf';
 
@@ -69,8 +71,14 @@ function handleAgendaSubmit(e) {
   var membership = latestAssignments(committee.code);
 
   var pdf = assembleAgendaPdf({
-    committeeName: committee.name.toUpperCase(),
-    chair: membership.chair, vice: membership.vice, members: membership.members,
+    // Composed here so empty pieces vanish cleanly (a floor agenda has
+    // no chair/vice/members lines, and is a session, not a committee)
+    committeeName: committee.code === 'floor'
+      ? 'SESSION OF THE SENATE'
+      : 'SENATE COMMITTEE ON ' + committee.name.toUpperCase(),
+    chair:   membership.chair ? membership.chair + ', Chair' : '',
+    vice:    membership.vice ? membership.vice + ', Vice Chair' : '',
+    members: membership.members ? 'Members: ' + membership.members : '',
     date: Utilities.formatDate(meetingDate, Session.getScriptTimeZone(), 'EEEE, MMMM d, yyyy'),
     // Chairs control time/room day-of; the agenda prints the standing defaults
     time: DEFAULT_TIME,
@@ -121,14 +129,15 @@ function latestAssignments(code) {
   if (code !== 'floor') {
     out.chair   = String(last[head.indexOf(up + ' Chair')] || '');
     out.vice    = String(last[head.indexOf(up + ' Vice Chair')] || '');
-    out.members = String(last[head.indexOf(up + ' Members')] || '').split(/,\s*/).join('\n');
+    out.members = String(last[head.indexOf(up + ' Members')] || '');
   }
   return out;
 }
 
 /** Fill the agenda template and export the named PDF into agendas/. */
 function assembleAgendaPdf(spec) {
-  var working = DriveApp.getFileById(AGENDA_TEMPLATE_DOC_ID)
+  var working = DriveApp.getFileById(
+      deployProp('AGENDA_TEMPLATE_DOC_ID', AGENDA_TEMPLATE_DOC_ID))
     .makeCopy('assembling-' + spec.fileName);
   var doc = DocumentApp.openById(working.getId());
   var body = doc.getBody();
@@ -156,7 +165,10 @@ function assembleAgendaPdf(spec) {
   }
 
   var pdf = working.getAs(MimeType.PDF).setName(spec.fileName);
-  agendas.createFile(pdf);
+  var filed = agendas.createFile(pdf);
+  // Agendas are public documents on the site; link-view sharing lets the
+  // build download them by file id
+  try { filed.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW); } catch (e) {}
   working.setTrashed(true);
   return pdf;
 }

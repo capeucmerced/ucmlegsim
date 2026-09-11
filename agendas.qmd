@@ -13,6 +13,9 @@ execute:
 library(reactable)
 source("scripts/shared.R")
 
+# Agendas filed through the intake form land in AGENDAS_DIR first
+sync_intake_agendas()
+
 # Agenda PDFs are named <committee>_<MM>_<DD>_<YY>.pdf, e.g. anr_10_17_25.pdf
 pdf_files <- list.files(AGENDAS_DIR, pattern = "\\.pdf$")
 

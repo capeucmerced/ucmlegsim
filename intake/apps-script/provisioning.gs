@@ -58,8 +58,52 @@ function styled(opts, base) {
   if (opts.size)   a[DocumentApp.Attribute.FONT_SIZE] = opts.size;
   if (opts.bold)   a[DocumentApp.Attribute.BOLD] = true;
   if (opts.italic) a[DocumentApp.Attribute.ITALIC] = true;
+  if (opts.color)  a[DocumentApp.Attribute.FOREGROUND_COLOR] = opts.color;
   if (opts.spacingAfter) a[DocumentApp.Attribute.SPACING_AFTER] = opts.spacingAfter;
   return a;
+}
+
+/**
+ * One-time: creates the agenda template doc (modeled on the real CA
+ * Senate agenda look — navy heads, quiet serif body). Prints the ID to
+ * paste into the AGENDA_TEMPLATE_DOC_ID script property. Restyle the
+ * doc freely afterwards — just keep every {{PLACEHOLDER}}.
+ */
+function createAgendaTemplate() {
+  var doc = DocumentApp.create('LegSim — Agenda Template');
+  var b = doc.getBody();
+  b.setAttributes(styled({}, { FONT_FAMILY: 'Georgia', FONT_SIZE: 10 }));
+
+  function para(text, opts) {
+    var p = b.appendParagraph(text);
+    p.setAttributes(styled(opts || {}, {}));
+    return p;
+  }
+
+  para('CALIFORNIA STATE SENATE',
+       { align: 'center', size: 16, bold: true, color: '#17345a', spacingAfter: 2 });
+  para('UC Merced Legislative Simulation',
+       { align: 'center', size: 8, spacingAfter: 14 });
+  para('{{COMMITTEE}}',
+       { align: 'center', size: 13, bold: true, color: '#17345a', spacingAfter: 8 });
+  para('{{CHAIR}}', { align: 'center', size: 10, spacingAfter: 2 });
+  para('{{VICE}}',  { align: 'center', size: 10, spacingAfter: 10 });
+  para('{{MEMBERS}}', { align: 'center', size: 8, spacingAfter: 14 });
+  para('{{DATE}} — {{TIME}}',
+       { align: 'center', size: 11, bold: true, spacingAfter: 2 });
+  para('{{ROOM}}', { align: 'center', size: 10, spacingAfter: 8 });
+  para('{{REVISED}}',
+       { align: 'center', size: 9, bold: true, color: '#c00000', spacingAfter: 14 });
+  para('AGENDA', { align: 'center', size: 12, bold: true, spacingAfter: 10 });
+  para('{{ITEMS}}', { size: 10, spacingAfter: 16 });
+  para('Bills will be heard in file order. Testimony is limited at the discretion of the Chair.',
+       { align: 'center', size: 8, italic: true });
+
+  if (b.getChild(0).asText().getText() === '') b.removeChild(b.getChild(0));
+
+  doc.saveAndClose();
+  Logger.log('Agenda template created. PASTE THIS ID into AGENDA_TEMPLATE_DOC_ID:');
+  Logger.log(doc.getId());
 }
 
 function provisionBillDocs() {

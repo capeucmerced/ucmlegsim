@@ -65,7 +65,7 @@ INTAKE_API_URL <- "https://script.google.com/macros/s/AKfycbwcPcwt8LTJri6lBrbarY
 
 # Which intake streams are live (their loaders merge rows in; the 2025
 # fixture files stay alongside until the semester-start data reset)
-INTAKE_LIVE <- c("spending", "letters", "bills", "profiles", "editions")
+INTAKE_LIVE <- c("spending", "letters", "bills", "profiles", "editions", "agendas")
 
 read_intake_json <- function(view) {
   tryCatch({
@@ -534,6 +534,41 @@ sync_intake_profiles <- function() {
     }
   }
   options(legsim.profiles_synced = TRUE)
+  invisible()
+}
+
+# Committee agendas filed through the 2026 forms, from the gateway's
+# agendas view into AGENDAS_DIR. Downloads always overwrite: a revision
+# replaces its meeting's PDF under the same canonical name. A download
+# that isn't a real PDF (unshared file -> sign-in page) is deleted so a
+# broken copy can't stick. Runs once per R session; called explicitly by
+# the pages that list agendas (agendas.qmd, index.qmd, committees.qmd).
+sync_intake_agendas <- function() {
+  if (!"agendas" %in% INTAKE_LIVE) return(invisible())
+  if (isTRUE(getOption("legsim.agendas_synced"))) return(invisible())
+  j <- read_intake_json("agendas")
+  if (!is.null(j) && length(j$agendas) > 0) {
+    a <- as.data.frame(j$agendas)
+    if (!dir.exists(AGENDAS_DIR)) dir.create(AGENDAS_DIR, recursive = TRUE)
+    for (i in seq_len(nrow(a))) {
+      dest <- file.path(AGENDAS_DIR, basename(a$name[i]))
+      tryCatch({
+        curl::curl_download(
+          paste0("https://drive.google.com/uc?export=download&id=", a$id[i]),
+          dest, quiet = TRUE
+        )
+        first4 <- tryCatch(readBin(dest, "raw", n = 4), error = function(e) raw(0))
+        if (!identical(first4, charToRaw("%PDF"))) {
+          unlink(dest)
+          message("WARNING: agenda ", a$name[i],
+                  " is not shared (got a sign-in page); skipped.")
+        }
+      },
+      error = function(e) message("WARNING: could not fetch agenda ",
+                                  a$name[i], ": ", conditionMessage(e)))
+    }
+  }
+  options(legsim.agendas_synced = TRUE)
   invisible()
 }
 

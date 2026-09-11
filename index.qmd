@@ -84,6 +84,7 @@ if (nrow(all_vote_rows) > 0) {
 action_card <- card("Floor & Committee Action", li(action_items), "votes.html", "All votes →")
 
 # --- Meetings: the latest filed agendas ------------------------------------
+sync_intake_agendas()
 agenda_files <- list.files(AGENDAS_DIR, pattern = "\\.pdf$")
 meeting_items <- character(0)
 if (length(agenda_files) > 0) {
