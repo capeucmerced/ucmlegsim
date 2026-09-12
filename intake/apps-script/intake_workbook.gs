@@ -56,7 +56,9 @@ function onAnyFormSubmit(e) {
     } catch (mailErr) {}
   }
 
-  requestSiteRebuild();
+  // Wire posts are rendered client-side (js/feed.js polls the gateway),
+  // so the most frequent submission type never needs a site rebuild.
+  if (tab !== 'Posts') requestSiteRebuild();
 }
 
 // --- Small shared helpers ---------------------------------------------------
