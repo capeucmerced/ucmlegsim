@@ -28,3 +28,12 @@
 
 # Box also numbers repeat conflict copies: "name (user@email 2).ext"
 *(nbrouwer@ucmerced.edu*
+
+# Intake-era PDFs: the build downloads these from Drive (by file id)
+# every render — they are artifacts, never sources. The 2025 fixtures
+# that once lived here are preserved under archive/.
+/files/pdfs/bills/
+/files/pdfs/previous_bills/
+/files/pdfs/lobbyist_letters/
+/files/pdfs/agendas/
+/files/pdfs/role_profiles/
