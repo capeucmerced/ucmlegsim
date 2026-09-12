@@ -21,19 +21,22 @@ senators <- load_senators() |>
   mutate(display_name = paste(Last.Name, First.Name, sep = ", ")) |>
   arrange(District)
 
-# Profile PDFs exist once role profiles are posted; the column only
-# appears when the folder has files. Filenames follow name_link:
-# e.g. ochoa_bogh_19_profile.pdf
-profiles_exist <- dir.exists(SEN_PROFILE_DIR) && length(list.files(SEN_PROFILE_DIR)) > 0
+# Profile links are PER SENATOR: profiles arrive one upload at a time,
+# so each row links only when its own PDF exists (filenames follow
+# name_link: e.g. ochoa_bogh_19_profile.pdf). The column appears once
+# anyone has posted one.
+profile_files <- sprintf("%s_%s_profile.pdf", senators$name_link, senators$District)
+has_profile   <- file.exists(file.path(SEN_PROFILE_DIR, profile_files))
 
 leadership_has_data <- "Leadership" %in% names(senators) &&
   any(!is.na(senators$Leadership) & senators$Leadership != "")
 
 tbl <- senators |> select(District, display_name, Party)
 if (leadership_has_data) tbl$Leadership <- senators$Leadership
-if (profiles_exist) {
-  tbl$Profile <- sprintf("%s/%s_%s_profile.pdf",
-                         SEN_PROFILE_DIR, senators$name_link, senators$District)
+if (any(has_profile)) {
+  tbl$Profile <- ifelse(has_profile,
+                        file.path(SEN_PROFILE_DIR, profile_files),
+                        NA_character_)
 }
 
 cols <- list(
@@ -44,10 +47,12 @@ cols <- list(
   ),
   Party = colDef(width = 70)
 )
-if (profiles_exist) {
+if (any(has_profile)) {
   cols$Profile <- colDef(
     sortable = FALSE, width = 110,
-    cell = function(value) htmltools::tags$a(href = value, "View Profile")
+    cell = function(value) {
+      if (is.na(value)) "" else htmltools::tags$a(href = value, "View Profile")
+    }
   )
 }
 
