@@ -1,0 +1,578 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Life of a Bill — POLI 109 State Legislative Simulation</title>
+<style>
+  :root{
+    --navy:#002856; --navy-deep:#001B3D; --gold:#C99A00; --gold-bright:#DAA900;
+    --paper:#F7F5F0; --sheet:#FFFFFF; --tint:#EEF2F8; --ink:#1E2735; --muted:#67707E;
+    --line:#D9D4C8; --gold-wash:#F6EDD2;
+    /* Role colors: Senate-chamber red (the CA Senate's House-of-Lords red), lobbyist green, journalist purple */
+    --sen:#9D2235; --lob:#1E6B4E; --jou:#5F3A8E;
+    --serif:Georgia, 'Times New Roman', serif;
+    --sans:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  }
+  *{box-sizing:border-box; margin:0; padding:0}
+  html{scroll-behavior:smooth}
+  body{background:var(--paper); color:var(--ink); font-family:var(--sans); line-height:1.55;}
+  button{font-family:inherit; cursor:pointer}
+  .wrap{max-width:1060px; margin:0 auto; padding:0 22px}
+
+  /* ---- masthead ---- */
+  .masthead{border-bottom:3px double var(--navy); background:var(--paper); padding:34px 0 22px}
+  .courseline{font-size:13px; color:var(--muted); letter-spacing:.02em; margin-bottom:10px}
+  .courseline strong{color:var(--navy); font-weight:600}
+  h1{font-family:var(--serif); color:var(--navy); font-size:clamp(34px,5vw,50px); line-height:1.05; font-weight:700; margin-bottom:10px}
+  .dek{font-size:16.5px; color:var(--ink); max-width:62ch}
+  .dek em{font-style:normal; border-bottom:2px solid var(--gold); }
+  .actions{margin-top:18px; display:flex; gap:12px; flex-wrap:wrap; align-items:center}
+  .views{display:inline-flex; border:1px solid var(--navy); border-radius:8px; overflow:hidden}
+  .viewtab{background:#fff; color:var(--navy); border:0; padding:10px 18px; font-size:14.5px; font-weight:600}
+  .viewtab + .viewtab{border-left:1px solid var(--navy)}
+  .viewtab[aria-selected="true"]{background:var(--navy); color:#fff}
+  .viewtab:focus-visible{outline:3px solid var(--gold); outline-offset:-3px}
+  .hint{font-size:13px; color:var(--muted)}
+
+  /* ---- rail ---- */
+  .railzone{padding:34px 0 6px; position:relative}
+  .rail{display:flex; align-items:flex-start; position:relative; overflow-x:auto; padding:26px 4px 14px; scrollbar-width:thin}
+  .rail::before{content:""; position:absolute; left:34px; right:34px; top:47px; height:2px; background:var(--line)}
+  .stagebtn{flex:1 1 0; min-width:118px; background:none; border:0; text-align:center; position:relative; padding:0 6px}
+  .node{display:block; width:44px; height:44px; border-radius:50%; background:var(--sheet); border:2px solid var(--navy); color:var(--navy);
+        font-family:var(--serif); font-size:19px; font-weight:700; line-height:40px; margin:0 auto 9px; position:relative; z-index:2;
+        transition:background .18s,color .18s,border-color .18s, box-shadow .18s}
+  .stagebtn .name{display:block; font-size:13.5px; font-weight:600; color:var(--ink); line-height:1.25}
+  .stagebtn .mini{display:block; font-size:11.5px; color:var(--muted); margin-top:2px}
+  .stagebtn:hover .node{border-color:var(--gold); box-shadow:0 0 0 4px var(--gold-wash)}
+  .stagebtn.active .node{background:var(--navy); color:#fff; border-color:var(--navy); box-shadow:0 0 0 4px rgba(0,40,86,.12)}
+  .stagebtn.active .name{color:var(--navy)}
+  .flag{color:var(--gold); font-size:12px; margin-left:3px}
+  .stagebtn:focus-visible{outline:none}
+  .stagebtn:focus-visible .node{box-shadow:0 0 0 4px var(--gold)}
+  /* the travelling bill */
+  #bill-token{position:absolute; top:8px; left:0; z-index:3; background:var(--gold-bright); color:var(--navy);
+      font-size:11.5px; font-weight:700; padding:3px 9px 2px; border-radius:4px 4px 4px 0; letter-spacing:.04em;
+      box-shadow:0 2px 6px rgba(0,0,0,.18); opacity:0; transform:translateX(0); pointer-events:none;
+      transition:transform .9s cubic-bezier(.45,0,.2,1), opacity .3s}
+  #bill-token::after{content:""; position:absolute; left:0; bottom:-5px; border:3px solid transparent; border-top-color:var(--gold-bright); border-left-color:var(--gold-bright)}
+  @media (prefers-reduced-motion: reduce){ #bill-token{transition:opacity .3s} html{scroll-behavior:auto} }
+
+  /* ---- stage sheet ---- */
+  .sheet{background:var(--sheet); border:1px solid var(--line); border-top:4px solid var(--navy); border-radius:0 0 8px 8px;
+         padding:30px 34px 26px; margin:10px 0 34px; box-shadow:0 8px 26px rgba(30,39,53,.06)}
+  .sheet-head{display:flex; align-items:baseline; gap:14px; flex-wrap:wrap; border-bottom:1px solid var(--line); padding-bottom:14px; margin-bottom:20px}
+  .sheet-head .stageno{font-family:var(--serif); color:var(--gold); font-size:30px; font-weight:700}
+  .sheet-head h2{font-family:var(--serif); color:var(--navy); font-size:clamp(23px,3vw,29px); font-weight:700}
+  .chip{background:var(--gold-wash); border:1px solid var(--gold); color:#6d5400; font-size:12.5px; font-weight:600; border-radius:999px; padding:3px 12px; margin-left:auto}
+  .cols{display:grid; grid-template-columns:1.15fr .95fr; gap:34px}
+  .explain h3, .playbook h3{font-size:13.5px; font-weight:700; color:var(--navy); margin-bottom:7px}
+  .explain .block{padding-left:14px; margin-bottom:18px}
+  .explain .block.real{border-left:3px solid var(--line)}
+  .explain .block.sim{border-left:3px solid var(--gold)}
+  .explain p{font-size:15px; color:var(--ink)}
+  .explain .block.sim h3{color:#8a6d00}
+  /* playbook */
+  .playbook{background:var(--tint); border-radius:8px; padding:18px 20px 14px; align-self:start; border-top:4px solid var(--rc,var(--navy))}
+  .playbook[data-role="Senators"]{--rc:var(--sen)} .playbook[data-role="Lobbyists"]{--rc:var(--lob)} .playbook[data-role="Journalists"]{--rc:var(--jou)}
+
+  .playbook h3{margin-bottom:10px}
+  .tabs{display:flex; gap:6px; margin-bottom:14px; flex-wrap:wrap}
+  .tab{border:1.5px solid var(--rc,var(--navy)); background:#fff; color:var(--rc,var(--navy)); font-size:13px; font-weight:600; border-radius:999px; padding:5px 13px; transition:background .12s,color .12s}
+  .tab[data-role="Senators"]{--rc:var(--sen)} .tab[data-role="Lobbyists"]{--rc:var(--lob)} .tab[data-role="Journalists"]{--rc:var(--jou)}
+  .tab[aria-selected="true"]{background:var(--rc); color:#fff}
+  .tab:focus-visible{outline:3px solid var(--gold); outline-offset:1px}
+  .tips{list-style:none}
+  .tips li{position:relative; padding:0 0 10px 20px; font-size:14.2px; color:var(--ink)}
+  .tips li::before{content:""; position:absolute; left:0; top:7px; width:9px; height:9px; background:var(--rc,var(--gold)); border-radius:2px}
+  /* pager */
+  .pager{display:flex; justify-content:space-between; margin-top:22px; padding-top:16px; border-top:1px solid var(--line)}
+  .pager button{background:none; border:1px solid var(--navy); color:var(--navy); border-radius:6px; padding:8px 15px; font-size:13.5px; font-weight:600}
+  .pager button:hover{background:var(--tint)}
+  .pager button:disabled{opacity:.35; cursor:default}
+
+  /* ---- beyond the simulation ---- */
+  .beyond{margin:8px 0 46px}
+  .beyond h2{font-family:var(--serif); color:var(--muted); font-size:21px; font-weight:700; margin-bottom:4px}
+  .beyond .note{font-size:14px; color:var(--muted); margin-bottom:18px; max-width:70ch}
+  .beyond .note strong{color:var(--navy)}
+  .ghost-rail{display:grid; grid-template-columns:repeat(4,1fr); gap:14px}
+  .ghost{border:1px dashed #B9B2A2; border-radius:8px; padding:14px 16px; background:transparent; color:var(--muted)}
+  .ghost h4{font-size:14px; font-weight:700; color:#7A7264; margin-bottom:4px}
+  .ghost p{font-size:12.8px; line-height:1.45}
+
+  /* ---- map view ---- */
+  .mapzone{padding:30px 0 8px}
+  .mapwrap{overflow-x:auto; background:var(--sheet); border:1px solid var(--line); border-radius:8px; padding:18px 10px 6px; box-shadow:0 8px 26px rgba(30,39,53,.06)}
+  .mapwrap svg{display:block; min-width:900px; width:100%; height:auto}
+  .mapwrap svg text{font-family:var(--sans)}
+  .mapnode{cursor:pointer}
+  .mapnode rect{transition:filter .12s}
+  .mapnode:hover rect{filter:brightness(0.96)}
+  .mapnode:focus-visible rect{stroke:var(--gold); stroke-width:3}
+  .mapnote{font-size:13.5px; color:var(--muted); margin:12px 2px 34px}
+  footer{border-top:3px double var(--navy); padding:18px 0 40px; font-size:13px; color:var(--muted)}
+  footer .wrap{display:flex; justify-content:space-between; gap:14px; flex-wrap:wrap}
+
+  @media (max-width:820px){
+    .cols{grid-template-columns:1fr}
+    .ghost-rail{grid-template-columns:1fr 1fr}
+    .sheet{padding:22px 20px}
+    .stagebtn{min-width:104px}
+  }
+  @media (max-width:460px){ .ghost-rail{grid-template-columns:1fr} }
+</style>
+</head>
+<body>
+<!-- ======================================================================
+     EVERYTHING STUDENTS READ LIVES IN THE "CONTENT" BLOCK AT THE TOP OF THE
+     <script> SECTION BELOW. To update dates, stage text, or role tips,
+     edit that block only — no need to touch anything above it.
+     ====================================================================== -->
+
+<header class="masthead">
+  <div class="wrap">
+    <p class="courseline"><strong>POLI 109, State Legislative Simulation</strong> at UC Merced, <span id="meta-term"></span></p>
+    <h1>The Life of a Bill</h1>
+    <p class="dek">How a bill becomes a law in California, and how it works in <em>our simulation</em> — where your bill's journey ends at the Senate floor. Click any stage to see what's happening and what your role should be doing about it.</p>
+    <div class="actions">
+      <div class="views" role="tablist" aria-label="View">
+        <button class="viewtab" data-view="stages" aria-selected="true">Stage by stage</button>
+        <button class="viewtab" data-view="map" aria-selected="false">The map</button>
+      </div>
+      <span class="hint">In stage view, use ← → to move — the bill follows you.</span>
+    </div>
+  </div>
+</header>
+
+<div id="view-stages">
+<div class="wrap railzone">
+  <nav class="rail" id="rail" aria-label="Stages of a bill"></nav>
+  <div id="bill-token" aria-hidden="true">Your bill</div>
+</div>
+
+<main class="wrap">
+  <section class="sheet" id="sheet" aria-live="polite">
+    <div class="sheet-head">
+      <span class="stageno" id="s-no"></span>
+      <h2 id="s-title"></h2>
+      <span class="chip" id="s-chip" hidden></span>
+    </div>
+    <div class="cols">
+      <div class="explain">
+        <div class="block real"><h3>In real California</h3><p id="s-real"></p></div>
+        <div class="block sim"><h3>In the simulation</h3><p id="s-sim"></p></div>
+      </div>
+      <aside class="playbook">
+        <h3>Your playbook at this stage</h3>
+        <div class="tabs" role="tablist" aria-label="Role" id="tabs"></div>
+        <ul class="tips" id="tips"></ul>
+      </aside>
+    </div>
+    <div class="pager">
+      <button id="prevBtn">← Previous stage</button>
+      <button id="nextBtn">Next stage →</button>
+    </div>
+  </section>
+
+  <section class="beyond">
+    <h2>Beyond the simulation</h2>
+    <p class="note" id="beyond-note"></p>
+    <div class="ghost-rail" id="ghosts"></div>
+  </section>
+</main>
+</div>
+
+<div id="view-map" hidden>
+  <div class="wrap mapzone">
+    <div class="mapwrap" id="map-holder"></div>
+    <p class="mapnote">Click any box on the map to open that stage in detail. In real life the bill would continue on to the Assembly and the Governor — the map stops where the simulation stops.</p>
+  </div>
+</div>
+
+<footer>
+  <div class="wrap">
+    <span>POLI 109, State Legislative Simulation</span>
+    <span>Bills, votes, and the record live at <strong id="meta-site"></strong></span>
+  </div>
+</footer>
+
+<script>
+/* =========================================================================
+   EDIT HERE — course content
+   Every word on the page comes from this CONTENT object.
+   - meta: the term and the dates. Update these each fall.
+   - stages: one entry per stage. "real" and "sim" are the two explanation
+     paragraphs; "roles" holds the tip lists for each role.
+   - beyond: the grayed-out steps that only exist in real life.
+   Write {billsDue}, {fiscal}, {approps}, {site} inside any text and the
+   page will fill in the matching date from meta automatically.
+   ========================================================================= */
+const CONTENT = {
+  meta: {
+    term: "Fall 2026",
+    billsDue: "Wednesday, September 30",
+    fiscal:   "Friday, November 6",
+    approps:  "Friday, November 20",
+    site:     "ucmlegsim.com",
+  },
+
+  stages: [
+    {
+      title: "Ideas & drafting",
+      short: "Before the bill exists",
+      real: "Ideas for legislation come from everywhere — state agencies, citizens, the Governor, and lobbyists. A legislator takes the idea to the Legislative Counsel, whose office turns a sketch into formal bill language.",
+      sim: "Every senator writes two bills, grounded in what your real-life counterpart and district actually care about. The smartest lobbyists are already working — bills are easiest to shape before they're written. Senators' bills are due {billsDue}.",
+      roles: {
+        Senators: [
+          "Choose bills your district would love and the chamber could plausibly pass — you need both.",
+          "Talk to lobbyists early. Their support is easier to win when they helped shape the bill.",
+          "Line up coauthors before introduction — every name on the bill is a likely vote.",
+        ],
+        Lobbyists: [
+          "Pitch bill ideas to sympathetic senators now, before anything is written.",
+          "Know your group's real legislative program — your asks should look like it.",
+          "Start mapping allies and opponents, senator by senator.",
+        ],
+        Journalists: [
+          "Work your sources: who's writing what?",
+          "Preview the session — tell readers which fights are coming.",
+          "Introduce the players with profiles of the senators and groups to watch.",
+        ],
+      },
+    },
+    {
+      title: "Introduction & first reading",
+      short: "The bill goes public",
+      real: "The author introduces the bill; it's numbered, read for the first time, and printed. Then it waits — a bill can't be heard in committee until the 31st day after introduction.",
+      sim: "Bills are submitted and posted for everyone to read on {site}. There is no 31-day wait — the calendar is compressed, and the action starts almost immediately.",
+      roles: {
+        Senators: [
+          "Publish a fact sheet for each of your bills — make the case in one page.",
+          "Put out a press release. If you don't tell your bill's story, someone else will.",
+          "Read everyone else's bills. You will be voting on all of them.",
+        ],
+        Lobbyists: [
+          "Read every bill the day it posts, and sort them: support, oppose, watch.",
+          "Open your bill-tracking list now — your final scorecard depends on it.",
+          "Start drafting position letters on the bills that matter to your clients.",
+        ],
+        Journalists: [
+          "Report the notable introductions — what would each bill actually do?",
+          "Connect bills to their authors' districts and ambitions.",
+          "Flag the sleepers: bills nobody is talking about yet.",
+        ],
+      },
+    },
+    {
+      title: "Organization & referral",
+      short: "Leaders chosen, bills routed",
+      real: "Each chamber's Rules Committee routes every bill to the policy committee that owns its subject — an agriculture bill goes to the Agriculture Committee.",
+      sim: "First the Senate organizes: each caucus elects a party leader (Democrats also choose a whip), seats the Rules Committee — three Democrats and two Republicans — and fills the three policy committees. Then Appropriations & Rules assign every bill to a committee.",
+      roles: {
+        Senators: [
+          "Decide what you want — leader, whip, a Rules seat, a chair — and count the votes to get it.",
+          "Lobby leadership for the committee assignments that help your district and your bills.",
+          "Watch where your bills are referred; the committee decides their fate.",
+        ],
+        Lobbyists: [
+          "Leadership races matter to your clients — quietly back the candidate who helps you.",
+          "Map where each of your bills landed, and who sits on that committee.",
+          "Introduce yourself to the chairs. You'll be testifying in front of them soon.",
+        ],
+        Journalists: [
+          "Cover the leadership races: who won, who challenged, and what split the caucus.",
+          "Report the committee assignments — they signal who has power.",
+          "Explain what each of the three policy committees controls.",
+        ],
+      },
+    },
+    {
+      title: "Policy committee",
+      short: "The first real test",
+      chip: "Fiscal bills must clear committee by {fiscal}",
+      real: "The committee holds a hearing: the author presents, and citizens, experts, and lobbyists testify. Then the committee acts — pass, pass as amended, amend and re-refer, or hold the bill, where it dies.",
+      sim: "Your bill faces one of the three policy committees. Hearings run the same way: authors present, lobbyists testify, members question and then vote. But the chair controls the agenda — a bill that never gets a hearing dies just as dead. Fiscal bills must clear their policy committee by {fiscal}.",
+      roles: {
+        Senators: [
+          "Count your committee votes before the hearing, not during it.",
+          "Prepare a tight author presentation, and arrange supportive witnesses.",
+          "Use amendments strategically — to fix a bill, to win a vote, or to quietly gut one.",
+          "Court the chair first — a bill that never makes the agenda dies without a vote.",
+        ],
+        Lobbyists: [
+          "Deliver position letters before the vote, not after.",
+          "Testify — and organize other lobbyists and witnesses to reinforce you.",
+          "Brief friendly members with the questions you want asked.",
+        ],
+        Journalists: [
+          "Cover the hearings — the drama of the session lives here.",
+          "Report every roll call; committee votes are news.",
+          "Keep a casualty list: which bills died, and who killed them.",
+        ],
+      },
+    },
+    {
+      title: "Appropriations",
+      short: "The money gate",
+      chip: "Out of Appropriations & Rules by {approps}",
+      real: "Any bill that spends significant money is re-referred to the fiscal committee before it can reach the floor — a second gate, where many bills quietly stall.",
+      sim: "Fiscal bills take the same extra step here. Everything must be out of Appropriations & Rules by {approps} — after that, what's left is what the floor will see.",
+      roles: {
+        Senators: [
+          "Know whether your bill is fiscal — if it is, this gate applies to you.",
+          "If cost is the objection, amend it down before someone kills it for you.",
+          "Work the Appropriations members like your bill depends on it. It does.",
+        ],
+        Lobbyists: [
+          "Make the fiscal case: what it costs, what it saves, and who benefits.",
+          "This is where money bills die quietly — don't let yours go without a fight.",
+          "Update your tracking; the field just narrowed.",
+        ],
+        Journalists: [
+          "Follow the money: report what survived, and what it costs.",
+          "The quiet deaths are stories too — who let a bill die, and why?",
+        ],
+      },
+    },
+    {
+      title: "Second reading",
+      short: "Last chance to amend",
+      real: "Bills reported out of committee go onto the Second Reading file. Floor amendments can be proposed and adopted, and the bill is revised and reprinted.",
+      sim: "The surviving bills join the floor agenda — “second reading” is just the official name for getting in line. It's the last, best chance to amend a bill, and floor time is limited: a bill that never gets taken up dies with the session.",
+      roles: {
+        Senators: [
+          "Offer floor amendments now — after this, the bill is what it is.",
+          "Whip your votes: know your yes, no, and persuadable columns by name.",
+          "Trade support. Coauthoring and vote-trading are how floors work.",
+          "Push leadership to take your bill up — a bill that's never heard dies when time runs out.",
+        ],
+        Lobbyists: [
+          "Send your final position letters and make your last calls.",
+          "Tell senators plainly: this vote goes on the scorecard.",
+          "If an amendment helps your client, find a senator to carry it.",
+        ],
+        Journalists: [
+          "Preview the floor fights — what passes, what's close, what's dead on arrival?",
+          "Report the amendment maneuvers; they reveal the real politics.",
+        ],
+      },
+    },
+    {
+      title: "Third reading & the vote",
+      short: "The finish line",
+      real: "The bill gets a final analysis, the floor debates, and the chamber votes — spending, urgency, and tax bills need a two-thirds supermajority. In real life, passing here only sends the bill on to the other chamber.",
+      sim: "This is the finish line. The author presents the bill, the floor debates, and the roll is called. Pass and your bill has won — there is no Assembly and no Governor in the simulation.",
+      roles: {
+        Senators: [
+          "Give floor speeches your constituents would cheer — they count toward your record.",
+          "Weigh every vote: your voting record follows you onto the scorecards.",
+          "Claim your wins — press releases, interviews, credit for coauthored bills.",
+        ],
+        Lobbyists: [
+          "Log every roll call — the scorecard is your final product.",
+          "Make the last-minute asks; floors have been flipped in the hallway.",
+          "When your bills win, say so loudly: editorials, releases, credit.",
+        ],
+        Journalists: [
+          "Report the votes and the drama — this is your front page.",
+          "Editorialize: endorse, condemn, and explain what passage means.",
+          "Tally the session: winners, losers, and what it all meant.",
+        ],
+      },
+    },
+  ],
+
+  beyondNote: "In real California, a bill that passes the Senate floor is only halfway home — the steps below still stand between it and the law books. <strong>In the simulation, none of this exists: passing third reading is winning.</strong>",
+  beyond: [
+    { t: "To the Assembly", d: "First reading, then the whole committee-and-floor gauntlet again in the other chamber." },
+    { t: "Concurrence or conference", d: "If the Assembly amended the bill, the Senate must concur — or a conference committee splits the difference." },
+    { t: "The Governor", d: "Sign it, ignore it (it becomes law anyway), or veto it — a veto takes two-thirds of each chamber to override." },
+    { t: "Chaptered into law", d: "The Secretary of State chapters the bill; it takes effect January 1 unless it carries an urgency clause." },
+  ],
+};
+/* ======================= end of editable content ======================= */
+
+const fill = (t) => t.replace(/\{(\w+)\}/g, (_, k) => CONTENT.meta[k] ?? "");
+const $ = (id) => document.getElementById(id);
+let current = 0;
+let role = "Senators";
+
+/* build rail */
+const rail = $("rail");
+CONTENT.stages.forEach((st, i) => {
+  const b = document.createElement("button");
+  b.className = "stagebtn" + (st.chip ? " deadline" : "");
+  b.setAttribute("aria-label", `Stage ${i + 1}: ${st.title}`);
+  b.innerHTML = `<span class="node">${i + 1}</span><span class="name">${st.title}${st.chip ? ' <span class="flag">⚑</span>' : ''}<span class="mini">${st.short}</span></span>`;
+  b.addEventListener("click", () => show(i));
+  rail.appendChild(b);
+});
+
+/* build role tabs */
+const tabs = $("tabs");
+["Senators", "Lobbyists", "Journalists"].forEach((r) => {
+  const t = document.createElement("button");
+  t.className = "tab"; t.setAttribute("role", "tab"); t.textContent = r; t.dataset.role = r;
+  t.addEventListener("click", () => { role = r; renderTabs(); renderTips(); });
+  tabs.appendChild(t);
+});
+function renderTabs() {
+  [...tabs.children].forEach((t) => t.setAttribute("aria-selected", t.textContent === role ? "true" : "false"));
+}
+function renderTips() {
+  const st = CONTENT.stages[current];
+  document.querySelector(".playbook").dataset.role = role;
+  $("tips").innerHTML = (st.roles[role] || []).map((t) => `<li>${fill(t)}</li>`).join("");
+}
+
+function show(i) {
+  current = Math.max(0, Math.min(CONTENT.stages.length - 1, i));
+  const st = CONTENT.stages[current];
+  $("s-no").textContent = current + 1;
+  $("s-title").textContent = st.title;
+  const chip = $("s-chip");
+  if (st.chip) { chip.hidden = false; chip.textContent = fill(st.chip); } else chip.hidden = true;
+  $("s-real").textContent = fill(st.real);
+  $("s-sim").textContent = fill(st.sim);
+  renderTabs(); renderTips();
+  [...rail.children].forEach((b, j) => b.classList.toggle("active", j === current));
+  const ab = rail.children[current];
+  if (ab && rail.scrollWidth > rail.clientWidth) {
+    rail.scrollTo({ left: ab.offsetLeft - rail.clientWidth / 2 + ab.clientWidth / 2,
+      behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
+  }
+  $("prevBtn").disabled = current === 0;
+  $("nextBtn").disabled = current === CONTENT.stages.length - 1;
+  moveToken(current, true);
+}
+
+/* the travelling bill token */
+function moveToken(i, visible) {
+  const token = $("bill-token");
+  const btn = rail.children[i];
+  if (!btn) return;
+  const railBox = rail.parentElement.getBoundingClientRect();
+  const node = btn.querySelector(".node").getBoundingClientRect();
+  const x = node.left - railBox.left + node.width / 2 - token.offsetWidth / 2;
+  token.style.transform = `translateX(${x}px)`;
+  token.style.opacity = visible ? 1 : 0;
+}
+
+$("prevBtn").addEventListener("click", () => show(current - 1));
+$("nextBtn").addEventListener("click", () => show(current + 1));
+document.addEventListener("keydown", (e) => {
+  if (view !== "stages") return;
+  if (e.key === "ArrowRight") show(current + 1);
+  if (e.key === "ArrowLeft") show(current - 1);
+});
+window.addEventListener("resize", () => moveToken(current, view === "stages"));
+rail.addEventListener("scroll", () => moveToken(current, view === "stages"));
+
+/* ---- view switching ---- */
+let view = "stages";
+function setView(v) {
+  view = v;
+  document.getElementById("view-stages").hidden = v !== "stages";
+  document.getElementById("view-map").hidden = v !== "map";
+  document.querySelectorAll(".viewtab").forEach(b => b.setAttribute("aria-selected", b.dataset.view === v ? "true" : "false"));
+  if (v === "stages") requestAnimationFrame(() => moveToken(current, true));
+}
+document.querySelectorAll(".viewtab").forEach(b => b.addEventListener("click", () => setView(b.dataset.view)));
+
+/* ---- the map ---- */
+function shortDate(d) { const p = d.split(", "); return p[p.length - 1]; }
+function buildMap() {
+  const M = CONTENT.meta;
+  const navy = "#002856", gold = "#C99A00", brick = "#8C2B2B", muted = "#67707E";
+  const node = (i, x, y, w, l1, l2, l2c) => `
+    <g class="mapnode" data-stage="${i}" tabindex="0" role="button" aria-label="${l1}">
+      <rect x="${x}" y="${y}" width="${w}" height="56" rx="10" fill="#fff" stroke="${navy}" stroke-width="2"/>
+      <text x="${x + w / 2}" y="${y + (l2 ? 25 : 33)}" text-anchor="middle" font-size="14.5" font-weight="700" fill="${navy}">${l1}</text>
+      ${l2 ? `<text x="${x + w / 2}" y="${y + 43}" text-anchor="middle" font-size="11" font-weight="600" fill="${l2c || muted}">${l2}</text>` : ""}
+    </g>`;
+  const dead = (x, y, w, l1, l2) => `
+    <rect x="${x}" y="${y}" width="${w}" height="46" rx="8" fill="none" stroke="${brick}" stroke-width="1.5" stroke-dasharray="5 4"/>
+    <text x="${x + w / 2}" y="${y + 20}" text-anchor="middle" font-size="11.5" font-weight="700" fill="${brick}">${l1}</text>
+    <text x="${x + w / 2}" y="${y + 36}" text-anchor="middle" font-size="11" fill="${brick}">${l2 || "the bill dies"}</text>`;
+  const arrow = (x1, y1, x2, y2) =>
+    `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${navy}" stroke-width="2" marker-end="url(#arr)"/>`;
+  const darr = (x1, y1, x2, y2) =>
+    `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${brick}" stroke-width="1.5" stroke-dasharray="5 4" marker-end="url(#arrd)"/>`;
+  // orthogonal elbow: down, across, down — rounded corners, arrowhead lands 4px above the target
+  const elbow = (x1, y1, midY, x2, y2) => {
+    const r = 8, dir = x2 > x1 ? 1 : -1;
+    return `<path d="M${x1},${y1} L${x1},${midY - r} Q${x1},${midY} ${x1 + r * dir},${midY} L${x2 - r * dir},${midY} Q${x2},${midY} ${x2},${midY + r} L${x2},${y2}" fill="none" stroke="${navy}" stroke-width="2" marker-end="url(#arr)"/>`;
+  };
+  const band = (label, y) =>
+    `<text x="14" y="${y}" font-size="11" font-weight="700" fill="${muted}" letter-spacing="2">${label}</text>`;
+  const rule = (y) =>
+    `<line x1="14" y1="${y}" x2="966" y2="${y}" stroke="#D8D2C2" stroke-width="1.6" stroke-linecap="round" stroke-dasharray="0.1 9"/>`;
+
+  return `<svg viewBox="0 0 980 545" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Map of the simulation bill process">
+    <defs>
+      <marker id="arr" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto"><path d="M0,0 L8,4.5 L0,9 z" fill="${navy}"/></marker>
+      <marker id="arrd" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto"><path d="M0,0 L8,4.5 L0,9 z" fill="${brick}"/></marker>
+    </defs>
+    ${rule(150)}
+    ${rule(312)}
+
+    ${band("GETTING STARTED", 34)}
+    ${node(0, 155, 42, 170, "Ideas & drafting")}
+    ${arrow(327, 70, 381, 70)}
+    ${node(1, 385, 42, 170, "Introduction")}
+    ${arrow(557, 70, 611, 70)}
+    ${node(2, 615, 42, 210, "Organization & referral")}
+    ${elbow(720, 100, 140, 291, 176)}
+
+    ${band("THE COMMITTEES", 172)}
+    ${node(3, 200, 180, 182, "Policy committee", "\u2691 clear by " + (M.fiscal.split(", ").pop()), "#8a6d00")}
+    ${darr(198, 208, 176, 208)}
+    ${dead(24, 185, 150, "Dies in committee", "never heard, or held")}
+    ${arrow(384, 208, 448, 208)}
+    <circle cx="456" cy="208" r="4" fill="${navy}"/>
+    <text x="456" y="190" text-anchor="middle" font-size="12" font-weight="600" fill="${muted}">does it spend money?</text>
+    <text x="505" y="200" font-size="12" font-weight="700" fill="${navy}">yes</text>
+    ${arrow(464, 208, 556, 208)}
+    ${node(4, 560, 180, 182, "Appropriations", "\u2691 out by " + (M.approps.split(", ").pop()), "#8a6d00")}
+    ${darr(744, 208, 772, 208)}
+    ${dead(776, 185, 150, "Dies in committee", "never heard, or held")}
+    ${elbow(456, 214, 280, 275, 336)}
+    <text x="365" y="272" text-anchor="middle" font-size="12" font-weight="600" fill="${muted}">no \u2014 skips Appropriations</text>
+    ${elbow(651, 238, 304, 307, 336)}
+
+    ${band("THE FLOOR", 332)}
+    ${node(5, 200, 340, 182, "Second reading", "joins the floor agenda")}
+    ${darr(198, 368, 176, 368)}
+    ${dead(24, 345, 150, "Never taken up", "time runs out")}
+    ${arrow(384, 368, 556, 368)}
+    ${node(6, 560, 340, 196, "Third reading", "author presents, debate, vote")}
+    ${darr(758, 368, 786, 368)}
+    ${dead(790, 345, 168, "Passage refused")}
+    ${arrow(658, 398, 658, 452)}
+
+    <g class="mapnode" data-stage="6" tabindex="0" role="button" aria-label="Passed">
+      <rect x="568" y="456" width="180" height="56" rx="10" fill="${gold}" stroke="${navy}" stroke-width="2"/>
+      <text x="658" y="481" text-anchor="middle" font-size="15" font-weight="800" fill="${navy}">Passed!</text>
+      <text x="658" y="498" text-anchor="middle" font-size="10.5" font-weight="600" fill="${navy}">law of the simulation</text>
+    </g>
+  </svg>`;
+}
+document.getElementById("map-holder").innerHTML = buildMap();
+document.querySelectorAll(".mapnode").forEach(n => {
+  const go = () => { setView("stages"); show(parseInt(n.dataset.stage, 10)); window.scrollTo({ top: 0, behavior: "smooth" }); };
+  n.addEventListener("click", go);
+  n.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); go(); } });
+});
+
+/* beyond + meta */
+$("beyond-note").innerHTML = CONTENT.beyondNote;
+$("ghosts").innerHTML = CONTENT.beyond.map((g) => `<div class="ghost"><h4>${g.t}</h4><p>${g.d}</p></div>`).join("");
+$("meta-term").textContent = CONTENT.meta.term;
+$("meta-site").textContent = CONTENT.meta.site;
+
+show(0);
+</script>
+</body>
+</html>

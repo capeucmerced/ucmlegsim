@@ -19,6 +19,10 @@ project:
   resources:
     - "files/"
     - "archive/"
+    # A standalone, self-contained page (own styling, hand-edited HTML —
+    # all its text lives in the CONTENT block at the top of its script).
+    # Shipped verbatim like the archive, never rendered by Quarto.
+    - "life-of-a-bill/"
 
 # NOTE: no project-wide freeze here, on purpose. The generated pages
 # (bills-pages/, senator-pages/, lobby-pages/) each carry "freeze: auto" in
@@ -55,6 +59,8 @@ website:
         href: stats.qmd
       - text: Districts
         href: map.qmd
+      - text: Life of a Bill
+        href: life-of-a-bill/index.html
       - text: Playbook
         href: help.qmd
   page-footer:
