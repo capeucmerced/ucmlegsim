@@ -37,6 +37,8 @@ function onAnyFormSubmit(e) {
     if (tab === 'Registration') handleRegistrationSubmit(e);
     if (tab === 'Bills')        handleBillSubmit(e);      // bills_assembler.gs
     if (tab === 'Profiles')     handleProfileSubmit(e);
+    if (tab === 'Assignments')  handleAssignmentsSubmit(e);
+    if (tab === 'Referrals')    handleReferralsSubmit(e);
     if (tab.indexOf('Agenda') === 0) handleAgendaSubmit(e); // agenda_builder.gs
   } catch (err) {
     // A handler problem should never stop the rebuild (the row is still
@@ -268,6 +270,184 @@ function handleProfileSubmit(e) {
   // Profiles are public pages on the site; link-view sharing lets the
   // build download them by file id
   file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+}
+
+// --- Assignments & referrals -------------------------------------------------
+
+/** A submitted assignments row becomes the current committee state: the
+ *  site reads it through ?view=assignments, and the vote workbook's
+ *  senator columns are rewritten to match. Any senator may submit
+ *  (leadership is DEFINED by this form, so it can't gate on leadership);
+ *  the receipt email keeps it visible and reversible. */
+function handleAssignmentsSubmit(e) {
+  var row = rowAsObject(e);
+  var who = rosterLookup(row['Email Address']);
+  if (!who || String(who['Role']).toLowerCase().trim() !== 'senator') {
+    throw new Error('Assignments submitted from ' + row['Email Address'] +
+                    ', which is not a senator account. Nothing was applied.');
+  }
+
+  var notes = syncVoteSheetColumns();
+
+  GmailApp.sendEmail(
+    row['Email Address'],
+    'Committee assignments updated',
+    'Your assignments submission is now the current state of the Senate: ' +
+    'the site updates on its next build, and the vote sheets\' senator ' +
+    'columns were rewritten to match.\n\n' + notes +
+    '\nSubmitting the form again replaces this state entirely.'
+  );
+}
+
+// Committee code -> how its tab is recognized in the votes workbook
+// (tab named with the code OR the committee's full name, any case).
+var VOTE_TAB_WORDS = {
+  lgl:   ['lgl', 'local government'],
+  anr:   ['anr', 'agriculture'],
+  blh:   ['blh', 'business'],
+  app:   ['app', 'appropriations'],
+  floor: ['floor']
+};
+
+/** Rewrite each vote tab's senator header columns (everything after the
+ *  'Result' column) from the NEWEST assignments row — floor gets every
+ *  senator. Headers are "First Last", exactly what the site's vote
+ *  parser expects. Data rows are never touched; if a tab already holds
+ *  votes, the returned notes say to eyeball the alignment. */
+function syncVoteSheetColumns() {
+  var votesId = deployProp('VOTES_WORKBOOK_ID', '');
+  if (!votesId) return 'NOTE: VOTES_WORKBOOK_ID is not set in Script ' +
+                       'Properties — vote-sheet columns were NOT updated.\n';
+  var votesSs = SpreadsheetApp.openById(votesId);
+
+  // District -> "First Last" from the Roster
+  var roster = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Roster')
+    .getDataRange().getValues();
+  var rHead = roster[0];
+  var nameByDistrict = {};
+  var allDistricts = [];
+  for (var i = 1; i < roster.length; i++) {
+    if (String(roster[i][rHead.indexOf('Role')]).toLowerCase().trim() !== 'senator') continue;
+    var d = parseInt(roster[i][rHead.indexOf('District')], 10);
+    if (isNaN(d)) continue;
+    nameByDistrict[d] = (roster[i][rHead.indexOf('First Name')] + ' ' +
+                         roster[i][rHead.indexOf('Last Name')]).trim();
+    allDistricts.push(d);
+  }
+  allDistricts.sort(function (a, b) { return a - b; });
+
+  // Newest assignments row -> member districts per committee
+  var districtsFor = { floor: allDistricts };
+  var aSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Assignments');
+  if (aSheet && aSheet.getLastRow() > 1) {
+    var aRows = aSheet.getDataRange().getValues();
+    var aHead = aRows[0];
+    var last = aRows[aRows.length - 1];
+    ['LGL', 'ANR', 'BLH', 'APP'].forEach(function (up) {
+      var seen = {};
+      var ds = [];
+      [' Chair', ' Vice Chair', ' Members'].forEach(function (suffix) {
+        var c = headIndexByPrefix(aHead, up + suffix);
+        if (c < 0) return;
+        var re = /SD-(\d+)/g, s = String(last[c] || ''), m;
+        while ((m = re.exec(s)) !== null) {
+          var d = parseInt(m[1], 10);
+          if (!seen[d]) { seen[d] = true; ds.push(d); }
+        }
+      });
+      ds.sort(function (a, b) { return a - b; });
+      districtsFor[up.toLowerCase()] = ds;
+    });
+  }
+
+  var notes = '';
+  votesSs.getSheets().forEach(function (sheet) {
+    var norm = sheet.getName().toLowerCase();
+    var code = null;
+    Object.keys(VOTE_TAB_WORDS).forEach(function (k) {
+      if (code) return;
+      for (var w = 0; w < VOTE_TAB_WORDS[k].length; w++) {
+        if (norm.indexOf(VOTE_TAB_WORDS[k][w]) !== -1) { code = k; return; }
+      }
+    });
+    if (!code || !(code in districtsFor)) return;
+
+    var head = sheet.getRange(1, 1, 1, Math.max(sheet.getLastColumn(), 1)).getValues()[0];
+    var resultCol = head.indexOf('Result') + 1;
+    if (resultCol === 0) {
+      notes += 'SKIPPED tab "' + sheet.getName() + '": no Result column found.\n';
+      return;
+    }
+
+    var names = districtsFor[code].map(function (d) {
+      return nameByDistrict[d] || ('SD-' + d + ' (not on roster)');
+    });
+
+    // Clear old senator headers, write the new set. Data rows untouched.
+    if (sheet.getLastColumn() > resultCol) {
+      sheet.getRange(1, resultCol + 1, 1, sheet.getLastColumn() - resultCol).clearContent();
+    }
+    if (names.length > 0) {
+      sheet.getRange(1, resultCol + 1, 1, names.length).setValues([names])
+        .setFontWeight('bold');
+    }
+    notes += 'Tab "' + sheet.getName() + '": ' + names.length + ' senator column(s) written.' +
+             (sheet.getLastRow() > 1
+               ? ' CAUTION: this tab already holds vote rows — check they still align.'
+               : '') + '\n';
+  });
+  return notes || 'NOTE: no vote tabs matched — check the votes workbook tab names.\n';
+}
+
+/** Referrals need no filing — the gateway reads the rows directly. The
+ *  handler just validates and reports, so typos surface immediately. */
+function handleReferralsSubmit(e) {
+  var row = rowAsObject(e);
+  var who = rosterLookup(row['Email Address']);
+  if (!who || String(who['Role']).toLowerCase().trim() !== 'senator') {
+    throw new Error('Referrals submitted from ' + row['Email Address'] +
+                    ', which is not a senator account.');
+  }
+
+  var bills = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Bills');
+  var known = {};
+  if (bills && bills.getLastRow() > 1) {
+    var bRows = bills.getDataRange().getValues();
+    var bHead = bRows[0];
+    var cSb = bHead.indexOf('SB Number');
+    var cStat = bHead.indexOf('Status');
+    for (var i = 1; i < bRows.length; i++) {
+      if (cStat >= 0 && bRows[i][cStat]) continue;
+      var n = parseInt(bRows[i][cSb], 10);
+      if (!isNaN(n)) known[n] = true;
+    }
+  }
+
+  var report = '';
+  ['LGL', 'ANR', 'BLH'].forEach(function (up) {
+    var cell = String(valueByPrefix(row, up + ' referrals') || '');
+    var good = [], bad = [];
+    cell.split(/\r?\n/).forEach(function (line) {
+      if (!line.trim()) return;
+      var no = billNumberFrom(line);
+      if (no !== null && known[no]) good.push('SB-' + no);
+      else bad.push(line.trim());
+    });
+    if (good.length || bad.length) {
+      report += up + ': ' + (good.join(', ') || '(none)') +
+                (bad.length ? '  —  NOT RECOGNIZED: ' + bad.join(' | ') : '') + '\n';
+    }
+  });
+
+  GmailApp.sendEmail(
+    row['Email Address'],
+    'Bill referrals recorded',
+    'Referrals as parsed (the site updates on its next build):\n\n' +
+    (report || '(no bills listed)\n') +
+    '\nLines marked NOT RECOGNIZED matched no filed bill — resubmit the ' +
+    'form with those corrected; later referrals of the same bill simply ' +
+    'override earlier ones.'
+  );
 }
 
 // --- Registration -----------------------------------------------------------

@@ -82,3 +82,36 @@ the site's copy is always the authoritative one.
 :::
 
 :::
+
+## The Filing Cabinet
+
+Every official action in the simulation happens through one of these
+forms (sign in with the Google account you registered):
+
+```{r filing-cabinet}
+#| results: asis
+source("scripts/shared.R")
+urls <- load_form_urls()
+if (is.null(urls)) {
+  cat("*Form links appear here once the intake system is deployed.*")
+} else {
+  friendly <- c(
+    Registration   = "Register for the simulation",
+    Bills          = "File a bill — or an amendment to one of yours",
+    Letters        = "File a position letter (lobbyists)",
+    Profiles       = "Upload your role profile",
+    Spending       = "Report a contribution (lobbyists)",
+    Posts          = "Post to the Wire (journalists)",
+    Editions       = "Publish a newspaper edition (journalists)",
+    Assignments    = "Committee assignments & leadership (leadership)",
+    Referrals      = "Refer bills to committee (leadership)",
+    `Agenda LGL`   = "File an agenda — Local Government and Labor (chair)",
+    `Agenda ANR`   = "File an agenda — Agriculture and Natural Resources (chair)",
+    `Agenda BLH`   = "File an agenda — Business, Law, and Health (chair)",
+    `Agenda APP`   = "File an agenda — Appropriations (chair)",
+    `Agenda Floor` = "File an agenda — Senate Floor (Pro Tem)"
+  )
+  shown <- names(friendly)[names(friendly) %in% names(urls)]
+  cat(sprintf("- [%s](%s)", friendly[shown], urls[shown]), sep = "\n")
+}
+```

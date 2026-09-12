@@ -9,9 +9,17 @@ execute:
   message: false
 ---
 
+```{r filing-note}
+#| results: asis
+source("scripts/shared.R")
+fb <- form_url("Bills")
+if (!is.na(fb)) cat(sprintf(
+  '<p class="table-note"><a href="%s">File a bill or an amendment</a> · filings appear on the next site build</p>', fb))
+```
+
 ```{r}
 library(reactable)
-source("scripts/shared.R")
+# shared.R is already sourced by the filing-note chunk above
 
 senators <- load_senators()
 ns       <- senator_name_sets(senators)

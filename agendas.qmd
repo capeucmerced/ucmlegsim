@@ -9,9 +9,21 @@ execute:
   message: false
 ---
 
+```{r agenda-links}
+#| results: asis
+source("scripts/shared.R")
+u <- load_form_urls()
+codes <- c("LGL", "ANR", "BLH", "APP", "Floor")
+have <- codes[paste("Agenda", codes) %in% names(u)]
+if (length(have) > 0) cat(
+  '<p class="table-note">Chairs — file an agenda: ',
+  paste(sprintf('<a href="%s">%s</a>', u[paste("Agenda", have)], have), collapse = " · "),
+  '</p>', sep = "")
+```
+
 ```{r}
 library(reactable)
-source("scripts/shared.R")
+# shared.R is already sourced by the agenda-links chunk above
 
 # Agendas filed through the intake form land in AGENDAS_DIR first
 sync_intake_agendas()

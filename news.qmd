@@ -40,6 +40,17 @@ if (nrow(newspaper) > 0 && all(c("Edition", "Link") %in% names(newspaper))) {
 
 Live dispatches from the press corps — newest first.
 
+```{r press-links}
+#| results: asis
+pw <- form_url("Posts"); pe <- form_url("Editions")
+links <- c(
+  if (!is.na(pw)) sprintf('<a href="%s">Post to the Wire</a>', pw),
+  if (!is.na(pe)) sprintf('<a href="%s">Publish an edition</a>', pe)
+)
+if (length(links) > 0)
+  cat('<p class="table-note">', paste(links, collapse = " · "), '</p>', sep = "")
+```
+
 <div class="wire-feed"></div>
 <script src="js/feed.js"></script>
 

@@ -40,12 +40,15 @@ function doGet(e) {
       .setMimeType(ContentService.MimeType.JSON);
   }
 
-  var json = view === 'spending' ? buildSpendingJson()
-           : view === 'letters'  ? buildLettersJson()
-           : view === 'bills'    ? buildBillsJson()
-           : view === 'profiles' ? buildProfilesJson()
-           : view === 'editions' ? buildEditionsJson()
-           : view === 'agendas'  ? buildAgendasJson()
+  var json = view === 'spending'    ? buildSpendingJson()
+           : view === 'letters'     ? buildLettersJson()
+           : view === 'bills'       ? buildBillsJson()
+           : view === 'profiles'    ? buildProfilesJson()
+           : view === 'editions'    ? buildEditionsJson()
+           : view === 'agendas'     ? buildAgendasJson()
+           : view === 'assignments' ? buildAssignmentsJson()
+           : view === 'referrals'   ? buildReferralsJson()
+           : view === 'forms'       ? buildFormsJson()
            : buildPostsJson();
 
   try { cache.put('json-' + view, json, 30); } catch (err) {}
@@ -172,6 +175,91 @@ function buildBillsJson() {
   }
 
   return JSON.stringify({ bills: out });
+}
+
+/** Current committee assignments: the NEWEST Assignments row, reduced to
+ *  district numbers (parsed from the "SD-2 · Tester, New (D)" labels —
+ *  districts are the stable key; names never leave in this view).
+ *  Empty object when nothing has been submitted yet. */
+function buildAssignmentsJson() {
+  var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Assignments');
+  if (!sheet || sheet.getLastRow() < 2) return JSON.stringify({ assignments: null });
+
+  var rows = sheet.getDataRange().getValues();
+  var head = rows[0];
+  var last = rows[rows.length - 1];
+
+  var one = function (prefix) {           // first SD-number in a cell
+    var c = headIndexByPrefix(head, prefix);
+    if (c < 0) return null;
+    var m = String(last[c] || '').match(/SD-(\d+)/);
+    return m ? parseInt(m[1], 10) : null;
+  };
+  var many = function (prefix) {          // every SD-number in a cell —
+    var c = headIndexByPrefix(head, prefix);   // labels contain commas, so
+    if (c < 0) return [];                      // never split on them
+    var out = [], re = /SD-(\d+)/g, s = String(last[c] || ''), m;
+    while ((m = re.exec(s)) !== null) out.push(parseInt(m[1], 10));
+    return out;
+  };
+
+  var committees = ['LGL', 'ANR', 'BLH', 'APP'].map(function (up) {
+    return {
+      code:    up.toLowerCase(),
+      chair:   one(up + ' Chair'),
+      vice:    one(up + ' Vice Chair'),
+      members: many(up + ' Members')
+    };
+  });
+
+  return JSON.stringify({ assignments: {
+    time: new Date(last[headIndexByPrefix(head, 'Timestamp')]).toISOString(),
+    committees: committees,
+    leadership: {
+      protem:   one('Pro Tem'),
+      majority: one('Majority Leader'),
+      minority: one('Minority Leader')
+    }
+  }});
+}
+
+/** Bill referrals: every row in order, later referrals of the same bill
+ *  overriding earlier ones. Emits one {sb, committee} pair per bill. */
+function buildReferralsJson() {
+  var bySb = {};
+  var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Referrals');
+  if (sheet && sheet.getLastRow() > 1) {
+    var rows = sheet.getDataRange().getValues();
+    var head = rows[0];
+    for (var j = 1; j < rows.length; j++) {
+      ['LGL', 'ANR', 'BLH'].forEach(function (up) {
+        var c = headIndexByPrefix(head, up + ' referrals');
+        if (c < 0) return;
+        String(rows[j][c] || '').split(/\r?\n/).forEach(function (line) {
+          var no = billNumberFrom(line);
+          if (no !== null) bySb[no] = up.toLowerCase();
+        });
+      });
+    }
+  }
+  var out = Object.keys(bySb).map(function (k) {
+    return { sb: parseInt(k, 10), committee: bySb[k] };
+  });
+  return JSON.stringify({ referrals: out });
+}
+
+/** Every form's public URL, from the FORM_ID_* properties the builder
+ *  stores — so the site's form links maintain themselves across years. */
+function buildFormsJson() {
+  var out = {};
+  var props = PropertiesService.getScriptProperties().getProperties();
+  Object.keys(props).forEach(function (k) {
+    if (k.indexOf('FORM_ID_') !== 0) return;
+    try {
+      out[k.slice('FORM_ID_'.length)] = FormApp.openById(props[k]).getPublishedUrl();
+    } catch (e) {}
+  });
+  return JSON.stringify({ forms: out });
 }
 
 /** Current committee agendas: the canonical-named PDFs in agendas/

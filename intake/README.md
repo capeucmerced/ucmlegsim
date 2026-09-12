@@ -132,8 +132,9 @@ live in the Sep 2026 beta — the scripts carry those fixes):
    `scripts/shared.R`.
 8. **Test with a dummy account**: register, file a bill (check the PDF
    receipt's red/blue amendment marks), file a letter, report spending,
-   post to the wire, submit an agenda — confirm each lands, files
-   correctly, and the site rebuild fires. Remember the deployment rule:
+   post to the wire, submit an agenda, submit assignments (watch the
+   vote tabs' senator columns rewrite themselves), refer a bill —
+   confirm each lands, files correctly, and the site rebuild fires. Remember the deployment rule:
    after any change to `newsfeed_api.gs`, Manage deployments → ✏ →
    **New version** (same URL); form-trigger code only needs saving.
 9. **The fixture reset (before students start)**: delete the 2025 fixture
@@ -148,6 +149,23 @@ live in the Sep 2026 beta — the scripts carry those fixes):
    entries, then set `SB_NUMBER_FLOOR` to `0` — numbering reads the max
    SB in the Bills tab even on void rows, so leftover test rows would
    make the first real bill SB-77 instead of SB-1.
+
+## Launch day (the one push)
+
+1. Add the `GITHUB_TOKEN` script property: a fine-grained PAT for
+   `capeucmerced/ucmlegsim` (Contents: read; Actions/Workflows: write —
+   details in `rebuild.gs`'s header). Test it from the workbook's
+   **LegSim → Rebuild site now** menu: a run should appear under the
+   repo's Actions tab within seconds.
+2. In the repo's **Actions** tab, re-enable the scheduled workflow if
+   GitHub auto-disabled it (it does so after ~60 idle days).
+3. Merge and push — the project's one push:
+   `git checkout main && git merge revamp-2026 && git push`
+4. Watch the Actions run build and deploy; then hard-refresh
+   ucmlegsim.com.
+5. Live smoke test: post to the Wire (appears in seconds, no rebuild
+   needed) and file one submission (site updates after the triggered
+   build finishes).
 
 ## Yearly turnover (the sim repeats — no year ever overwrites another)
 
@@ -183,7 +201,6 @@ which year it is.
 
 - The policy topic tag list (instructor drafting; placeholder list lives
   in `forms_builder.gs`).
-- The agenda template Doc + first live run of `agenda_builder.gs`.
 - (Settled by the beta, for the record: PDFs reach the build by file id —
   filed documents share themselves link-view and the site downloads them
   anonymously, identical locally and in CI; no service account needed.

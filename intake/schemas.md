@@ -148,11 +148,17 @@ One row per submission; the newest row is the current state of the body.
 | Column | Question |
 | --- | --- |
 | Timestamp / Email Address | automatic |
-| LGL Chair / LGL Vice Chair / LGL Members | dropdowns + checkbox list of senators |
+| LGL Chair / LGL Vice Chair / LGL Members | dropdowns + checkbox list of senators (filled by `syncRosterDropdowns()`, `SD-2 · Tester, New (D)` format) |
 | ANR Chair / ANR Vice Chair / ANR Members | 〃 |
 | BLH Chair / BLH Vice Chair / BLH Members | 〃 |
 | APP Chair / APP Vice Chair / APP Members | 〃 |
 | Pro Tem / Majority Leader / Minority Leader | dropdowns of senators |
+
+Served by `?view=assignments` as district numbers only. On submit, the
+votes workbook's senator columns are rewritten to match (floor = every
+senator; data rows never touched) and the submitter gets a receipt.
+Any senator account may submit — leadership is *defined by* this form,
+so it can't gate on leadership; the receipt keeps changes visible.
 
 ## Tab: Referrals  (form: "Refer Bills to Committee")
 
@@ -163,6 +169,11 @@ One row per submission; the newest row is the current state of the body.
 
 (Appropriations has no referral question: fiscal-flagged bills route there
 automatically after passing their policy committee.)
+
+Served by `?view=referrals`: every row in submission order, later
+referrals of the same bill overriding earlier ones — the site moves
+referred bills out of "Unassigned" into their policy committee. The
+submitter gets a parse report naming any line that matched no filed bill.
 
 ## Tab: Posts  (form: "Post to the Wire")
 

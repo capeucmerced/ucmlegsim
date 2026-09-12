@@ -65,7 +65,8 @@ INTAKE_API_URL <- "https://script.google.com/macros/s/AKfycbwcPcwt8LTJri6lBrbarY
 
 # Which intake streams are live (their loaders merge rows in; the 2025
 # fixture files stay alongside until the semester-start data reset)
-INTAKE_LIVE <- c("spending", "letters", "bills", "profiles", "editions", "agendas")
+INTAKE_LIVE <- c("spending", "letters", "bills", "profiles", "editions",
+                 "agendas", "assignments", "referrals", "forms")
 
 read_intake_json <- function(view) {
   tryCatch({
@@ -177,13 +178,95 @@ read_sheet_safe <- function(url) {
 #   name_link   "last_name" lowercased, spaces -> underscores — for file names
 #   name_period make.names() version of Name — how R writes their vote column
 load_senators <- function() {
-  read.csv(SENATORS_CSV) |>
+  s <- read.csv(SENATORS_CSV) |>
     mutate(
       Name        = trimws(gsub("\\s+", " ", paste(First.Name, Last.Name))),
       name_join   = tolower(gsub(" ", "", paste0(First.Name, Last.Name))),
       name_link   = tolower(gsub(" ", "_", Last.Name)),
       name_period = make.names(Name)
     )
+
+  # Once assignments have been submitted through the intake form, they are
+  # the live truth: the CSV's Committee/Chair/Vice Chair/Leadership
+  # columns are overridden wholesale (the CSV keeps only the personas).
+  a <- load_intake_assignments()
+  if (!is.null(a)) {
+    s$Leadership <- ""
+    s$Committee  <- ""
+    s$Chair      <- ""
+    s$Vice.Chair <- ""
+    cm <- as.data.frame(a$committees)
+    for (k in seq_len(nrow(cm))) {
+      code <- cm$code[k]
+      mem  <- unique(c(cm$chair[k], cm$vice[k], unlist(cm$members[k])))
+      mem  <- mem[!is.na(mem)]
+      hit  <- s$District %in% mem
+      s$Committee[hit] <- ifelse(s$Committee[hit] == "", code,
+                                 paste0(s$Committee[hit], ";", code))
+      if (!is.na(cm$chair[k])) s$Chair[s$District == cm$chair[k]] <- code
+      if (!is.na(cm$vice[k]))  s$Vice.Chair[s$District == cm$vice[k]] <- code
+    }
+    led <- a$leadership
+    if (!is.null(led$protem)   && !is.na(led$protem))
+      s$Leadership[s$District == led$protem] <- "Pro Tem"
+    if (!is.null(led$majority) && !is.na(led$majority))
+      s$Leadership[s$District == led$majority] <- "Majority Leader"
+    if (!is.null(led$minority) && !is.na(led$minority))
+      s$Leadership[s$District == led$minority] <- "Minority Leader"
+  }
+  s
+}
+
+# The newest committee-assignments submission, from the gateway (NULL
+# until one exists). Districts only; fetched once per R session.
+load_intake_assignments <- function() {
+  cached <- getOption("legsim.assignments")
+  if (!is.null(cached)) return(if (identical(cached, "none")) NULL else cached)
+  a <- NULL
+  if ("assignments" %in% INTAKE_LIVE) {
+    j <- read_intake_json("assignments")
+    if (!is.null(j) && !is.null(j$assignments) &&
+        length(j$assignments$committees) > 0) a <- j$assignments
+  }
+  options(legsim.assignments = if (is.null(a)) "none" else a)
+  a
+}
+
+# Bill referrals as a named vector: names are SB numbers, values are
+# committee codes ("76" -> "lgl"). NULL until any exist.
+load_intake_referrals <- function() {
+  cached <- getOption("legsim.referrals")
+  if (!is.null(cached)) return(if (identical(cached, "none")) NULL else cached)
+  r <- NULL
+  if ("referrals" %in% INTAKE_LIVE) {
+    j <- read_intake_json("referrals")
+    if (!is.null(j) && length(j$referrals) > 0) {
+      d <- as.data.frame(j$referrals)
+      r <- setNames(as.character(d$committee), as.character(d$sb))
+    }
+  }
+  options(legsim.referrals = if (is.null(r)) "none" else r)
+  r
+}
+
+# Every intake form's public URL, keyed by its tab name ("Bills",
+# "Letters", "Agenda LGL", ...). The gateway builds this from the form
+# ids the builder stored, so links never need hand-updating — not even
+# at yearly turnover. NA-safe accessor: form_url("Bills").
+load_form_urls <- function() {
+  cached <- getOption("legsim.formurls")
+  if (!is.null(cached)) return(if (identical(cached, "none")) NULL else cached)
+  u <- NULL
+  if ("forms" %in% INTAKE_LIVE) {
+    j <- read_intake_json("forms")
+    if (!is.null(j) && length(j$forms) > 0) u <- unlist(j$forms)
+  }
+  options(legsim.formurls = if (is.null(u)) "none" else u)
+  u
+}
+form_url <- function(tab) {
+  u <- load_form_urls()
+  if (!is.null(u) && tab %in% names(u)) unname(u[[tab]]) else NA_character_
 }
 
 # The name vectors used when counting votes. R replaces spaces/hyphens with
@@ -247,6 +330,15 @@ load_intake_bills <- function() {
       file_id      = as.character(fileId)
     ) |>
     filter(!is.na(bill_number))
+
+  # Referrals move intake bills out of "Unassigned" and into their policy
+  # committee (full name, same format the fixture list uses)
+  ref <- load_intake_referrals()
+  if (!is.null(ref) && nrow(rows) > 0) {
+    hit <- as.character(rows$bill_number) %in% names(ref)
+    rows$committee[hit] <-
+      unname(COMMITTEE_NAMES[ref[as.character(rows$bill_number[hit])]])
+  }
 
   # Fetch the assembled PDFs so links and iframes work like fixtures'
   if (!isTRUE(getOption("legsim.bills_synced"))) {
