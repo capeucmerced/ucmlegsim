@@ -28,8 +28,18 @@ under #loab so it can't fight the site theme.
     --serif:Georgia, 'Times New Roman', serif;
     --sans:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
     color:var(--ink); font-family:var(--sans); line-height:1.55;
+    /* as a grid item of Quarto's page grid, allow shrinking below the
+       rail's content width so the rail scrolls internally on phones */
+    min-width:0;
   }
   #loab *{box-sizing:border-box; margin:0; padding:0}
+  /* Quarto's page CSS turns nested divs into grids, which gives our
+     wrappers' children grid-item min-width:auto and lets the stage
+     rail blow the page width open on phones. Our wrappers are plain
+     blocks; :not([hidden]) keeps the map view's hidden attribute
+     working (display:block !important would defeat it). */
+  #loab{display:block !important}
+  #loab > div:not([hidden]), #loab > header{display:block !important}
   #loab button{font-family:inherit; cursor:pointer}
   #loab .wrap{max-width:1060px; margin:0 auto; padding:0 22px}
 
@@ -80,6 +90,12 @@ under #loab so it can't fight the site theme.
   #loab .sheet-head h2{font-family:var(--serif); color:var(--navy); font-size:clamp(23px,3vw,29px); font-weight:700; border:0; padding:0; margin:0}
   #loab .chip{background:var(--gold-wash); border:1px solid var(--gold); color:#6d5400; font-size:12.5px; font-weight:600; border-radius:999px; padding:3px 12px; margin-left:auto}
   #loab .cols{display:grid; grid-template-columns:1.15fr .95fr; gap:34px}
+  /* Quarto's MOBILE page-grid CSS assigns its named grid lines
+     (body-content-start/end) to content descendants; inside our own
+     grids those names don't exist, so items land in an implicit extra
+     column and the page scrolls sideways. !important because Quarto's
+     selectors carry their own ids and win a fair specificity fight. */
+  #loab .cols > *, #loab .ghost-rail > *{grid-column:auto !important}
   #loab .explain h3, #loab .playbook h3{font-size:13.5px; font-weight:700; color:var(--navy); margin-bottom:7px}
   #loab .explain .block{padding-left:14px; margin-bottom:18px}
   #loab .explain .block.real{border-left:3px solid var(--line)}
@@ -135,7 +151,11 @@ under #loab so it can't fight the site theme.
   @media (max-width:460px){ #loab .ghost-rail{grid-template-columns:1fr} }
 </style>
 
-<div id="loab">
+<!-- column-page: Quarto's grid treats a plain top-level div as
+     transparent and hoists its children out as separate grid items —
+     which orphans every #loab-namespaced style. A column class makes
+     the whole app one placed unit, contents untouched. -->
+<div id="loab" class="column-page">
 
 <header class="masthead">
   <div class="wrap">

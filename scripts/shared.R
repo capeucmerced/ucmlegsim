@@ -794,5 +794,20 @@ load_all_contributions <- function() {
       mutate(Lobby = coalesce(Lobby, Lobby_Code))
   }
 
-  bind_rows(fixture_rows, load_intake_contributions())
+  intake <- load_intake_contributions()
+  if (nrow(fixture_rows) == 0 && nrow(intake) == 0) return(empty_contributions())
+  if (nrow(fixture_rows) == 0) return(intake)
+  if (nrow(intake) == 0) return(fixture_rows)
+  bind_rows(fixture_rows, intake)
+}
+
+# The typed zero-row contributions frame: no fixtures and nothing filed
+# yet (the true start of a session). Filters and joins on Lobby_Code etc.
+# work instead of erroring on a column-less data.frame.
+empty_contributions <- function() {
+  data.frame(
+    Date = as.Date(character()), Recipient.Name = character(),
+    Recipient.District = integer(), Contribution = numeric(),
+    Lobby_Code = character(), Lobby = character()
+  )
 }
