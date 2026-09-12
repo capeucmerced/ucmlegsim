@@ -68,17 +68,44 @@ INTAKE_API_URL <- "https://script.google.com/macros/s/AKfycbwcPcwt8LTJri6lBrbarY
 INTAKE_LIVE <- c("spending", "letters", "bills", "profiles", "editions",
                  "agendas", "assignments", "referrals", "forms")
 
+# One gateway fetch, hardened for a full site build. Two problems this
+# solves, both discovered when a build baked INCONSISTENT pages:
+#   1. Every rendered page is its own R session, so a build was hitting
+#      the gateway ~100 times in minutes and Apps Script starts answering
+#      bursts with an HTML interstitial instead of JSON. A short DISK
+#      cache (under .quarto/, gitignored) means the whole build fetches
+#      each view once and every page bakes the same data.
+#   2. A single flaky response no longer silently becomes "no data":
+#      non-JSON answers are retried before giving up.
 read_intake_json <- function(view) {
-  tryCatch({
-    # curl (not base url connections): Apps Script answers through a
-    # redirect that base R handles unreliably, and wants a user agent
-    h <- curl::new_handle(followlocation = TRUE, useragent = "ucmlegsim-build/1.0")
-    resp <- curl::curl_fetch_memory(paste0(INTAKE_API_URL, "?view=", view), handle = h)
-    jsonlite::fromJSON(rawToChar(resp$content))
-  }, error = function(e) {
-    message("WARNING: intake endpoint unreachable (", conditionMessage(e), ") — view: ", view)
-    NULL
-  })
+  cache_dir  <- file.path(".quarto", "intake-cache")
+  cache_file <- file.path(cache_dir, paste0(view, ".json"))
+  if (file.exists(cache_file) &&
+      difftime(Sys.time(), file.mtime(cache_file), units = "secs") < 300) {
+    return(jsonlite::fromJSON(cache_file))
+  }
+
+  for (attempt in 1:3) {
+    txt <- tryCatch({
+      # curl (not base url connections): Apps Script answers through a
+      # redirect that base R handles unreliably, and wants a user agent
+      h <- curl::new_handle(followlocation = TRUE, useragent = "ucmlegsim-build/1.0")
+      resp <- curl::curl_fetch_memory(paste0(INTAKE_API_URL, "?view=", view), handle = h)
+      rawToChar(resp$content)
+    }, error = function(e) NA_character_)
+
+    if (!is.na(txt) && startsWith(trimws(txt), "{")) {
+      j <- tryCatch(jsonlite::fromJSON(txt), error = function(e) NULL)
+      if (!is.null(j)) {
+        if (!dir.exists(cache_dir)) dir.create(cache_dir, recursive = TRUE)
+        writeLines(txt, cache_file, useBytes = TRUE)
+        return(j)
+      }
+    }
+    if (attempt < 3) Sys.sleep(2 * attempt)
+  }
+  message("WARNING: intake endpoint gave no usable JSON after 3 tries — view: ", view)
+  NULL
 }
 
 # Contributions filed through the 2026 Spending form, reshaped to the same
@@ -340,8 +367,13 @@ load_intake_bills <- function() {
       unname(COMMITTEE_NAMES[ref[as.character(rows$bill_number[hit])]])
   }
 
-  # Fetch the assembled PDFs so links and iframes work like fixtures'
+  # Fetch the assembled PDFs so links and iframes work like fixtures'.
+  # dir.create: after the yearly fixture reset these directories are
+  # empty, so a fresh checkout (CI) doesn't have them at all.
   if (!isTRUE(getOption("legsim.bills_synced"))) {
+    for (d in c(BILL_PDF_DIR, PREV_BILL_PDF_DIR)) {
+      if (!dir.exists(d)) dir.create(d, recursive = TRUE)
+    }
     for (i in seq_len(nrow(rows))) {
       if (rows$file_id[i] == "") next
       dest <- file.path(BILL_PDF_DIR, paste0(rows$url_slug[i], ".pdf"))
@@ -580,6 +612,7 @@ sync_intake_letters <- function() {
   if (isTRUE(getOption("legsim.letters_synced"))) return(invisible())
   rows <- load_intake_letters()
   if (nrow(rows) > 0) {
+    if (!dir.exists(LETTERS_DIR)) dir.create(LETTERS_DIR, recursive = TRUE)
     for (i in seq_len(nrow(rows))) {
       dest <- file.path(LETTERS_DIR, rows$filename[i])
       tryCatch(
