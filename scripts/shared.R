@@ -318,17 +318,41 @@ senator_name_sets <- function(senators) {
 #   bill_measure "SB-12" (display)   url_slug "LASTNAME_SB12" (file/page names)
 # Combines the 2025 fixture list with bills filed through the 2026 form.
 load_bills <- function() {
-  fixture <- read.csv(BILLS_CSV) |>
-    mutate(
-      name         = trimws(gsub("\\s+", " ", paste(First.Name, Last.Name))),
-      name_join    = tolower(gsub(" ", "", paste0(First.Name, Last.Name))),
-      bill_measure = paste0("SB-", bill_number),
-      url_slug     = paste0(toupper(gsub(" ", "_", Last.Name)), "_SB", bill_number),
-      committee    = ifelse(committee == "" | is.na(committee), "Unassigned", committee),
-      # A blank fiscal flag counts as "No" (admin can correct the sheet)
-      appropriations = ifelse(!is.na(appropriations) & appropriations == 1, "Yes", "No")
-    )
-  bind_rows(fixture, load_intake_bills())
+  fixture <- read.csv(BILLS_CSV)
+  # After the yearly reset the CSV is header-only, and read.csv types the
+  # empty columns as logical — binding that to real intake rows errors.
+  # An empty side simply doesn't participate.
+  if (nrow(fixture) > 0) {
+    fixture <- fixture |>
+      mutate(
+        name         = trimws(gsub("\\s+", " ", paste(First.Name, Last.Name))),
+        name_join    = tolower(gsub(" ", "", paste0(First.Name, Last.Name))),
+        bill_measure = paste0("SB-", bill_number),
+        url_slug     = paste0(toupper(gsub(" ", "_", Last.Name)), "_SB", bill_number),
+        committee    = ifelse(committee == "" | is.na(committee), "Unassigned", committee),
+        # A blank fiscal flag counts as "No" (admin can correct the sheet)
+        appropriations = ifelse(!is.na(appropriations) & appropriations == 1, "Yes", "No")
+      )
+  }
+  intake <- load_intake_bills()
+  if (nrow(fixture) == 0 && nrow(intake) == 0) return(empty_bills())
+  if (nrow(fixture) == 0) return(intake)
+  if (nrow(intake) == 0) return(fixture)
+  bind_rows(fixture, intake)
+}
+
+# The typed zero-row bill frame: day one of a session, before anything
+# is filed. Every consumer (tables, generators, trackers) can arrange,
+# join, and filter it without special cases.
+empty_bills <- function() {
+  data.frame(
+    bill_number = integer(), title = character(),
+    First.Name = character(), Last.Name = character(),
+    lobbyist = character(), committee = character(),
+    appropriations = character(), digest = character(),
+    topic = character(), name = character(), name_join = character(),
+    bill_measure = character(), url_slug = character()
+  )
 }
 
 # Bills filed through the 2026 form, from the gateway's bills view,
