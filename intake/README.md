@@ -150,6 +150,28 @@ live in the Sep 2026 beta — the scripts carry those fixes):
    SB in the Bills tab even on void rows, so leftover test rows would
    make the first real bill SB-77 instead of SB-1.
 
+## Roster day (when the class list is final)
+
+1. **Fill the Roster tab**, one row per student: their Google email
+   (lowercase), Role, and the role's fields — senators get a persona
+   from `files/csvs/senator_list.csv` (First/Last/District/Party must
+   match it exactly; that's how votes and bills join), lobbyists get
+   their Org Code, journalists their Outlet. Emails never reach the
+   site; names are whatever you enter — pen names are fine for
+   journalists/lobbyists if you want no real names anywhere.
+2. Run **`provisionBillDocs()`** — rerun until it says nothing left to
+   do (each run may stop at the 6-minute limit). Each senator gets
+   Draft A/B docs shared to their email automatically.
+3. Run **`syncRosterDropdowns()`** — fills the Spending recipient list
+   and every Assignments-form picker. Rerun both whenever the Roster
+   changes.
+4. After the class organizes, the Pro Tem (or you) submits the
+   **Committee Assignments & Leadership** form — that single submission
+   updates the site AND writes the vote workbook's senator columns by
+   itself. Resubmit any time things change.
+5. Registration is self-serve: students' form submissions append their
+   email + name to the Roster; you assign the Role and fields.
+
 ## Launch day (the one push)
 
 1. Add the `GITHUB_TOKEN` script property: a fine-grained PAT for
