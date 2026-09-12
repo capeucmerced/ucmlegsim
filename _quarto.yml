@@ -57,6 +57,8 @@ website:
         href: map.qmd
       - text: Life of a Bill
         href: life-of-a-bill.qmd
+      - text: Filing Cabinet
+        href: forms.qmd
       - text: Playbook
         href: help.qmd
   page-footer:

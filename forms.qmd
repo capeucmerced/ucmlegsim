@@ -1,0 +1,59 @@
+---
+title: "The Filing Cabinet"
+format:
+  html:
+    page-layout: article
+execute:
+  echo: false
+  warning: false
+  message: false
+---
+
+Every official action in the simulation happens through one of these
+forms. Sign in with the Google account you registered — the system knows
+who you are from there: no names to type, no numbers to look up. What you
+file appears on the site on the next build (the Wire updates in seconds).
+
+```{r}
+#| results: asis
+source("scripts/shared.R")
+urls <- load_form_urls()
+
+# One "drawer" per role. Links come from the gateway (?view=forms), so
+# they are always current — nothing here changes at yearly turnover.
+drawer <- function(title, items) {
+  have <- items[names(items) %in% names(urls)]
+  if (length(have) == 0) return(invisible(NULL))
+  cat(sprintf("\n### %s\n\n", title))
+  cat(sprintf("- [%s](%s)\n", unname(have), urls[names(have)]), sep = "")
+}
+
+if (is.null(urls)) {
+  cat("*The cabinet opens when the session begins.*")
+} else {
+  drawer("Everyone", c(
+    Registration = "Register for the simulation",
+    Profiles     = "Upload your role profile"
+  ))
+  drawer("Senators", c(
+    Bills = "File a bill — or an amendment to one of yours"
+  ))
+  drawer("Lobbyists", c(
+    Letters  = "File a position letter",
+    Spending = "Report a contribution"
+  ))
+  drawer("Journalists", c(
+    Posts    = "Post to the Wire",
+    Editions = "Publish a newspaper edition"
+  ))
+  drawer("Leadership & chairs", c(
+    Assignments    = "Committee assignments & leadership",
+    Referrals      = "Refer bills to committee",
+    `Agenda LGL`   = "File an agenda — Local Government and Labor",
+    `Agenda ANR`   = "File an agenda — Agriculture and Natural Resources",
+    `Agenda BLH`   = "File an agenda — Business, Law, and Health",
+    `Agenda APP`   = "File an agenda — Appropriations",
+    `Agenda Floor` = "File an agenda — Senate Floor"
+  ))
+}
+```
