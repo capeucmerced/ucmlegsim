@@ -60,6 +60,17 @@ The master mapping of people to roles. One row per student.
 | Timestamp / Email Address | automatic |
 | Full Name | "Your full name" |
 
+## Tab: Role Check  (form: "LegSim — Check My Role", built by `buildRoleCheckForm()`)
+
+Self-service hookup receipt: on submit, the router emails the account
+what the Roster says it is (see `role_check.gs`). No site rebuild.
+
+| Column | Question |
+| --- | --- |
+| Timestamp / Email Address | automatic |
+| Email me my role | required checkbox (`Yes`) — the form's only question |
+| — Result | script column: the summary that was emailed back (audit) |
+
 ## Tab: Bills  (form: "File a Bill")
 
 | Column | Question |

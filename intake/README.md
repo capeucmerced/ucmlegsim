@@ -207,21 +207,25 @@ after the merge, because only the new workflow on main listens for
    needed) and file one submission (site updates after the triggered
    build finishes).
 
+## The role checker (self-service hookup receipts)
+
+Built mid-semester 2026 (`role_check.gs`): a question-free **Check My
+Role** form. A student submits it and the router emails that account
+what the Roster says it is ("You are Senator Steve Choi, R-SD37" / "the
+CTA lobbyist" / "not registered yet"), plus a `Result` audit column on
+the Role Check tab. It exercises the same verified-email → Roster join
+every real form uses, so a passing check proves the whole hookup.
+Role checks trigger no site rebuild. Install steps are in the file's
+header; the builder (`buildRoleCheckForm()`) creates and links the form.
+
 ## Parked for next year
 
-- **Hookup receipts.** After the admin wires a registration to a role,
-  there is currently no quick way for the student to confirm it. Build
-  one of these (both use the same email → Roster join every form relies
-  on, so passing the check proves the real pipeline):
-  1. *Welcome email on hookup* (better): an installable trigger on the
-     Roster — when a row gains its Role (+ required fields), the dept
-     account emails the student a summary ("You are Senator Steve Choi,
-     R, SD-37" / "You lobby for the CTA" / "You write for the Fresno
-     Bee"). A `Welcomed` timestamp column keeps it idempotent. A wrong
-     assignment surfaces the moment the student reads it.
-  2. *"Check my registration" form* (simpler): a zero-question form with
-     verified email; on submit the router emails back what the Roster
-     says about that account, or "not on the roster yet."
+- **Welcome email on hookup** (the push version of the role checker): an
+  installable trigger on the Roster — when a row gains its Role, the
+  dept account emails the student their summary unprompted, with a
+  `Welcomed` timestamp column for idempotence. A wrong assignment then
+  surfaces without the student doing anything. (Careful with bulk
+  pastes firing mass emails — that is why it stayed unbuilt in 2026.)
 
 ## Yearly turnover (the sim repeats — no year ever overwrites another)
 

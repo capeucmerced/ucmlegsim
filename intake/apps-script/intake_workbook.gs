@@ -39,6 +39,7 @@ function onAnyFormSubmit(e) {
     if (tab === 'Profiles')     handleProfileSubmit(e);
     if (tab === 'Assignments')  handleAssignmentsSubmit(e);
     if (tab === 'Referrals')    handleReferralsSubmit(e);
+    if (tab === 'Role Check')   handleRoleCheckSubmit(e);  // role_check.gs
     if (tab.indexOf('Agenda') === 0) handleAgendaSubmit(e); // agenda_builder.gs
   } catch (err) {
     // A handler problem should never stop the rebuild (the row is still
@@ -58,7 +59,8 @@ function onAnyFormSubmit(e) {
 
   // Wire posts are rendered client-side (js/feed.js polls the gateway),
   // so the most frequent submission type never needs a site rebuild.
-  if (tab !== 'Posts') requestSiteRebuild();
+  // Role checks change nothing on the site at all.
+  if (tab !== 'Posts' && tab !== 'Role Check') requestSiteRebuild();
 }
 
 // --- Small shared helpers ---------------------------------------------------
