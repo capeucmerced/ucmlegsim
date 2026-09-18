@@ -563,9 +563,9 @@ function buildMap() {
       <marker id="arr" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto"><path d="M0,0 L8,4.5 L0,9 z" fill="${navy}"/></marker>
       <marker id="arrd" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto"><path d="M0,0 L8,4.5 L0,9 z" fill="${brick}"/></marker>
     </defs>
-    ${wash(143, 30, 424, 94, CONTENT.session[0].caption, 104)}
-    ${wash(577, 30, 202, 94, CONTENT.session[1].caption, 104)}
-    ${wash(178, 168, 584, 84, CONTENT.session[2].caption, 246, 554)}
+    ${wash(143, 30, 424, 104, CONTENT.session[0].caption, 111)}
+    ${wash(577, 30, 202, 104, CONTENT.session[1].caption, 111)}
+    ${wash(178, 168, 584, 94, CONTENT.session[2].caption, 253, 554)}
     ${rule(150)}
     ${rule(312)}
 
