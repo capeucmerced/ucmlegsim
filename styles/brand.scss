@@ -80,6 +80,10 @@ html { background: $paper; }
     line-height: 1;
     padding-top: 0.15rem;
     padding-bottom: 0.15rem;
+    // The subline is the lockup's widest line and sets its width;
+    // centering stacks the wordmark over its middle so the subline
+    // overhangs evenly on both sides.
+    text-align: center;
 
     &::after {
       content: "UC Merced Legislative Simulation · 2026";
