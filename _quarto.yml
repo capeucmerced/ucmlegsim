@@ -62,7 +62,7 @@ website:
       - text: Playbook
         href: help.qmd
   page-footer:
-    left: "UC Merced California Legislative Simulation"
+    left: "UC Merced California Legislative Simulation · Originally developed by [Nick Brouwer](https://nrbrouwer.com)"
     center: "The site updates automatically as bills, votes, letters, and news are filed."
     right: "[Session Archive](archive/)"
 
