@@ -207,6 +207,22 @@ after the merge, because only the new workflow on main listens for
    needed) and file one submission (site updates after the triggered
    build finishes).
 
+## Parked for next year
+
+- **Hookup receipts.** After the admin wires a registration to a role,
+  there is currently no quick way for the student to confirm it. Build
+  one of these (both use the same email → Roster join every form relies
+  on, so passing the check proves the real pipeline):
+  1. *Welcome email on hookup* (better): an installable trigger on the
+     Roster — when a row gains its Role (+ required fields), the dept
+     account emails the student a summary ("You are Senator Steve Choi,
+     R, SD-37" / "You lobby for the CTA" / "You write for the Fresno
+     Bee"). A `Welcomed` timestamp column keeps it idempotent. A wrong
+     assignment surfaces the moment the student reads it.
+  2. *"Check my registration" form* (simpler): a zero-question form with
+     verified email; on submit the router emails back what the Roster
+     says about that account, or "not on the roster yet."
+
 ## Yearly turnover (the sim repeats — no year ever overwrites another)
 
 Each year gets its own containers on both sides; a finished year is
