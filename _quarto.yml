@@ -73,7 +73,8 @@ format:
     theme:
       - cosmo
       - styles/brand.scss
-    toc: true
-    # No hover ¶/link icons on headings anywhere — this site's headings
-    # are page furniture, not document sections to deep-link.
+    # No "On this page" rail and no hover ¶/link icons on headings —
+    # this site's headings are page furniture, not document sections
+    # to navigate or deep-link.
+    toc: false
     anchor-sections: false
