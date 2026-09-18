@@ -395,11 +395,11 @@ const CONTENT = {
       title: "Third reading & the vote",
       short: "The finish line",
       real: "The bill gets a final analysis, the floor debates, and the chamber votes — spending, urgency, and tax bills need a two-thirds supermajority. In real life, passing here only sends the bill on to the other chamber.",
-      sim: "This is the finish line. The author presents the bill, the floor debates, and the roll is called. Pass and your bill has won — there is no Assembly and no Governor in the simulation.",
+      sim: "This is the finish line. The author presents the bill, the floor debates, and the roll is called. Bills that pass on the floor are adopted law in the simulation — there is no Assembly and no Governor.",
       roles: {
         Senators: [
           "Give floor speeches your constituents would cheer — they count toward your record.",
-          "Weigh every vote: your voting record follows you onto the scorecards.",
+          "Weigh every vote: your voting record follows you into your reelection campaign — and your course grade.",
           "Claim your wins — press releases, interviews, credit for coauthored bills.",
         ],
         Lobbyists: [
@@ -427,7 +427,7 @@ const CONTENT = {
     { caption: "chairs set each hearing's agenda" },
   ],
 
-  beyondNote: "In real California, a bill that passes the Senate floor is only halfway home — the steps below still stand between it and the law books. <strong>In the simulation, none of this exists: passing third reading is winning.</strong>",
+  beyondNote: "In real California, a bill that passes the Senate floor is only halfway home — the steps below still stand between it and the law books. <strong>In the simulation, none of this exists: bills that pass on the floor are adopted law.</strong>",
   beyond: [
     { t: "To the Assembly", d: "First reading, then the whole committee-and-floor gauntlet again in the other chamber." },
     { t: "Concurrence or conference", d: "If the Assembly amended the bill, the Senate must concur — or a conference committee splits the difference." },
@@ -596,7 +596,7 @@ function buildMap() {
     ${dead(24, 185, 150, "Dies in committee", "never heard, or held")}
     ${arrow(398, 208, 448, 208)}
     <circle cx="456" cy="208" r="4" fill="${navy}"/>
-    <text x="456" y="190" text-anchor="middle" font-size="12" font-weight="600" fill="${muted}">does it spend money?</text>
+    <text x="471" y="163" text-anchor="middle" font-size="12" font-weight="600" fill="${muted}">does it spend money?</text>
     <text x="505" y="200" font-size="12" font-weight="700" fill="${navy}">yes</text>
     ${arrow(464, 208, 542, 208)}
     ${node(4, 546, 180, 182, "Appropriations", "⚑ out by " + (M.approps.split(", ").pop()), "#8a6d00")}

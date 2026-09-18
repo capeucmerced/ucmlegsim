@@ -85,3 +85,8 @@ if (nrow(news) > 0) {
   cat("Newspaper list not available yet.\n")
 }
 ```
+
+<p class="table-note">These outlets are role-played by students in a course
+simulation. Everything published under their names — wire posts, editions,
+and any accounts or materials students create elsewhere — is fictional
+classwork, not the reporting of the real newspapers.</p>
