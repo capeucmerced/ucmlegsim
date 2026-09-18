@@ -115,16 +115,6 @@ under #loab so it can't fight the site theme.
   #loab .tips{list-style:none}
   #loab .tips li{position:relative; padding:0 0 10px 20px; font-size:14.2px; color:var(--ink)}
   #loab .tips li::before{content:""; position:absolute; left:0; top:7px; width:9px; height:9px; background:var(--rc,var(--gold)); border-radius:2px}
-  /* "Meanwhile in the session" — chamber business that isn't a step in
-     any bill's path: shown as a shaded strip on the stages where it
-     happens, and as the detached lane under the map. */
-  #loab .session-strip{margin-top:20px; padding:12px 16px 11px; background:var(--gold-wash);
-      border-radius:8px; border:1px solid rgba(201,154,0,.35)}
-  #loab .session-strip .ms-label{display:block; font-size:10.5px; font-weight:700;
-      letter-spacing:.14em; text-transform:uppercase; color:#8a6d00; margin-bottom:3px}
-  #loab .session-strip b{color:var(--navy)}
-  #loab .session-strip p{font-size:14px; color:var(--ink)}
-
   /* pager */
   #loab .pager{display:flex; justify-content:space-between; margin-top:22px; padding-top:16px; border-top:1px solid var(--line)}
   #loab .pager button{background:none; border:1px solid var(--navy); color:var(--navy); border-radius:6px; padding:8px 15px; font-size:13.5px; font-weight:600}
@@ -206,10 +196,6 @@ under #loab so it can't fight the site theme.
         <ul class="tips" id="tips"></ul>
       </aside>
     </div>
-    <div class="session-strip" id="s-session" hidden>
-      <span class="ms-label">Meanwhile in the session</span>
-      <p><b id="s-session-title"></b> — <span id="s-session-text"></span></p>
-    </div>
     <div class="pager">
       <button id="prevBtn">← Previous stage</button>
       <button id="nextBtn">Next stage →</button>
@@ -227,7 +213,7 @@ under #loab so it can't fight the site theme.
 <div id="view-map" hidden>
   <div class="wrap mapzone">
     <div class="mapwrap" id="map-holder"></div>
-    <p class="mapnote">Click any box on the map to open that stage in detail. In real life the bill would continue on to the Assembly and the Governor — the map stops where the simulation stops. The shaded notes along the bottom are the session's own business — they happen around the bills, not to them.</p>
+    <p class="mapnote">Click any box on the map to open that stage in detail. The gold-washed zones are the session's own business — things happening around that part of the map, not steps a bill takes. In real life the bill would continue on to the Assembly and the Governor — the map stops where the simulation stops.</p>
   </div>
 </div>
 
@@ -419,31 +405,15 @@ const CONTENT = {
     },
   ],
 
-  // Chamber business that is NOT a step in any bill's path. Each entry
-  // appears as the shaded "Meanwhile in the session" strip on its stage
-  // (by index: 0 = Ideas & drafting, 2 = Referral, 3 = Policy committee)
-  // and as a detached shaded note in the lane under the map. Keep these
-  // to point-in-time events — continuous work (letters, posts,
+  // Chamber business that is NOT a step in any bill's path, shown on the
+  // map as gold-washed zones painted behind the part of the flow where
+  // each happens, with these one-line captions. Keep them terse, and
+  // keep them to point-in-time events — continuous work (letters, posts,
   // editorials) belongs in the role playbooks, not pinned to one spot.
   session: [
-    {
-      stage: 0,
-      title: "The session opens",
-      text: "Everyone registers and gets their role; senators receive their two bill-drafting docs, and everyone posts a role profile.",
-      map: "Register, get your role, post a profile — senators get their drafting docs.",
-    },
-    {
-      stage: 2,
-      title: "The Senate organizes",
-      text: "Each caucus elects its leadership (Democrats also choose a whip), the Rules Committee is seated — three Democrats, two Republicans — and leadership fills the three policy committees. Not a step in any bill's path, but every bill's fate runs through who holds the gavels.",
-      map: "Caucuses elect leadership; Rules is seated; the committees are filled.",
-    },
-    {
-      stage: 3,
-      title: "Chairs run the calendar",
-      text: "Committee chairs set each hearing's agenda, meeting by meeting — a bill only moves when its chair gives it a slot.",
-      map: "Chairs set each hearing's agenda — no slot, no movement.",
-    },
+    { caption: "session opens — register, get roles, post profiles" },
+    { caption: "the Senate organizes — leaders elected, committees seated" },
+    { caption: "chairs set each hearing's agenda" },
   ],
 
   beyondNote: "In real California, a bill that passes the Senate floor is only halfway home — the steps below still stand between it and the law books. <strong>In the simulation, none of this exists: passing third reading is winning.</strong>",
@@ -498,12 +468,6 @@ function show(i) {
   if (st.chip) { chip.hidden = false; chip.textContent = fill(st.chip); } else chip.hidden = true;
   $("s-real").textContent = fill(st.real);
   $("s-sim").textContent = fill(st.sim);
-  const ms = (CONTENT.session || []).find(s => s.stage === current);
-  $("s-session").hidden = !ms;
-  if (ms) {
-    $("s-session-title").textContent = ms.title;
-    $("s-session-text").textContent = fill(ms.text);
-  }
   renderTabs(); renderTips();
   [...rail.children].forEach((b, j) => b.classList.toggle("active", j === current));
   const ab = rail.children[current];
@@ -578,30 +542,27 @@ function buildMap() {
   const rule = (y) =>
     `<line x1="14" y1="${y}" x2="966" y2="${y}" stroke="#D8D2C2" stroke-width="1.6" stroke-linecap="round" stroke-dasharray="0.1 9"/>`;
 
-  // The detached "meanwhile" lane: session events near the timeline but
-  // pointedly not on it — no arrows in, no arrows out.
-  const y0 = 566;
-  const laneBox = (x, s) => {
-    const words = String(s.map || s.text).split(" ");
-    const lines = []; let line = "";
-    words.forEach(w => {
-      if ((line + " " + w).trim().length > 50) { lines.push(line.trim()); line = w; }
-      else line += " " + w;
-    });
-    if (line.trim()) lines.push(line.trim());
-    const body = lines.slice(0, 2).map((l, i) =>
-      `<text x="${x + 14}" y="${y0 + 42 + i * 14}" font-size="10.5" fill="#4c4636">${l}</text>`).join("");
+  // Session events painted INTO the flow: a gold wash behind the part of
+  // the map where each happens — spatial like everything else, but
+  // unmistakably not a node on any bill's path. Captions come from
+  // CONTENT.session; an " — " splits a caption onto two lines.
+  const wash = (x, y, w, h, caption, capY) => {
+    const lines = String(caption).split(" — ");
     return `
-      <rect x="${x}" y="${y0 + 8}" width="298" height="66" rx="8" fill="#F6EDD2" stroke="#C99A00" stroke-opacity="0.45"/>
-      <text x="${x + 14}" y="${y0 + 27}" font-size="12" font-weight="700" fill="#6d5400">${s.title}</text>
-      ${body}`;
+    <rect x="${x}" y="${y}" width="${w}" height="${h}" rx="12" fill="#C99A00" fill-opacity="0.13"/>
+    ${lines.map((l, i) =>
+      `<text x="${x + w / 2}" y="${capY + i * 13}" text-anchor="middle" font-size="10.5" font-style="italic" font-weight="600" fill="#8a6d00">${l}</text>`
+    ).join("")}`;
   };
 
-  return `<svg viewBox="0 0 980 660" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Map of the simulation bill process">
+  return `<svg viewBox="0 0 980 545" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Map of the simulation bill process">
     <defs>
       <marker id="arr" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto"><path d="M0,0 L8,4.5 L0,9 z" fill="${navy}"/></marker>
       <marker id="arrd" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto"><path d="M0,0 L8,4.5 L0,9 z" fill="${brick}"/></marker>
     </defs>
+    ${wash(143, 30, 424, 94, CONTENT.session[0].caption, 104)}
+    ${wash(577, 30, 202, 94, CONTENT.session[1].caption, 104)}
+    ${wash(178, 168, 584, 84, CONTENT.session[2].caption, 246)}
     ${rule(150)}
     ${rule(312)}
 
@@ -644,12 +605,6 @@ function buildMap() {
       <text x="658" y="481" text-anchor="middle" font-size="15" font-weight="800" fill="${navy}">Passed!</text>
       <text x="658" y="498" text-anchor="middle" font-size="10.5" font-weight="600" fill="${navy}">law of the simulation</text>
     </g>
-
-    ${rule(546)}
-    ${band("MEANWHILE IN THE SESSION — chamber business, not steps on any bill's path", 564)}
-    ${laneBox(24, CONTENT.session[0])}
-    ${laneBox(348, CONTENT.session[1])}
-    ${laneBox(672, CONTENT.session[2])}
   </svg>`;
 }
 document.getElementById("map-holder").innerHTML = buildMap();
