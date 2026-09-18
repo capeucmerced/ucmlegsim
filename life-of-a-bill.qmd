@@ -5,8 +5,6 @@ format:
   html:
     page-layout: full
     toc: false
-    # No ¶ anchor icons on headings — these are app chrome, not sections
-    anchor-sections: false
 ---
 
 <!--

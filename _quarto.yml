@@ -74,3 +74,6 @@ format:
       - cosmo
       - styles/brand.scss
     toc: true
+    # No hover ¶/link icons on headings anywhere — this site's headings
+    # are page furniture, not document sections to deep-link.
+    anchor-sections: false
