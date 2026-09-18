@@ -5,6 +5,8 @@ format:
   html:
     page-layout: full
     toc: false
+    # No ¶ anchor icons on headings — these are app chrome, not sections
+    anchor-sections: false
 ---
 
 <!--
@@ -20,13 +22,16 @@ under #loab so it can't fight the site theme.
 ```{=html}
 <style>
   #loab{
-    --navy:#002856; --navy-deep:#001B3D; --gold:#C99A00; --gold-bright:#DAA900;
+    --navy:#17345a; --navy-deep:#001B3D; --gold:#d4a821; --gold-bright:#DAA900;
     --paper:#F7F5F0; --sheet:#FFFFFF; --tint:#EEF2F8; --ink:#1E2735; --muted:#67707E;
     --line:#D9D4C8; --gold-wash:#F6EDD2;
     /* Role colors: Senate-chamber red (the CA Senate's House-of-Lords red), lobbyist green, journalist purple */
     --sen:#9D2235; --lob:#1E6B4E; --jou:#5F3A8E;
-    --serif:Georgia, 'Times New Roman', serif;
-    --sans:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    /* Match the site's voice: EB Garamond display, Atkinson body, the
+       site's navy and gold. (The SVG map keeps its own self-contained
+       palette.) */
+    --serif:"EB Garamond", Georgia, 'Times New Roman', serif;
+    --sans:"Atkinson Hyperlegible", -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
     color:var(--ink); font-family:var(--sans); line-height:1.55;
     /* as a grid item of Quarto's page grid, allow shrinking below the
        rail's content width so the rail scrolls internally on phones */
@@ -43,23 +48,21 @@ under #loab so it can't fight the site theme.
   #loab button{font-family:inherit; cursor:pointer}
   #loab .wrap{max-width:1060px; margin:0 auto; padding:0 22px}
 
-  /* ---- masthead ---- */
-  #loab .masthead{border-bottom:3px double var(--navy); background:var(--paper); padding:34px 0 22px}
-  #loab .courseline{font-size:13px; color:var(--muted); letter-spacing:.02em; margin-bottom:10px}
-  #loab .courseline strong{color:var(--navy); font-weight:600}
-  #loab h1{font-family:var(--serif); color:var(--navy); font-size:clamp(34px,5vw,50px); line-height:1.05; font-weight:700; margin-bottom:10px; border:0; padding:0}
-  #loab .dek{font-size:16.5px; color:var(--ink); max-width:62ch}
+  /* ---- masthead: the site's title treatment (Garamond over a double
+     rule), compact, with the view toggle sharing the title row ---- */
+  #loab .masthead{border-bottom:3px double rgba(23,52,90,.5); padding:4px 0 14px; margin-bottom:2px}
+  #loab .mast-row{display:flex; align-items:center; justify-content:space-between; gap:18px; flex-wrap:wrap}
+  #loab h1{font-family:var(--serif); color:var(--navy); font-size:clamp(28px,3.6vw,38px); line-height:1.1; font-weight:500; margin:0; border:0; padding:0}
+  #loab .dek{font-size:14.5px; color:var(--ink); max-width:78ch; margin-top:7px}
   #loab .dek em{font-style:normal; border-bottom:2px solid var(--gold); }
-  #loab .actions{margin-top:18px; display:flex; gap:12px; flex-wrap:wrap; align-items:center}
   #loab .views{display:inline-flex; border:1px solid var(--navy); border-radius:8px; overflow:hidden}
   #loab .viewtab{background:#fff; color:var(--navy); border:0; padding:10px 18px; font-size:14.5px; font-weight:600}
   #loab .viewtab + .viewtab{border-left:1px solid var(--navy)}
   #loab .viewtab[aria-selected="true"]{background:var(--navy); color:#fff}
   #loab .viewtab:focus-visible{outline:3px solid var(--gold); outline-offset:-3px}
-  #loab .hint{font-size:13px; color:var(--muted)}
 
   /* ---- rail ---- */
-  #loab .railzone{padding:34px 0 6px; position:relative}
+  #loab .railzone{padding:16px 0 6px; position:relative}
   #loab .rail{display:flex; align-items:flex-start; position:relative; overflow-x:auto; padding:26px 4px 14px; scrollbar-width:thin}
   #loab .rail::before{content:""; position:absolute; left:34px; right:34px; top:47px; height:2px; background:var(--line)}
   #loab .stagebtn{flex:1 1 0; min-width:118px; background:none; border:0; text-align:center; position:relative; padding:0 6px}
@@ -159,15 +162,14 @@ under #loab so it can't fight the site theme.
 
 <header class="masthead">
   <div class="wrap">
-    <p class="courseline"><strong>POLI 109, State Legislative Simulation</strong> at UC Merced, <span id="meta-term"></span></p>
-    <h1>The Life of a Bill</h1>
-    <p class="dek">How a bill becomes a law in California, and how it works in <em>our simulation</em> — where your bill's journey ends at the Senate floor. Click any stage to see what's happening and what your role should be doing about it.</p>
-    <div class="actions">
+    <div class="mast-row">
+      <h1>The Life of a Bill</h1>
       <div class="views" role="tablist" aria-label="View">
         <button class="viewtab" data-view="stages" aria-selected="true">Stage by stage</button>
         <button class="viewtab" data-view="map" aria-selected="false">The map</button>
       </div>
     </div>
+    <p class="dek">How a bill becomes a law in California, and how it works in <em>our simulation</em> — where your bill's journey ends at the Senate floor. Click any stage to see what's happening and what your role should be doing about it.</p>
   </div>
 </header>
 
@@ -231,7 +233,6 @@ under #loab so it can't fight the site theme.
    ========================================================================= */
 const CONTENT = {
   meta: {
-    term: "Fall 2026",
     billsDue: "Wednesday, September 30",
     fiscal:   "Friday, November 6",
     approps:  "Friday, November 20",
@@ -565,7 +566,7 @@ function buildMap() {
     </defs>
     ${wash(143, 30, 424, 104, CONTENT.session[0].caption, 111)}
     ${wash(577, 30, 202, 104, CONTENT.session[1].caption, 111)}
-    ${wash(178, 168, 584, 94, CONTENT.session[2].caption, 253, 554)}
+    ${wash(200, 168, 542, 94, CONTENT.session[2].caption, 253, 554)}
     ${rule(150)}
     ${rule(312)}
 
@@ -587,8 +588,8 @@ function buildMap() {
     <text x="505" y="200" font-size="12" font-weight="700" fill="${navy}">yes</text>
     ${arrow(464, 208, 556, 208)}
     ${node(4, 560, 180, 182, "Appropriations", "⚑ out by " + (M.approps.split(", ").pop()), "#8a6d00")}
-    ${darr(744, 208, 772, 208)}
-    ${dead(776, 185, 150, "Dies in committee", "never heard, or held")}
+    ${darr(744, 208, 766, 208)}
+    ${dead(770, 185, 150, "Dies in committee", "never heard, or held")}
     ${elbow(456, 214, 280, 275, 336)}
     <text x="365" y="272" text-anchor="middle" font-size="12" font-weight="600" fill="${muted}">no — skips Appropriations</text>
     ${elbow(651, 238, 304, 307, 336)}
@@ -599,8 +600,8 @@ function buildMap() {
     ${dead(24, 345, 150, "Never taken up", "time runs out")}
     ${arrow(384, 368, 556, 368)}
     ${node(6, 560, 340, 196, "Third reading", "author presents, debate, vote")}
-    ${darr(758, 368, 786, 368)}
-    ${dead(790, 345, 168, "Passage refused")}
+    ${darr(758, 368, 780, 368)}
+    ${dead(784, 345, 168, "Passage refused")}
     ${arrow(658, 398, 658, 452)}
 
     <g class="mapnode" data-stage="6" tabindex="0" role="button" aria-label="Passed">
@@ -620,7 +621,6 @@ document.querySelectorAll("#loab .mapnode").forEach(n => {
 /* beyond + meta */
 $("beyond-note").innerHTML = CONTENT.beyondNote;
 $("ghosts").innerHTML = CONTENT.beyond.map((g) => `<div class="ghost"><h4>${g.t}</h4><p>${g.d}</p></div>`).join("");
-$("meta-term").textContent = CONTENT.meta.term;
 
 show(0);
 </script>
