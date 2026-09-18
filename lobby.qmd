@@ -35,7 +35,8 @@ tiles <- vapply(seq_len(nrow(lobbys)), function(i) {
 cat('<div class="tile-grid">', paste(tiles, collapse = "\n"), '</div>')
 ```
 
-<p class="table-note">These organizations are role-played by students in a course
-simulation. Everything filed under their names here — letters, contributions,
-and any accounts or materials students create elsewhere — is fictional
-classwork, not the words or work of the real organizations.</p>
+<p class="table-note">A note for students: these are real organizations,
+role-played for the simulation. Anything you create for the simulation
+outside this site — social-media accounts, posts, flyers, anything public —
+must be clearly marked as fictional UC Merced simulation work, so it can
+never be mistaken for the real organization.</p>

@@ -229,11 +229,6 @@ for (i in seq_len(nrow(lobbys))) {
     profile_tab,
     "",
     ":::",
-    "",
-    paste0('<p class="table-note">This organization is role-played by students ',
-           'in a course simulation. Everything filed under its name — here or ',
-           'anywhere students create materials for the simulation — is ',
-           'fictional classwork, not the words or work of the real organization.</p>'),
     ""
   )
 

@@ -86,7 +86,8 @@ if (nrow(news) > 0) {
 }
 ```
 
-<p class="table-note">These outlets are role-played by students in a course
-simulation. Everything published under their names — wire posts, editions,
-and any accounts or materials students create elsewhere — is fictional
-classwork, not the reporting of the real newspapers.</p>
+<p class="table-note">A note for students: these are real outlets, role-played
+for the simulation. Anything you create for the simulation outside this
+site — social-media accounts, posts, mock front pages, anything public —
+must be clearly marked as fictional UC Merced simulation work, so it can
+never be mistaken for the real newspaper.</p>

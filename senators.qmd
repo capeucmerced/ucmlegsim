@@ -58,3 +58,9 @@ if (any(has_profile)) {
 
 legsim_table(tbl, page_size = 20, columns = cols)
 ```
+
+<p class="table-note">A note for students: you are role-playing real,
+sitting senators. Anything you create for the simulation outside this
+site — social-media accounts, posts, press releases, anything public —
+must be clearly marked as fictional UC Merced simulation work, so it can
+never be mistaken for the real senator.</p>
