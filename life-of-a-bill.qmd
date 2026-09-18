@@ -118,6 +118,10 @@ under #loab so it can't fight the site theme.
   #loab .tips{list-style:none}
   #loab .tips li{position:relative; padding:0 0 10px 20px; font-size:14.2px; color:var(--ink)}
   #loab .tips li::before{content:""; position:absolute; left:0; top:7px; width:9px; height:9px; background:var(--rc,var(--gold)); border-radius:2px}
+  /* small grey footnote at the bottom of a stage card (optional per
+     stage via its note: field) */
+  #loab .stage-note{margin-top:16px; font-size:12.5px; color:var(--muted)}
+
   /* pager */
   #loab .pager{display:flex; justify-content:space-between; margin-top:22px; padding-top:16px; border-top:1px solid var(--line)}
   #loab .pager button{background:none; border:1px solid var(--navy); color:var(--navy); border-radius:6px; padding:8px 15px; font-size:13.5px; font-weight:600}
@@ -197,6 +201,7 @@ under #loab so it can't fight the site theme.
         <ul class="tips" id="tips"></ul>
       </aside>
     </div>
+    <p class="stage-note" id="s-note" hidden></p>
     <div class="pager">
       <button id="prevBtn">← Previous stage</button>
       <button id="nextBtn">Next stage →</button>
@@ -290,7 +295,8 @@ const CONTENT = {
       title: "Referral",
       short: "Bills routed to committees",
       real: "Each chamber's Rules Committee routes every bill to the policy committee that owns its subject — an agriculture bill goes to the Agriculture Committee.",
-      sim: "Once the Senate has organized, the Appropriations/Rules Committee — in our simulation, Rules and Appropriations are combined into a single committee — refers every bill to one of the three policy committees. Where your bill lands decides whose gavel controls its fate, and referral is a judgment call, which makes it politics.",
+      sim: "Once the Senate has organized, the Appropriations/Rules Committee refers every bill to one of the three policy committees. Where your bill lands decides whose gavel controls its fate, and referral is a judgment call, which makes it politics.",
+      note: "In our simulation, the Rules and Appropriations committees are combined into one body: the Appropriations/Rules Committee.",
       roles: {
         Senators: [
           "Watch where your bills are referred; the committee decides their fate.",
@@ -314,7 +320,7 @@ const CONTENT = {
       short: "The first real test",
       chip: "Fiscal bills must clear committee by {fiscal}",
       real: "The committee holds a hearing: the author presents, and citizens, experts, and lobbyists testify. Then the committee acts — pass, pass as amended, amend and re-refer, or hold the bill, where it dies.",
-      sim: "Your bill faces one of the three policy committees. Hearings run the same way: authors present, lobbyists testify, members question and then vote. Public comment is open to anyone not on the committee or defending the bill — step up as a quick “ten-second character”: an invented citizen or group with a real stake in the bill, never your simulation self. But the chair controls the agenda — a bill that never gets a hearing dies just as dead. Fiscal bills must clear their policy committee by {fiscal}.",
+      sim: "Your bill faces one of the three policy committees. Hearings run the same way: authors present, lobbyists testify, members question and then vote. Public comment is open to anyone not on the committee or defending the bill: step up as an invented “10-second” citizen or group with an interest in the bill, never as your simulation self. But the chair controls the agenda — a bill that never gets a hearing dies just as dead. Fiscal bills must clear their policy committee by {fiscal}.",
       roles: {
         Senators: [
           "Count the votes for and against your bill before the hearing, not during it.",
@@ -469,6 +475,8 @@ function show(i) {
   if (st.chip) { chip.hidden = false; chip.textContent = fill(st.chip); } else chip.hidden = true;
   $("s-real").textContent = fill(st.real);
   $("s-sim").textContent = fill(st.sim);
+  $("s-note").hidden = !st.note;
+  if (st.note) $("s-note").textContent = fill(st.note);
   renderTabs(); renderTips();
   [...rail.children].forEach((b, j) => b.classList.toggle("active", j === current));
   const ab = rail.children[current];
