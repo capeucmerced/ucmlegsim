@@ -165,6 +165,10 @@ live in the Sep 2026 beta — the scripts carry those fixes):
 3. Run **`syncRosterDropdowns()`** — fills the Spending recipient list
    and every Assignments-form picker. Rerun both whenever the Roster
    changes.
+   Also give each form's Settings a quick look before students get the
+   links: accepting responses on, *Collect email addresses → Verified*,
+   every question still required — undoing anything toggled by hand
+   during shakedown testing.
 4. After the class organizes, the Pro Tem (or you) submits the
    **Committee Assignments & Leadership** form — that single submission
    updates the site AND writes the vote workbook's senator columns by
