@@ -3,8 +3,10 @@
  *
  * Install: part of the "LegSim Intake" workbook's Apps Script project
  * (Extensions → Apps Script). One-time setup:
- *   1. Create a GitHub fine-grained token for the capeucmerced/ucmlegsim
- *      repo with "Contents: read" + "Actions/Workflows" write access.
+ *   1. Create a GitHub fine-grained token (resource owner: capeucmerced,
+ *      only the ucmlegsim repo) with "Contents: Read and write" — the
+ *      /dispatches endpoint requires contents write; no other permission
+ *      is needed.
  *   2. In the Apps Script editor: Project Settings → Script properties →
  *      add property GITHUB_TOKEN with the token as its value.
  *

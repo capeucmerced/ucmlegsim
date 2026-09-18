@@ -174,18 +174,30 @@ live in the Sep 2026 beta — the scripts carry those fixes):
 
 ## Launch day (the one push)
 
-1. Add the `GITHUB_TOKEN` script property: a fine-grained PAT for
-   `capeucmerced/ucmlegsim` (Contents: read; Actions/Workflows: write —
-   details in `rebuild.gs`'s header). Test it from the workbook's
-   **LegSim → Rebuild site now** menu: a run should appear under the
-   repo's Actions tab within seconds.
-2. In the repo's **Actions** tab, re-enable the scheduled workflow if
-   GitHub auto-disabled it (it does so after ~60 idle days).
+The order matters: a workflow GitHub has disabled ignores every
+trigger (including the push), and the dispatch test can only work
+after the merge, because only the new workflow on main listens for
+`repository_dispatch` — testing it earlier is a silent no-op.
+
+1. In the repo's **Actions** tab, re-enable the workflow if GitHub
+   auto-disabled it (it does so after ~60 days without repo activity —
+   a banner on the workflow says so, with an Enable button).
+2. Add the `GITHUB_TOKEN` script property: a fine-grained PAT, resource
+   owner `capeucmerced`, access to only the `ucmlegsim` repo, permission
+   **Contents: Read and write** (that is what GitHub's dispatches
+   endpoint requires; nothing else is needed — details in `rebuild.gs`'s
+   header). Set the expiration past the end of the semester. Don't test
+   it yet.
 3. Merge and push — the project's one push:
    `git checkout main && git merge revamp-2026 && git push`
 4. Watch the Actions run build and deploy; then hard-refresh
-   ucmlegsim.com.
-5. Live smoke test: post to the Wire (appears in seconds, no rebuild
+   ucmlegsim.com and spot-check `/archive/2025/`.
+5. Now test the token from the workbook's **LegSim → Rebuild site now**
+   menu: a run should appear under the repo's Actions tab within
+   seconds. (A 403 in the Apps Script log despite correct permissions
+   means the org restricts fine-grained PATs: Organization Settings →
+   Third-party Access → Personal access tokens.)
+6. Live smoke test: post to the Wire (appears in seconds, no rebuild
    needed) and file one submission (site updates after the triggered
    build finishes).
 
