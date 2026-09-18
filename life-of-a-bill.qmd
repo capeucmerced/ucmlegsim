@@ -167,7 +167,6 @@ under #loab so it can't fight the site theme.
         <button class="viewtab" data-view="stages" aria-selected="true">Stage by stage</button>
         <button class="viewtab" data-view="map" aria-selected="false">The map</button>
       </div>
-      <span class="hint">In stage view, use ← → to move — the bill follows you.</span>
     </div>
   </div>
 </header>
@@ -290,7 +289,7 @@ const CONTENT = {
       title: "Referral",
       short: "Bills routed to committees",
       real: "Each chamber's Rules Committee routes every bill to the policy committee that owns its subject — an agriculture bill goes to the Agriculture Committee.",
-      sim: "Once the Senate has organized, leadership refers every bill to one of the three policy committees. Where your bill lands decides whose gavel controls its fate — and referral is a judgment call, which makes it politics.",
+      sim: "Once the Senate has organized, the Appropriations/Rules Committee — in our simulation, Rules and Appropriations are combined into a single committee — refers every bill to one of the three policy committees. Where your bill lands decides whose gavel controls its fate, and referral is a judgment call, which makes it politics.",
       roles: {
         Senators: [
           "Watch where your bills are referred; the committee decides their fate.",
@@ -314,10 +313,10 @@ const CONTENT = {
       short: "The first real test",
       chip: "Fiscal bills must clear committee by {fiscal}",
       real: "The committee holds a hearing: the author presents, and citizens, experts, and lobbyists testify. Then the committee acts — pass, pass as amended, amend and re-refer, or hold the bill, where it dies.",
-      sim: "Your bill faces one of the three policy committees. Hearings run the same way: authors present, lobbyists testify, members question and then vote. But the chair controls the agenda — a bill that never gets a hearing dies just as dead. Fiscal bills must clear their policy committee by {fiscal}.",
+      sim: "Your bill faces one of the three policy committees. Hearings run the same way: authors present, lobbyists testify, members question and then vote. Public comment is open to anyone not on the committee or defending the bill — step up as a quick “ten-second character”: an invented citizen or group with a real stake in the bill, never your simulation self. But the chair controls the agenda — a bill that never gets a hearing dies just as dead. Fiscal bills must clear their policy committee by {fiscal}.",
       roles: {
         Senators: [
-          "Count your committee votes before the hearing, not during it.",
+          "Count the votes for and against your bill before the hearing, not during it.",
           "Prepare a tight author presentation, and arrange supportive witnesses.",
           "Use amendments strategically — to fix a bill, to win a vote, or to quietly gut one.",
           "Court the chair first — a bill that never makes the agenda dies without a vote.",
@@ -329,7 +328,7 @@ const CONTENT = {
         ],
         Journalists: [
           "Cover the hearings — the drama of the session lives here.",
-          "Report every roll call; committee votes are news.",
+          "Report the roll calls your readers should care about — committee votes are news.",
           "Keep a casualty list: which bills died, and who killed them.",
         ],
       },
@@ -337,9 +336,9 @@ const CONTENT = {
     {
       title: "Appropriations",
       short: "The money gate",
-      chip: "Out of Appropriations & Rules by {approps}",
+      chip: "Out of Appropriations/Rules by {approps}",
       real: "Any bill that spends significant money is re-referred to the fiscal committee before it can reach the floor — a second gate, where many bills quietly stall.",
-      sim: "Fiscal bills take the same extra step here. Everything must be out of Appropriations & Rules by {approps} — after that, what's left is what the floor will see.",
+      sim: "Fiscal bills take the same extra step here. Everything must be out of Appropriations/Rules by {approps} — after that, what's left is what the floor will see.",
       roles: {
         Senators: [
           "Know whether your bill is fiscal — if it is, this gate applies to you.",
@@ -354,6 +353,7 @@ const CONTENT = {
         Journalists: [
           "Follow the money: report what survived, and what it costs.",
           "The quiet deaths are stories too — who let a bill die, and why?",
+          "So are the quiet rewrites: bills that lived, but with their funding gutted or transformed.",
         ],
       },
     },
