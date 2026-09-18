@@ -121,8 +121,11 @@ under #loab so it can't fight the site theme.
   #loab .tips li{position:relative; padding:0 0 10px 20px; font-size:14.2px; color:var(--ink)}
   #loab .tips li::before{content:""; position:absolute; left:0; top:7px; width:9px; height:9px; background:var(--rc,var(--gold)); border-radius:2px}
   /* small grey footnote at the bottom of the "In the simulation" block
-     (optional per stage via its note: field) */
-  #loab .stage-note{margin-top:8px; font-size:12.5px; color:var(--muted)}
+     (optional per stage via its note: field). Selector carries the
+     .explain chain so it outranks the block's general paragraph rule. */
+  #loab .explain .stage-note{margin-top:10px; padding-top:7px;
+      border-top:1px solid var(--line); font-size:12px; line-height:1.45;
+      color:var(--muted)}
 
   /* pager */
   #loab .pager{display:flex; justify-content:space-between; margin-top:22px; padding-top:16px; border-top:1px solid var(--line)}
