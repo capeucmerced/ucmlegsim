@@ -58,23 +58,25 @@ if (length(links) > 0)
 
 ```{r outlets}
 #| results: asis
-# The outlet directory as tiles: each paper's initials as a monogram,
-# name beneath. A tile links to the outlet's article page when a Link is
-# set; until then it stands as a nameplate.
+# The outlet directory as tiles: each paper's FULL name as its
+# nameplate, in journalist purple (the role's canonical color), type
+# sized to the name's length. A tile links to the outlet's article page
+# when a Link is set; until then it stands as a nameplate.
 news <- tryCatch(read.csv(JOURNALIST_CSV), error = function(e) data.frame())
 
 if (nrow(news) > 0) {
   tiles <- vapply(seq_len(nrow(news)), function(i) {
     outlet <- news$Newspaper[i]
-    initials <- paste(substr(strsplit(outlet, "\\s+")[[1]], 1, 1), collapse = "")
-    face <- sprintf('<span class="tile-mono">%s</span>', toupper(substr(initials, 1, 3)))
+    size <- if (nchar(outlet) <= 12) "1.35rem"
+            else if (nchar(outlet) <= 20) "1.12rem" else "0.98rem"
+    inner <- sprintf('<span class="tile-title" style="font-size:%s">%s</span>',
+                     size, outlet)
 
     link <- news$Link[i]
-    inner <- sprintf('%s<span class="tile-name">%s</span>', face, outlet)
     if (!is.na(link) && link != "") {
-      sprintf('<a class="tile" href="%s" target="_blank" rel="noopener">%s</a>', link, inner)
+      sprintf('<a class="tile paper" href="%s" target="_blank" rel="noopener">%s</a>', link, inner)
     } else {
-      sprintf('<div class="tile" title="Articles coming soon">%s</div>', inner)
+      sprintf('<div class="tile paper" title="Articles coming soon">%s</div>', inner)
     }
   }, character(1))
 

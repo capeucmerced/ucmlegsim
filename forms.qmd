@@ -21,32 +21,34 @@ urls <- load_form_urls()
 
 # One "drawer" per role. Links come from the gateway (?view=forms), so
 # they are always current — nothing here changes at yearly turnover.
-drawer <- function(title, items) {
+# Each drawer heading carries its role's canonical color as a small tick
+# (classes styled in brand.scss).
+drawer <- function(title, role_class, items) {
   have <- items[names(items) %in% names(urls)]
   if (length(have) == 0) return(invisible(NULL))
-  cat(sprintf("\n### %s\n\n", title))
+  cat(sprintf('\n<h3 class="drawer %s">%s</h3>\n\n', role_class, title))
   cat(sprintf("- [%s](%s)\n", unname(have), urls[names(have)]), sep = "")
 }
 
 if (is.null(urls)) {
   cat("*The cabinet opens when the session begins.*")
 } else {
-  drawer("Everyone", c(
+  drawer("Everyone", "role-all", c(
     Registration = "Register for the simulation",
     Profiles     = "Upload your role profile"
   ))
-  drawer("Senators", c(
+  drawer("Senators", "role-senator", c(
     Bills = "File a bill — or an amendment to one of yours"
   ))
-  drawer("Lobbyists", c(
+  drawer("Lobbyists", "role-lobbyist", c(
     Letters  = "File a position letter",
     Spending = "Report a contribution"
   ))
-  drawer("Journalists", c(
+  drawer("Journalists", "role-journalist", c(
     Posts    = "Post to the Wire",
     Editions = "Publish a newspaper edition"
   ))
-  drawer("Leadership & chairs", c(
+  drawer("Leadership & chairs", "role-leadership", c(
     Assignments    = "Committee assignments & leadership",
     Referrals      = "Refer bills to committee",
     `Agenda LGL`   = "File an agenda — Local Government and Labor",

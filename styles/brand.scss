@@ -44,6 +44,14 @@ $navbar-bg: $navy;
 $navbar-fg: rgba($paper, 0.92);
 $navbar-hl: $gold;
 
+// Canonical role colors, matching the Life of a Bill playbook:
+// senators in chamber red, lobbyists in green, journalists in purple.
+// Used sparingly — only in small touches where color distinguishes the
+// roles (never as page theming).
+$role-senator:    #9D2235;
+$role-lobbyist:   #1E6B4E;
+$role-journalist: #5F3A8E;
+
 $table-striped-bg: rgba($navy, 0.035);
 
 /*-- scss:rules --*/
@@ -116,6 +124,22 @@ html { background: $paper; }
     row-gap: 0;
   }
 }
+
+// Filing Cabinet drawer headings: a small role-colored tick before the
+// name — the one-glance "whose drawer is this" cue.
+h3.drawer::before {
+  content: "";
+  display: inline-block;
+  width: 0.55rem;
+  height: 0.55rem;
+  border-radius: 2px;
+  margin-right: 0.55rem;
+  background: $navy;
+}
+h3.drawer.role-senator::before    { background: $role-senator; }
+h3.drawer.role-lobbyist::before   { background: $role-lobbyist; }
+h3.drawer.role-journalist::before { background: $role-journalist; }
+h3.drawer.role-leadership::before { background: $gold; }
 
 // Content-page titles get the stationery treatment: Garamond over a
 // double rule, with room to breathe.
@@ -326,6 +350,21 @@ h1, h2, h3 {
     text-transform: uppercase;
     line-height: 1.3;
     opacity: 0.94;
+  }
+
+  // Newspaper nameplates: the full outlet name IS the tile face (no
+  // invented initials), set in the display face on journalist purple.
+  // The chunk sizes the type to the name's length.
+  &.paper {
+    background: $role-journalist;
+
+    .tile-title {
+      font-family: $headings-font-family;
+      font-weight: 600;
+      line-height: 1.16;
+      text-wrap: balance;
+      padding: 0 0.15rem;
+    }
   }
 
   .tile-badge {

@@ -27,9 +27,18 @@ senators <- load_senators() |>
 districts <- left_join(districts, senators, by = c("district" = "District"))
 
 # Esri's gray canvas needs no API key (Carto's tiles now watermark
-# keyless use) and suits the muted paper palette.
+# keyless use) and suits the muted paper palette. Its matching
+# REFERENCE layer adds city/place names for orientation — drawn in a
+# high pane so the labels float above the district fills (tile layers
+# don't catch clicks, so the districts stay clickable).
 map <- leaflet(districts) |>
   addProviderTiles(providers$Esri.WorldGrayCanvas) |>
+  addMapPane("place-labels", zIndex = 650) |>
+  addTiles(
+    urlTemplate = "https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Reference/MapServer/tile/{z}/{y}/{x}",
+    attribution = "Labels © Esri",
+    options = tileOptions(pane = "place-labels")
+  ) |>
   addPolygons(
     weight = 1,
     opacity = 1,
