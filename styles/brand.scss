@@ -54,6 +54,10 @@ html { background: $paper; }
 // --- Navbar: navy bar finished with a gold hairline ------------------------
 .navbar {
   border-bottom: 2px solid $gold;
+  // Tight vertical rhythm: the (possibly two) tab rows sit close to
+  // each other and to the bar's edges
+  padding-top: 0.3rem;
+  padding-bottom: 0.3rem;
 
   // The corner lockup: a miniature of the front page's letterhead —
   // blackletter wordmark with a micro small-caps subline in gold.
@@ -92,8 +96,11 @@ html { background: $paper; }
     letter-spacing: 0.12em;
     text-transform: uppercase;
     // A tab is never split across lines — mid-width screens flow whole
-    // tabs onto a second row instead (see .navbar-nav below)
+    // tabs onto a second row instead (see .navbar-nav below); slim
+    // vertical padding keeps the wrapped rows snug
     white-space: nowrap;
+    padding-top: 0.22rem !important;
+    padding-bottom: 0.22rem !important;
 
     &:hover, &.active {
       color: $gold !important;
