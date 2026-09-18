@@ -45,7 +45,7 @@ The master mapping of people to roles. One row per student.
 | Email | The Google account the student registered with (lowercase) |
 | Role | `senator` / `lobbyist` / `journalist` |
 | District | Senators only: 1–40 |
-| First Name / Last Name | Senators: their senator persona’s name |
+| First Name / Last Name | Senators: their senator persona’s name. Lobbyists/journalists: BLANK (no real student names on the site — Wire bylines fall back to the Outlet or "Staff"); a pen name here becomes the byline |
 | Party | Senators only: `D` / `R` |
 | Org Code | Lobbyists only: code from `lobbyist_list.csv` (e.g. `ENV`) |
 | Outlet | Journalists only: newspaper name |

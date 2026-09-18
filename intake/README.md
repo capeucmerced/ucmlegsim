@@ -157,8 +157,10 @@ live in the Sep 2026 beta — the scripts carry those fixes):
    from `files/csvs/senator_list.csv` (First/Last/District/Party must
    match it exactly; that's how votes and bills join), lobbyists get
    their Org Code, journalists their Outlet. Emails never reach the
-   site; names are whatever you enter — pen names are fine for
-   journalists/lobbyists if you want no real names anywhere.
+   site. **Leave First/Last blank for lobbyists and journalists** — no
+   real student names anywhere: Wire bylines then fall back to the
+   outlet (journalists) or "Staff" (lobbyists). A pen name in those
+   cells becomes the byline, if one is ever wanted.
 2. Run **`provisionBillDocs()`** — rerun until it says nothing left to
    do (each run may stop at the 6-minute limit). Each senator gets
    Draft A/B docs shared to their email automatically.
