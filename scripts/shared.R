@@ -28,8 +28,14 @@ AGENDAS_DIR       <- "files/pdfs/agendas"
 PROFILE_DIR       <- "files/pdfs/role_profiles"
 SEN_PROFILE_DIR   <- "files/pdfs/role_profiles/senators"
 LOBBY_PROFILE_DIR <- "files/pdfs/role_profiles/lobbyists"
-# journalists' profiles sync into role_profiles/journalists — collected
-# now, displayed once per-journalist pages exist
+JOUR_PROFILE_DIR  <- "files/pdfs/role_profiles/journalists"
+
+# Filename slug for a journalist outlet — MUST mirror the intake
+# router's naming (intake_workbook.gs): lowercase, runs of non-
+# alphanumerics to "_", trimmed. "The Press-Enterprise" -> the_press_enterprise
+outlet_slug <- function(x) {
+  gsub("^_+|_+$", "", gsub("[^a-z0-9]+", "_", tolower(trimws(x))))
+}
 
 # Where the generated pages go (created by the make_*.R scripts each render)
 BILL_PAGES_DIR    <- "bills-pages"

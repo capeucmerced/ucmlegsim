@@ -60,8 +60,10 @@ if (length(links) > 0)
 #| results: asis
 # The outlet directory as tiles: each paper's FULL name as its
 # nameplate, in journalist purple (the role's canonical color), type
-# sized to the name's length. A tile links to the outlet's article page
-# when a Link is set; until then it stands as a nameplate.
+# sized to the name's length. The face links to the outlet's article
+# page when a Link is set; a "Profile" chip appears at the tile's foot
+# once the outlet's uploaded role profile has synced in.
+sync_intake_profiles()
 news <- tryCatch(read.csv(JOURNALIST_CSV), error = function(e) data.frame())
 
 if (nrow(news) > 0) {
@@ -73,11 +75,18 @@ if (nrow(news) > 0) {
                      size, outlet)
 
     link <- news$Link[i]
-    if (!is.na(link) && link != "") {
-      sprintf('<a class="tile paper" href="%s" target="_blank" rel="noopener">%s</a>', link, inner)
+    face <- if (!is.na(link) && link != "") {
+      sprintf('<a class="tile-face" href="%s" target="_blank" rel="noopener">%s</a>', link, inner)
     } else {
-      sprintf('<div class="tile paper" title="Articles coming soon">%s</div>', inner)
+      sprintf('<span class="tile-face">%s</span>', inner)
     }
+
+    profile_pdf <- sprintf("%s/%s_profile.pdf", JOUR_PROFILE_DIR, outlet_slug(outlet))
+    chip <- if (file.exists(profile_pdf)) {
+      sprintf('<a class="tile-chip" href="%s" target="_blank" rel="noopener">Profile</a>', profile_pdf)
+    } else ""
+
+    sprintf('<div class="tile paper">%s%s</div>', face, chip)
   }, character(1))
 
   cat('<div class="tile-grid">', paste(tiles, collapse = "\n"), '</div>')
