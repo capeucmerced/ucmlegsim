@@ -412,7 +412,7 @@ const CONTENT = {
   // editorials) belongs in the role playbooks, not pinned to one spot.
   session: [
     { caption: "session opens — register, get roles, post profiles" },
-    { caption: "the Senate organizes — leaders elected, committees seated" },
+    { caption: "the Senate organizes — leaders & committees chosen" },
     { caption: "chairs set each hearing's agenda" },
   ],
 
@@ -546,12 +546,15 @@ function buildMap() {
   // the map where each happens — spatial like everything else, but
   // unmistakably not a node on any bill's path. Captions come from
   // CONTENT.session; an " — " splits a caption onto two lines.
-  const wash = (x, y, w, h, caption, capY) => {
+  // capX lets a caption slide off the wash's center when a flow line
+  // descends through it — text never sits on a line.
+  const wash = (x, y, w, h, caption, capY, capX) => {
+    const cx = capX || x + w / 2;
     const lines = String(caption).split(" — ");
     return `
     <rect x="${x}" y="${y}" width="${w}" height="${h}" rx="12" fill="#C99A00" fill-opacity="0.13"/>
     ${lines.map((l, i) =>
-      `<text x="${x + w / 2}" y="${capY + i * 13}" text-anchor="middle" font-size="10.5" font-style="italic" font-weight="600" fill="#8a6d00">${l}</text>`
+      `<text x="${cx}" y="${capY + i * 13}" text-anchor="middle" font-size="10.5" font-style="italic" font-weight="600" fill="#8a6d00">${l}</text>`
     ).join("")}`;
   };
 
@@ -562,7 +565,7 @@ function buildMap() {
     </defs>
     ${wash(143, 30, 424, 94, CONTENT.session[0].caption, 104)}
     ${wash(577, 30, 202, 94, CONTENT.session[1].caption, 104)}
-    ${wash(178, 168, 584, 84, CONTENT.session[2].caption, 246)}
+    ${wash(178, 168, 584, 84, CONTENT.session[2].caption, 246, 554)}
     ${rule(150)}
     ${rule(312)}
 
@@ -572,7 +575,7 @@ function buildMap() {
     ${node(1, 385, 42, 170, "Introduction")}
     ${arrow(557, 70, 611, 70)}
     ${node(2, 615, 42, 150, "Referral")}
-    ${elbow(690, 100, 140, 291, 176)}
+    ${elbow(757, 100, 140, 291, 176)}
 
     ${band("THE COMMITTEES", 172)}
     ${node(3, 200, 180, 182, "Policy committee", "⚑ clear by " + (M.fiscal.split(", ").pop()), "#8a6d00")}
