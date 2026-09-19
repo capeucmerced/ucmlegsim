@@ -12,7 +12,7 @@ execute:
 
 ::: {.grid}
 
-::: {.g-col-12 .g-col-lg-7}
+::: {.g-col-12 .g-col-lg-4}
 
 ## The Wire
 
@@ -35,7 +35,7 @@ if (length(links) > 0)
 
 :::
 
-::: {.g-col-12 .g-col-lg-5}
+::: {.g-col-12 .g-col-lg-8}
 
 ## The Papers
 
@@ -72,8 +72,8 @@ news <- tryCatch(read.csv(JOURNALIST_CSV), error = function(e) data.frame())
 if (nrow(news) > 0) {
   tiles <- vapply(seq_len(nrow(news)), function(i) {
     outlet <- news$Newspaper[i]
-    size <- if (nchar(outlet) <= 12) "1.05rem"
-            else if (nchar(outlet) <= 20) "0.9rem" else "0.78rem"
+    size <- if (nchar(outlet) <= 12) "1.15rem"
+            else if (nchar(outlet) <= 20) "0.98rem" else "0.85rem"
     inner <- sprintf('<span class="tile-title" style="font-size:%s">%s</span>',
                      size, outlet)
     sprintf('<a class="tile paper" href="%s/%s.html">%s</a>',

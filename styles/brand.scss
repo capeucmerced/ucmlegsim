@@ -313,9 +313,11 @@ h1, h2, h3 {
   gap: 0.9rem;
   margin: 1rem 0;
 
-  // The Papers column packs smaller nameplates, three to a row
+  // The Papers column packs smaller nameplates — at full width the ten
+  // papers land as two even rows of five
   &.papers {
-    grid-template-columns: repeat(auto-fill, minmax(7.8rem, 1fr));
+    // (the root font is 17px, so sizing here counts in 17px rems)
+    grid-template-columns: repeat(auto-fill, minmax(8.2rem, 1fr));
     gap: 0.7rem;
   }
 }
