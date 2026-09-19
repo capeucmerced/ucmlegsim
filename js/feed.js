@@ -9,10 +9,12 @@
 // containers show a quiet placeholder instead.
 //
 // Usage on a page:
-//   <div class="wire-feed" data-journalist=""></div>
+//   <div class="wire-feed" data-outlet=""></div>
 //   <script src="js/feed.js"></script>
-// data-journalist="Name" limits the feed to one journalist's posts
-// (used on the per-journalist pages); empty shows everyone.
+// data-outlet="Fresno Bee" limits the feed to one outlet's posts (used
+// on the per-outlet journalist pages); empty shows everyone. Filtering
+// is by outlet, not name — journalist roster names stay blank so posts
+// byline anonymously under the paper's nameplate.
 
 // The DEPARTMENT account's 2026 gateway (matches INTAKE_API_URL in
 // scripts/shared.R; changes once a year at turnover).
@@ -98,8 +100,8 @@ var REFRESH_SECONDS = 60;    // gentle background refresh while the page is open
   }
 
   function fillContainer(container, posts) {
-    var only = container.getAttribute("data-journalist") || "";
-    var shown = only ? posts.filter(function (p) { return p.name === only; }) : posts;
+    var only = container.getAttribute("data-outlet") || "";
+    var shown = only ? posts.filter(function (p) { return p.outlet === only; }) : posts;
     var limit = parseInt(container.getAttribute("data-limit") || "0", 10);
     if (limit > 0) shown = shown.slice(0, limit);
 

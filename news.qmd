@@ -2,7 +2,7 @@
 title: "News"
 format:
   html:
-    page-layout: article
+    page-layout: full
     toc: false
 execute:
   echo: false
@@ -10,38 +10,17 @@ execute:
   message: false
 ---
 
+::: {.grid}
+
+::: {.g-col-12 .g-col-lg-7}
+
 ## The Wire
-
-```{r editions-margin}
-#| results: asis
-source("scripts/shared.R")
-
-# Quick links to the class newspaper's editions, kept in the right margin.
-newspaper <- load_intake_editions()
-
-if (nrow(newspaper) > 0 && all(c("Edition", "Link") %in% names(newspaper))) {
-  eds <- newspaper |> filter(!is.na(Link) & Link != "")
-  if (nrow(eds) > 0) {
-    eds <- eds[rev(seq_len(nrow(eds))), ]  # newest first
-    items <- sprintf(
-      '<li><a href="%s" target="_blank" rel="noopener">%s</a>%s</li>',
-      eds$Link,
-      ifelse(grepl("^[0-9]+$", eds$Edition), paste("Edition", eds$Edition), eds$Edition),
-      ifelse(is.na(eds$Date) | eds$Date == "", "", paste0(" · ", eds$Date))
-    )
-    cat('::: {.column-margin}\n',
-        '<div class="margin-editions"><span class="margin-label">Class Newspaper</span><ul>',
-        paste(items, collapse = ""),
-        '</ul></div>\n',
-        ':::\n', sep = "")
-  }
-}
-```
 
 Live dispatches from the press corps — newest first.
 
 ```{r press-links}
 #| results: asis
+source("scripts/shared.R")
 pw <- form_url("Posts"); pe <- form_url("Editions")
 links <- c(
   if (!is.na(pw)) sprintf('<a href="%s">Post to the Wire</a>', pw),
@@ -54,16 +33,40 @@ if (length(links) > 0)
 <div class="wire-feed"></div>
 <script src="js/feed.js"></script>
 
+:::
+
+::: {.g-col-12 .g-col-lg-5}
+
 ## The Papers
+
+```{r editions-links}
+#| results: asis
+# Quick links to the class newspaper's editions, atop the outlet column.
+newspaper <- load_intake_editions()
+
+if (nrow(newspaper) > 0 && all(c("Edition", "Link") %in% names(newspaper))) {
+  eds <- newspaper |> filter(!is.na(Link) & Link != "")
+  if (nrow(eds) > 0) {
+    eds <- eds[rev(seq_len(nrow(eds))), ]  # newest first
+    items <- sprintf(
+      '<li><a href="%s" target="_blank" rel="noopener">%s</a>%s</li>',
+      eds$Link,
+      ifelse(grepl("^[0-9]+$", eds$Edition), paste("Edition", eds$Edition), eds$Edition),
+      ifelse(is.na(eds$Date) | eds$Date == "", "", paste0(" · ", eds$Date))
+    )
+    cat('<div class="margin-editions"><span class="margin-label">Class Newspaper</span><ul>',
+        paste(items, collapse = ""),
+        '</ul></div>', sep = "")
+  }
+}
+```
 
 ```{r outlets}
 #| results: asis
 # The outlet directory as tiles: each paper's FULL name as its
 # nameplate, in journalist purple (the role's canonical color), type
-# sized to the name's length. The face links to the outlet's article
-# page when a Link is set; a "Profile" chip appears at the tile's foot
-# once the outlet's uploaded role profile has synced in.
-sync_intake_profiles()
+# sized to the name's length. Every tile links to the outlet's own page
+# (wire history + role profile), which always exists.
 news <- tryCatch(read.csv(JOURNALIST_CSV), error = function(e) data.frame())
 
 if (nrow(news) > 0) {
@@ -73,20 +76,8 @@ if (nrow(news) > 0) {
             else if (nchar(outlet) <= 20) "1.12rem" else "0.98rem"
     inner <- sprintf('<span class="tile-title" style="font-size:%s">%s</span>',
                      size, outlet)
-
-    link <- news$Link[i]
-    face <- if (!is.na(link) && link != "") {
-      sprintf('<a class="tile-face" href="%s" target="_blank" rel="noopener">%s</a>', link, inner)
-    } else {
-      sprintf('<span class="tile-face">%s</span>', inner)
-    }
-
-    profile_pdf <- sprintf("%s/%s_profile.pdf", JOUR_PROFILE_DIR, outlet_slug(outlet))
-    chip <- if (file.exists(profile_pdf)) {
-      sprintf('<a class="tile-chip" href="%s" target="_blank" rel="noopener">Profile</a>', profile_pdf)
-    } else ""
-
-    sprintf('<div class="tile paper">%s%s</div>', face, chip)
+    sprintf('<a class="tile paper" href="%s/%s.html">%s</a>',
+            JOURNALIST_PAGES_DIR, outlet_slug(outlet), inner)
   }, character(1))
 
   cat('<div class="tile-grid">', paste(tiles, collapse = "\n"), '</div>')
@@ -100,3 +91,7 @@ for the simulation. Anything you create for the simulation outside this
 site — social-media accounts, posts, mock front pages, anything public —
 must be clearly marked as fictional UC Merced simulation work, so it can
 never be mistaken for the real newspaper.</p>
+
+:::
+
+:::

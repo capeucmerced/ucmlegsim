@@ -8,12 +8,14 @@ project:
     - "bills-pages/"
     - "senator-pages/"
     - "lobby-pages/"
+    - "journalist-pages/"
   # These run before every render and (re)generate the per-bill, per-senator,
-  # and per-lobby pages from the data in files/ and the vote sheets.
+  # per-lobby, and per-outlet pages from the data in files/ and the vote sheets.
   pre-render:
     - Rscript scripts/make_bill_pages.R
     - Rscript scripts/make_senator_pages.R
     - Rscript scripts/make_lobby_pages.R
+    - Rscript scripts/make_journalist_pages.R
   # Copied into the site verbatim. archive/ holds prior years' sites
   # (see archive/index.html) and must never be rendered or altered.
   resources:

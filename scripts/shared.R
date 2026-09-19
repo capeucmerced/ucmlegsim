@@ -38,8 +38,9 @@ outlet_slug <- function(x) {
 }
 
 # Where the generated pages go (created by the make_*.R scripts each render)
-BILL_PAGES_DIR    <- "bills-pages"
-SENATOR_PAGES_DIR <- "senator-pages"
+BILL_PAGES_DIR       <- "bills-pages"
+SENATOR_PAGES_DIR    <- "senator-pages"
+JOURNALIST_PAGES_DIR <- "journalist-pages"
 LOBBY_PAGES_DIR   <- "lobby-pages"
 
 # --- Live Google Sheets (published-to-web CSV links) ------------------------

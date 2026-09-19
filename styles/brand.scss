@@ -359,44 +359,6 @@ h1, h2, h3 {
   // Newspaper nameplates: the full outlet name IS the tile face (no
   // invented initials), set in the display face on journalist purple.
   // The chunk sizes the type to the name's length.
-  // The clickable face of a two-part tile (nameplate link + chip): it
-  // fills the square so the whole tile stays the click target, while
-  // the chip floats above it as its own link.
-  .tile-face {
-    position: absolute;
-    inset: 0;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    color: inherit;
-    text-decoration: none;
-  }
-
-  // The small pill at a tile's foot (e.g. a paper's role profile)
-  .tile-chip {
-    position: absolute;
-    left: 50%;
-    transform: translateX(-50%);
-    bottom: 0.55rem;
-    z-index: 2;
-    font-size: 0.58rem;
-    font-weight: 700;
-    letter-spacing: 0.09em;
-    text-transform: uppercase;
-    padding: 0.2rem 0.6rem;
-    border-radius: 999px;
-    background: rgba(255, 255, 255, 0.16);
-    color: rgba(255, 255, 255, 0.92);
-    text-decoration: none;
-
-    &:hover {
-      background: $gold;
-      color: $navy;
-      text-decoration: none;
-    }
-  }
-
   &.paper {
     background: $role-journalist;
 

@@ -35,7 +35,8 @@ if (is.null(urls)) {
 } else {
   drawer("Everyone", "role-all", c(
     Registration = "Register for the simulation",
-    Profiles     = "Upload your role profile"
+    Profiles     = "Upload your role profile",
+    ROLECHECK    = "Check my role — the system emails you who it thinks you are"
   ))
   drawer("Senators", "role-senator", c(
     Bills = "File a bill — or an amendment to one of yours"
