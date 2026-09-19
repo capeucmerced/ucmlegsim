@@ -72,15 +72,15 @@ news <- tryCatch(read.csv(JOURNALIST_CSV), error = function(e) data.frame())
 if (nrow(news) > 0) {
   tiles <- vapply(seq_len(nrow(news)), function(i) {
     outlet <- news$Newspaper[i]
-    size <- if (nchar(outlet) <= 12) "1.35rem"
-            else if (nchar(outlet) <= 20) "1.12rem" else "0.98rem"
+    size <- if (nchar(outlet) <= 12) "1.05rem"
+            else if (nchar(outlet) <= 20) "0.9rem" else "0.78rem"
     inner <- sprintf('<span class="tile-title" style="font-size:%s">%s</span>',
                      size, outlet)
     sprintf('<a class="tile paper" href="%s/%s.html">%s</a>',
             JOURNALIST_PAGES_DIR, outlet_slug(outlet), inner)
   }, character(1))
 
-  cat('<div class="tile-grid">', paste(tiles, collapse = "\n"), '</div>')
+  cat('<div class="tile-grid papers">', paste(tiles, collapse = "\n"), '</div>')
 } else {
   cat("Newspaper list not available yet.\n")
 }

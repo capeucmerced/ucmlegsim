@@ -36,10 +36,10 @@ if (is.null(urls)) {
   drawer("Everyone", "role-all", c(
     Registration = "Register for the simulation",
     Profiles     = "Upload your role profile",
-    ROLECHECK    = "Check my role — the system emails you who it thinks you are"
+    ROLECHECK    = "Check my role"
   ))
   drawer("Senators", "role-senator", c(
-    Bills = "File a bill — or an amendment to one of yours"
+    Bills = "File or amend a bill"
   ))
   drawer("Lobbyists", "role-lobbyist", c(
     Letters  = "File a position letter",

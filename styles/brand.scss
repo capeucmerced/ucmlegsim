@@ -312,6 +312,12 @@ h1, h2, h3 {
   grid-template-columns: repeat(auto-fill, minmax(10.5rem, 1fr));
   gap: 0.9rem;
   margin: 1rem 0;
+
+  // The Papers column packs smaller nameplates, three to a row
+  &.papers {
+    grid-template-columns: repeat(auto-fill, minmax(7.8rem, 1fr));
+    gap: 0.7rem;
+  }
 }
 
 .tile {

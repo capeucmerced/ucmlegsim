@@ -131,23 +131,23 @@ for (i in seq_len(nrow(lobbys))) {
     spend_html <- "No spending data available for this lobby group."
   }
 
-  # --- Profile tab (only once the org's profile PDF exists) ----------------
+  # --- Profile tab (always present; shows the PDF once it exists) ----------
   profile_file <- paste0(lobby_code, "_profile.pdf")
   has_profile  <- file.exists(file.path(LOBBY_PROFILE_DIR, profile_file))
-  profile_tab  <- if (has_profile) {
-    c(
-      "",
-      "## Profile",
-      "",
-      sprintf("[View Profile](../%s/%s)", LOBBY_PROFILE_DIR, profile_file),
-      "",
-      sprintf('<iframe src="../%s/%s" width="100%%" height="600px"></iframe>',
-              LOBBY_PROFILE_DIR, profile_file),
-      ""
-    )
-  } else {
-    character(0)
-  }
+  profile_tab  <- c(
+    "",
+    "## Profile",
+    "",
+    if (has_profile) {
+      c(sprintf("[View Profile](../%s/%s)", LOBBY_PROFILE_DIR, profile_file),
+        "",
+        sprintf('<iframe src="../%s/%s" width="100%%" height="600px"></iframe>',
+                LOBBY_PROFILE_DIR, profile_file))
+    } else {
+      "*Role profile not posted yet.*"
+    },
+    ""
+  )
 
   # --- Assemble the page ---------------------------------------------------
   yaml <- c(
