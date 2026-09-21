@@ -188,21 +188,24 @@ after the merge, because only the new workflow on main listens for
 1. In the repo's **Actions** tab, re-enable the workflow if GitHub
    auto-disabled it (it does so after ~60 days without repo activity —
    a banner on the workflow says so, with an Enable button).
-2. Add the `GITHUB_TOKEN` script property: a fine-grained PAT, resource
-   owner `capeucmerced`, access to only the `ucmlegsim` repo, permission
-   **Contents: Read and write** (that is what GitHub's dispatches
-   endpoint requires; nothing else is needed — details in `rebuild.gs`'s
-   header). Set the expiration past the end of the semester. Don't test
-   it yet.
+2. Add the `GITHUB_TOKEN` script property: a **classic** PAT
+   (github.com/settings/tokens → Tokens (classic)), scope
+   **`public_repo`** only, expiration past the end of the semester,
+   minted by an account with write access — signed in as `capeucmerced`
+   itself is best (no dependence on any individual's access).
+   Fine-grained tokens cannot work here: `capeucmerced` is a plain user
+   account, not an org, and fine-grained PATs can only target your own
+   account or an org you belong to (TA-GUIDE.md §4 tells the whole
+   story). Don't test it yet.
 3. Merge and push — the project's one push:
    `git checkout main && git merge revamp-2026 && git push`
 4. Watch the Actions run build and deploy; then hard-refresh
    ucmlegsim.com and spot-check `/archive/2025/`.
 5. Now test the token from the workbook's **LegSim → Rebuild site now**
    menu: a run should appear under the repo's Actions tab within
-   seconds. (A 403 in the Apps Script log despite correct permissions
-   means the org restricts fine-grained PATs: Organization Settings →
-   Third-party Access → Personal access tokens.)
+   seconds. (A 401/403 in the Apps Script executions log means the
+   token expired, lacks the `public_repo` scope, or its account lost
+   write access to the repo.)
 6. Live smoke test: post to the Wire (appears in seconds, no rebuild
    needed) and file one submission (site updates after the triggered
    build finishes).

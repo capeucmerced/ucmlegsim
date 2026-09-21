@@ -5,6 +5,12 @@ site for the UC Merced CA Legislative Simulation course. It is a
 [Quarto](https://quarto.org) website: the pages are written in R, rendered to
 HTML by GitHub Actions, and served on GitHub Pages. Nobody edits HTML by hand.
 
+**New TA?** Start with **[TA-GUIDE.md](TA-GUIDE.md)** — the full
+walkthrough of what this all is, the access to arrange, the semester
+rhythm, and what to do when something breaks. This README is the quick
+reference; the step-by-step runbooks live in
+[intake/README.md](intake/README.md).
+
 ## How the site updates
 
 1. Data lives in `files/` (CSVs and PDFs) and in published Google Sheets
@@ -12,9 +18,10 @@ HTML by GitHub Actions, and served on GitHub Pages. Nobody edits HTML by hand.
 2. On every push to `main` — and hourly as a backstop — GitHub Actions
    renders the whole site and deploys it. The workflow is
    `.github/workflows/update-site.yml`.
-3. Before each render, three scripts regenerate the per-bill, per-senator,
-   and per-lobby pages from the data (`scripts/make_*.R`). Those generated
-   pages are **not** kept in the repository — they are rebuilt every time.
+3. Before each render, four scripts regenerate the per-bill, per-senator,
+   per-lobby, and per-outlet pages from the data (`scripts/make_*.R`). Those
+   generated pages are **not** kept in the repository — they are rebuilt
+   every time.
 
 To force an immediate rebuild: GitHub → Actions → "Build and Deploy Site" →
 "Run workflow".
@@ -23,7 +30,7 @@ To force an immediate rebuild: GitHub → Actions → "Build and Deploy Site" �
 
 | Path | What it is |
 | --- | --- |
-| `*.qmd` (top level) | The eight main pages (Home, Bills, Senators, Votes, Districts, Agendas, Lobbyists, News) |
+| `*.qmd` (top level) | The main pages (Home, Bills, Committees, Votes, Senators, Lobbyists, News, Stats, Districts, Life of a Bill, Filing Cabinet, Playbook) |
 | `scripts/shared.R` | **The one place** for data locations, Google Sheet URLs, committee names, and shared loading/cleaning functions |
 | `scripts/make_*.R` | Generators that write one page per bill / senator / lobby before each render |
 | `scripts/archive_site.ps1` | The crawler used to snapshot a retiring year's site |
@@ -33,8 +40,9 @@ To force an immediate rebuild: GitHub → Actions → "Build and Deploy Site" �
 | `archive/` | Frozen snapshots of prior years' sites (`archive/2025/` etc.), served as-is at `/archive/`. Never edit these. |
 | `_quarto.yml` | Site configuration: navbar, theme, pre-render scripts |
 
-`bills-pages/`, `senator-pages/`, `lobby-pages/`, `_site/`, and `_freeze/`
-appear locally after a render. They are build output, ignored by git.
+`bills-pages/`, `senator-pages/`, `lobby-pages/`, `journalist-pages/`,
+`_site/`, and `_freeze/` appear locally after a render. They are build
+output, ignored by git.
 
 ## Fixing things by hand (admin quick reference)
 
@@ -71,7 +79,7 @@ the result.
 - Generated pages bake all their data in at generation time (`dput()` blocks
   and plain markdown links). Don't add code to a *generated* page that reads
   files or URLs when the page renders — the freeze cache would serve a stale
-  copy. Runtime reads belong only in the eight top-level `.qmd` pages, which
+  copy. Runtime reads belong only in the top-level `.qmd` pages, which
   are never frozen.
 - The hourly schedule in the workflow is disabled automatically by GitHub
   after ~60 days without repository activity. Re-enable it from the Actions

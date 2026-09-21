@@ -3,10 +3,11 @@
  *
  * Install: part of the "LegSim Intake" workbook's Apps Script project
  * (Extensions → Apps Script). One-time setup:
- *   1. Create a GitHub fine-grained token (resource owner: capeucmerced,
- *      only the ucmlegsim repo) with "Contents: Read and write" — the
- *      /dispatches endpoint requires contents write; no other permission
- *      is needed.
+ *   1. Create a GitHub CLASSIC token (Settings -> Developer settings ->
+ *      Tokens (classic)) on an account with write access to the repo,
+ *      scope "public_repo" only. Fine-grained tokens cannot work here:
+ *      capeucmerced is a plain user account, and a fine-grained PAT can
+ *      only target your own account or an org you belong to.
  *   2. In the Apps Script editor: Project Settings → Script properties →
  *      add property GITHUB_TOKEN with the token as its value.
  *
