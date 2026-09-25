@@ -323,3 +323,45 @@ function assembleBillPdf(spec) {
   working.setTrashed(true); // the working Doc copy is no longer needed
   return pdf;
 }
+
+/**
+ * Dry run: assembles a sample bill exactly as a filing would (template,
+ * multi-paragraph digest with a "$", 2/3rds + fiscal flags, a senator's
+ * real draft doc as the body) and emails the PDF to you. Touches no
+ * sheet row, takes no SB number, and trashes its Drive copy, so the site
+ * never sees it. Run it after any change to the bill assembly.
+ */
+function testBillAssembly() {
+  var rows = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Roster')
+    .getDataRange().getValues();
+  var head = rows[0], who = null;
+  for (var i = 1; i < rows.length && !who; i++) {
+    if (String(rows[i][head.indexOf('Role')]).toLowerCase().trim() === 'senator' &&
+        rows[i][head.indexOf('Bill Doc 1')]) who = rows[i];
+  }
+  if (!who) { Logger.log('No provisioned senator on the Roster to borrow a draft doc from.'); return; }
+
+  var fileName = 'DRYRUN_SB0.pdf';
+  var pdf = assembleBillPdf({
+    sb: 0,
+    author: who[head.indexOf('First Name')] + ' ' + who[head.indexOf('Last Name')] +
+            ' (' + who[head.indexOf('Party')] + '-' + who[head.indexOf('District')] + ')',
+    title: 'Dry Run Act',
+    digest: 'Existing law establishes a sample program.\n' +
+            'This bill would appropriate $7 million to expand it.',
+    flags: flagsLine('Appropriations/fiscal, 2/3rds vote'),
+    bodyDocId: who[head.indexOf('Bill Doc 1')],
+    templateId: deployProp('BILL_TEMPLATE_DOC_ID', BILL_TEMPLATE_DOC_ID),
+    fileName: fileName
+  });
+  var left = filesSubfolder('bills').getFilesByName(fileName);
+  while (left.hasNext()) left.next().setTrashed(true);
+
+  MailApp.sendEmail(Session.getEffectiveUser().getEmail(),
+    'LegSim dry run: sample bill assembly',
+    'Check the attached PDF: two digest paragraphs (the second with ' +
+    '"$7 million"), the line "Vote: 2/3rds. Appropriations/fiscal: yes. ' +
+    'Local program: no.", then the senator\'s draft text.',
+    { attachments: [pdf] });
+  Logger.log('Dry run emailed to ' + Session.getEffectiveUser().getEmail());
+}
