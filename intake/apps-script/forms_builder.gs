@@ -256,7 +256,7 @@ function buildRegistration() {
 
 // Bills-form wording, shared by buildBills() and patchBillsForm()
 var DIGEST_HELP = 'A plain-text description of existing law and what ' +
-  'your bill changes. Several paragraphs are fine.';
+  'your bill changes.';
 var UPDATED_FLAGS_HELP = 'Leave blank to keep the current flags. ' +
   'Otherwise check the COMPLETE new set — what you check replaces all ' +
   'current flags. Example: a bill flagged Appropriations/fiscal + Local ' +
