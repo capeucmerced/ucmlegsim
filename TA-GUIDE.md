@@ -293,8 +293,12 @@ build failed and the site is frozen at its last good state — see §8.
 themselves to the Roster tab (email + name, nothing else). You fill in
 their Role and role fields — senator persona *exactly* as in
 `senator_list.csv`, or Org Code, or Outlet (name cells blank for
-those two) — then rerun `provisionBillDocs()` and
-`syncRosterDropdowns()`. They verify with Check My Role.
+those two) — then rerun `provisionBillDocs()`, `syncRosterDropdowns()`,
+and `refileProfiles()`. That last one matters: a student who uploads a
+role profile *before* their row is hooked up gets it silently dropped
+(you receive a "handler error on Profiles" email at the time);
+`refileProfiles()` files every such upload once the rows exist. They
+verify with Check My Role.
 
 **Fix data by hand.** The design principle: *the workbook is the
 database and you are allowed to edit it.* A bad Wire post, a wrong
@@ -507,6 +511,13 @@ accounts after doc provisioning, update the Email cell, then either
 re-share their two draft docs to the new address (open each doc →
 Share) or blank the row's Bill Doc cells and rerun
 `provisionBillDocs()` for fresh ones.
+
+**Q: A student submitted a role profile but it isn't on the site.**
+Almost always they uploaded before their Roster row was hooked up, so
+the handler couldn't file it (the CAPE inbox got an error email at the
+time). Now that the row exists, run `refileProfiles()` in the Apps
+Script editor — it files every dropped upload and requests a rebuild.
+No resubmission needed.
 
 **Q: A senator filed a bill and the site shows nobody as author.**
 Their Roster persona doesn't exactly match `senator_list.csv`

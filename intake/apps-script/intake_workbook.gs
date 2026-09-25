@@ -244,7 +244,48 @@ function profileTarget(who) {
 }
 
 function handleProfileSubmit(e) {
-  var row = rowAsObject(e);
+  fileProfile(rowAsObject(e));
+}
+
+/**
+ * Admin: files every profile in the Profiles tab that never got filed —
+ * the case of a student who uploaded BEFORE their Roster row was hooked
+ * up (the submit handler can't file those; it emails you instead). Run
+ * it after hooking up stragglers. Rerunning is harmless: an already-
+ * filed profile is left exactly where it is. Only each account's newest
+ * upload is considered. Accounts still lacking a Role are listed in the
+ * log for you to hook up first.
+ */
+function refileProfiles() {
+  var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Profiles');
+  var vals = sheet.getDataRange().getValues();
+  var head = vals[0];
+  var cMail = colStartingWith(head, 'Email Address');
+
+  var newest = {};                       // email -> its latest row object
+  for (var i = 1; i < vals.length; i++) {
+    var email = String(vals[i][cMail] || '').toLowerCase().trim();
+    if (!email) continue;
+    var row = {};
+    for (var j = 0; j < head.length; j++) row[head[j]] = vals[i][j];
+    row._sheetRow = i + 1;
+    newest[email] = row;
+  }
+
+  var filed = 0, skipped = [];
+  Object.keys(newest).forEach(function (email) {
+    try { fileProfile(newest[email]); filed++; }
+    catch (err) { skipped.push('row ' + newest[email]._sheetRow + ': ' + err.message); }
+  });
+  Logger.log('Checked ' + filed + ' profile(s).' +
+             (skipped.length ? '\nNOT filed:\n' + skipped.join('\n') : ''));
+  if (filed > 0) requestSiteRebuild();
+}
+
+/** Files one Profiles-tab row (a {header: value} object) under its
+ *  canonical name. Idempotent: a row whose upload is already filed is
+ *  left untouched, so refileProfiles() can sweep every row safely. */
+function fileProfile(row) {
   var who = rosterLookup(row['Email Address']);
   if (!who) {
     throw new Error('Profile from ' + row['Email Address'] + ', which is not ' +
@@ -270,12 +311,18 @@ function handleProfileSubmit(e) {
   var it = parent.getFoldersByName(target.sub);
   var folder = it.hasNext() ? it.next() : parent.createFolder(target.sub);
 
+  var file = DriveApp.getFileById(idMatch[0]);
+
   // A resubmission replaces the old profile outright — same canonical
   // name, previous file trashed. (No paper trail needed, unlike letters.)
+  // The upload itself is never trashed: on a re-run it IS the filed
+  // file, and trashing it would delete a good profile.
   var old = folder.getFilesByName(target.name);
-  while (old.hasNext()) old.next().setTrashed(true);
+  while (old.hasNext()) {
+    var prev = old.next();
+    if (prev.getId() !== file.getId()) prev.setTrashed(true);
+  }
 
-  var file = DriveApp.getFileById(idMatch[0]);
   file.setName(target.name);
   file.moveTo(folder);
   // Profiles are public pages on the site; link-view sharing lets the

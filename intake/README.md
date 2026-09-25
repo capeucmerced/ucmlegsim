@@ -166,7 +166,9 @@ live in the Sep 2026 beta — the scripts carry those fixes):
    Draft A/B docs shared to their email automatically.
 3. Run **`syncRosterDropdowns()`** — fills the Spending recipient list
    and every Assignments-form picker. Rerun both whenever the Roster
-   changes.
+   changes. Then **`refileProfiles()`**: anyone who uploaded a role
+   profile before their row was hooked up had it dropped (you got a
+   "handler error on Profiles" email); this files those uploads now.
    Also give each form's Settings a quick look before students get the
    links: accepting responses on, *Collect email addresses → Verified*,
    every question still required — undoing anything toggled by hand
