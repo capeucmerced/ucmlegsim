@@ -272,12 +272,28 @@ function refileProfiles() {
     newest[email] = row;
   }
 
-  var filed = 0, skipped = [];
-  Object.keys(newest).forEach(function (email) {
-    try { fileProfile(newest[email]); filed++; }
-    catch (err) { skipped.push('row ' + newest[email]._sheetRow + ': ' + err.message); }
+  // Uploads already filed, by file id — three folder listings up front,
+  // so rows already in place cost nothing. (Filing each row through the
+  // several Drive calls it takes ran into the 6-minute execution limit
+  // on a whole class of profiles.)
+  var filedIds = {};
+  var parent = filesSubfolder('role_profiles');
+  ['senators', 'lobbyists', 'journalists'].forEach(function (sub) {
+    var it = parent.getFoldersByName(sub);
+    if (!it.hasNext()) return;
+    var files = it.next().getFiles();
+    while (files.hasNext()) filedIds[files.next().getId()] = true;
   });
-  Logger.log('Checked ' + filed + ' profile(s).' +
+
+  var filed = 0, inPlace = 0, skipped = [];
+  Object.keys(newest).forEach(function (email) {
+    var row = newest[email];
+    var m = uploadUrlFrom(row).match(/[-\w]{25,}/);
+    if (m && filedIds[m[0]]) { inPlace++; return; }
+    try { fileProfile(row); filed++; }
+    catch (err) { skipped.push('row ' + row._sheetRow + ': ' + err.message); }
+  });
+  Logger.log('Filed ' + filed + ' profile(s); ' + inPlace + ' already in place.' +
              (skipped.length ? '\nNOT filed:\n' + skipped.join('\n') : ''));
   if (filed > 0) requestSiteRebuild();
 }
