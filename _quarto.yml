@@ -35,7 +35,7 @@ website:
   title: "UC Merced Legislative Simulation"
   # Ordered by how often students need each page day-to-day:
   # the work (Bills/Committees/Votes), then the people (Senators/Lobbyists),
-  # then press, then reference (Districts map, the Playbook).
+  # then press, then reference (Districts map, Life of a Bill, Filing Cabinet).
   navbar:
     title: "California State Senate"
     left:
@@ -61,8 +61,10 @@ website:
         href: life-of-a-bill.qmd
       - text: Filing Cabinet
         href: forms.qmd
-      - text: Playbook
-        href: help.qmd
+      # The Playbook (help.qmd) is hidden from the navbar until it's
+      # polished; it still renders at /help.html. Restore with:
+      #   - text: Playbook
+      #     href: help.qmd
   page-footer:
     left: "UC Merced California Legislative Simulation · Originally developed by [Nick Brouwer](https://nrbrouwer.com)"
     center: "The site updates automatically as bills, votes, letters, and news are filed."
