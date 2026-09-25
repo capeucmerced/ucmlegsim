@@ -142,6 +142,13 @@ function billNumberFrom(text) {
 var NO_FLAGS_CHOICE  = 'None — clear every flag';
 var NO_TOPIC2_CHOICE = 'None — remove the secondary topic';
 
+// The bill's flags, printed as a real bill's digest line ("Vote: 2/3rds.
+// Appropriations/fiscal: yes. Local program: no."). 2/3rds is rare, so
+// it's a checkbox: unchecked means a majority-vote bill. The site treats
+// any flag containing "Appropriation" as fiscal (routes it through the
+// Appropriations/Rules Committee), so keep that word in the label.
+var FLAG_CHOICES = ['Appropriations/fiscal', 'Local program', '2/3rds vote'];
+
 /** A flags checkbox answer with the "clear" choice removed ("" if that
  *  was the only thing checked — i.e. the student cleared the flags). */
 function withoutNoFlags(answer) {

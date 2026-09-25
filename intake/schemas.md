@@ -78,10 +78,10 @@ what the Roster says it is (see `role_check.gs`). No site rebuild.
 | Timestamp / Email Address | automatic |
 | Filing Type | "Is this a new bill or an amended version of one of your bills?" (`New bill` / `Amendment`) |
 | Amending | amendments only: "Which of your bills does this amend?" (dropdown — every newly numbered bill is appended automatically on filing) |
-| Updated short subject / digest / flags / primary topic / secondary topic | amendments only, all optional: **blank = keep the current value**. **Updated flags is a wholesale replacement, not a toggle**: anything checked becomes the bill's complete flag set (to de-flag `Local program` from `Appropriation + Local program`, check only `Appropriation`). Because blank means keep, the flags and secondary-topic lists carry an explicit `None — …` choice for clearing entirely. |
+| Updated short subject / digest / flags / primary topic / secondary topic | amendments only, all optional: **blank = keep the current value**. **Updated flags is a wholesale replacement, not a toggle**: anything checked becomes the bill's complete flag set (to de-flag `Local program` from `Appropriations/fiscal + Local program`, check only `Appropriations/fiscal`; the 2/3rds checkbox is part of the set, so leaving it unchecked makes the bill majority-vote). Because blank means keep, the flags and secondary-topic lists carry an explicit `None — …` choice for clearing entirely. |
 | Short Subject | new bills only: "Short subject for the bill tables — a few concise words (e.g. Clean Air Near Schools Act)" |
-| Digest | new bills only: "Digest: one paragraph summarizing what the bill does" |
-| Flags | new bills only: checkboxes `Appropriation` / `Fiscal committee` / `Local program` / `Urgency` (comma-joined by Forms) |
+| Digest | new bills only: "Digest" (help: a plain-text description of existing law and what the bill changes; several paragraphs are fine — each line prints as its own paragraph) |
+| Flags | new bills only: checkboxes `Appropriations/fiscal` / `Local program` / `2/3rds vote` (comma-joined by Forms). Printed as the digest line "Vote: 2/3rds or Majority. Appropriations/fiscal: yes/no. Local program: yes/no." Any flag containing "Appropriation" makes the bill fiscal on the site (routed through Appropriations/Rules). Rows filed before Sep 2026 may carry the retired `Appropriation` / `Fiscal committee` / `Urgency` labels; they still read. |
 | Primary Topic | new bills only: dropdown from the policy tag list (required) |
 | Secondary Topic | same list, optional |
 | Draft Doc | both paths: "Which of your two draft docs holds this bill’s text?" (`Draft A` / `Draft B`) |

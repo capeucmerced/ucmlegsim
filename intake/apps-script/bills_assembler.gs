@@ -211,14 +211,45 @@ function archiveCurrentVersion(lastNameSlug, sbNumber) {
   current.setTrashed(true); // replaced by the newly assembled PDF
 }
 
-/** "Appropriation, Urgency" (Forms checkbox join) -> the metadata line. */
+/** Flags checkbox join ("Appropriations/fiscal, 2/3rds vote") -> the
+ *  digest's metadata line, as on a real bill: "Vote: 2/3rds.
+ *  Appropriations/fiscal: yes. Local program: no." Matches by keyword,
+ *  so rows filed under the older flag labels still read. */
 function flagsLine(flagsAnswer) {
-  var picked = String(flagsAnswer || '').split(/,\s*/);
-  var has = function (f) { return picked.indexOf(f) !== -1 ? 'yes' : 'no'; };
-  return 'Appropriation: ' + has('Appropriation') +
-         '. Fiscal committee: ' + has('Fiscal committee') +
-         '. Local program: ' + has('Local program') +
-         '. Urgency: ' + has('Urgency') + '.';
+  var flags = String(flagsAnswer || '');
+  var has = function (word) { return flags.indexOf(word) !== -1 ? 'yes' : 'no'; };
+  return 'Vote: ' + (flags.indexOf('2/3') !== -1 ? '2/3rds' : 'Majority') +
+         '. Appropriations/fiscal: ' + has('Appropriation') +
+         '. Local program: ' + has('Local program') + '.';
+}
+
+/** The digest may run several paragraphs: each line of the answer
+ *  becomes its own paragraph, styled like the template's {{DIGEST}}. */
+function fillDigest(body, digest) {
+  var parts = String(digest || '').split(/\s*\n\s*/)
+    .filter(function (p) { return p !== ''; });
+  if (parts.length === 0) parts = [''];
+  var para = body.findText('{{DIGEST}}').getElement().getParent();
+  var at = body.getChildIndex(para);
+  var paras = [para];
+  for (var k = 1; k < parts.length; k++) {
+    paras.push(body.insertParagraph(at + k, para.copy()));
+  }
+  paras.forEach(function (p, i) { putLiteral(p, '{{DIGEST}}', parts[i]); });
+}
+
+/** Swap every occurrence of a placeholder for text, keeping the
+ *  placeholder's formatting. Unlike replaceText, the text is inserted
+ *  literally: a "$" or "\" a student typed is never read as regex. */
+function putLiteral(container, placeholder, text) {
+  text = String(text || '');
+  var hit;
+  while ((hit = container.findText(placeholder))) {
+    var t = hit.getElement().asText();
+    var s = hit.getStartOffset(), e = hit.getEndOffsetInclusive();
+    if (text) t.insertText(s, text);
+    t.deleteText(s + text.length, e + text.length);
+  }
 }
 
 /** Struck text -> red, italic text -> blue, from fromIndex to the end of
@@ -251,8 +282,8 @@ function assembleBillPdf(spec) {
 
   body.replaceText('{{SB}}', 'SB-' + spec.sb);
   body.replaceText('{{AUTHOR}}', spec.author);
-  body.replaceText('{{TITLE}}', spec.title);
-  body.replaceText('{{DIGEST}}', spec.digest);
+  putLiteral(body, '{{TITLE}}', spec.title);
+  fillDigest(body, spec.digest);
   body.replaceText('{{FLAGS}}', spec.flags);
 
   // Replace the {{BODY}} placeholder paragraph with the student's legal

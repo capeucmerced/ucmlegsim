@@ -254,6 +254,23 @@ function buildRegistration() {
   return finish(f, 'Registration');
 }
 
+// Bills-form wording, shared by buildBills() and patchBillsForm()
+var DIGEST_HELP = 'A plain-text description of existing law and what ' +
+  'your bill changes. Several paragraphs are fine.';
+var UPDATED_FLAGS_HELP = 'Leave blank to keep the current flags. ' +
+  'Otherwise check the COMPLETE new set — what you check replaces all ' +
+  'current flags. Example: a bill flagged Appropriations/fiscal + Local ' +
+  'program that should lose Local program means checking only ' +
+  'Appropriations/fiscal. To end up with no flags at all (a majority-vote ' +
+  'bill with no other flags), check the None choice.';
+var FLAGS_HELP = 'Check all that apply. Leave 2/3rds vote unchecked for ' +
+  'a bill that passes by majority vote.';
+var TEXT_PAGE_TITLE = 'File the legal text';
+var TEXT_PAGE_HELP = 'This page files the legal text of your bill: the ' +
+  'sections that change the law, written in your Draft A or Draft B doc. ' +
+  'It is printed after your digest, under "The people of the State of ' +
+  'California do enact as follows."';
+
 function buildBills() {
   var f = newForm('File a Bill', 'Bills');
 
@@ -265,7 +282,7 @@ function buildBills() {
   //           from the bill's earlier rows), so an amendment can change
   //           anything but can't wipe anything by accident.
   //   Page 3  "New bill details" (new bills only): the full metadata.
-  //   Page 4  "File the text" (both): which draft doc, confirmation.
+  //   Page 4  "File the legal text" (both): which draft doc, confirmation.
   var filing = f.addMultipleChoiceItem()
     .setTitle('Is this a new bill or an amended version of one of your bills?')
     .setRequired(true);
@@ -287,13 +304,8 @@ function buildBills() {
     .setHelpText('Leave blank to keep the current digest.');
   f.addCheckboxItem()
     .setTitle('Updated flags')
-    .setHelpText('Leave blank to keep the current flags. Otherwise check the ' +
-                 'COMPLETE new set — what you check replaces all current flags. ' +
-                 'Example: a bill flagged Appropriation + Local program that ' +
-                 'should lose Local program means checking only Appropriation. ' +
-                 'To end up with no flags at all, check the None choice.')
-    .setChoiceValues(['Appropriation', 'Fiscal committee', 'Local program',
-                      'Urgency', NO_FLAGS_CHOICE]);
+    .setHelpText(UPDATED_FLAGS_HELP)
+    .setChoiceValues(FLAG_CHOICES.concat([NO_FLAGS_CHOICE]));
   f.addListItem()
     .setTitle('Updated primary topic')
     .setHelpText('Leave blank to keep the current topic.')
@@ -308,17 +320,21 @@ function buildBills() {
     .setTitle('Short subject for the bill tables — a few concise words (e.g. Clean Air Near Schools Act)')
     .setRequired(true);
   f.addParagraphTextItem()
-    .setTitle('Digest: one paragraph summarizing what the bill does')
+    .setTitle('Digest')
+    .setHelpText(DIGEST_HELP)
     .setRequired(true);
   f.addCheckboxItem()
     .setTitle('Flags')
-    .setChoiceValues(['Appropriation', 'Fiscal committee', 'Local program', 'Urgency']);
+    .setHelpText(FLAGS_HELP)
+    .setChoiceValues(FLAG_CHOICES);
   f.addListItem()
     .setTitle('Primary Topic').setChoiceValues(POLICY_TOPICS).setRequired(true);
   f.addListItem()
     .setTitle('Secondary Topic').setChoiceValues(POLICY_TOPICS);
 
-  var fileSection = f.addPageBreakItem().setTitle('File the text');
+  var fileSection = f.addPageBreakItem()
+    .setTitle(TEXT_PAGE_TITLE)
+    .setHelpText(TEXT_PAGE_HELP);
   f.addMultipleChoiceItem()
     .setTitle('Which of your two draft docs holds this bill’s text?')
     .setChoiceValues(['Draft A', 'Draft B'])
@@ -339,6 +355,41 @@ function buildBills() {
   newSection.setGoToPage(fileSection);
 
   return finish(f, 'Bills');
+}
+
+/**
+ * Brings the LIVE Bills form up to buildBills()'s current design, in
+ * place: same form, same URL, same response tab, existing responses
+ * untouched. Written for the Sep 2026 flags fix (Urgency and the
+ * separate Fiscal committee flag dropped, Appropriations/fiscal
+ * combined, a 2/3rds vote checkbox added, digest reworded, legal-text
+ * note on the last page). Safe to run more than once.
+ */
+function patchBillsForm() {
+  var form = FormApp.openById(deployProp('FORM_ID_Bills', ''));
+  var find = function (prefix) {
+    var items = form.getItems();
+    for (var i = 0; i < items.length; i++) {
+      if (items[i].getTitle().indexOf(prefix) === 0) return items[i];
+    }
+    return null;
+  };
+
+  var digest = find('Digest');
+  if (digest) digest.asParagraphTextItem().setTitle('Digest').setHelpText(DIGEST_HELP);
+
+  find('Flags').asCheckboxItem()
+    .setChoiceValues(FLAG_CHOICES)
+    .setHelpText(FLAGS_HELP);
+
+  find('Updated flags').asCheckboxItem()
+    .setChoiceValues(FLAG_CHOICES.concat([NO_FLAGS_CHOICE]))
+    .setHelpText(UPDATED_FLAGS_HELP);
+
+  var textPage = find('File the text') || find(TEXT_PAGE_TITLE);
+  if (textPage) textPage.asPageBreakItem().setTitle(TEXT_PAGE_TITLE).setHelpText(TEXT_PAGE_HELP);
+
+  Logger.log('Bills form patched. Preview it: ' + form.getPublishedUrl());
 }
 
 function buildLetters() {
