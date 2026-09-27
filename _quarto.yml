@@ -68,7 +68,9 @@ website:
   page-footer:
     left: "UC Merced California Legislative Simulation · Originally developed by [Nick Brouwer](https://nrbrouwer.com)"
     center: "The site updates automatically as bills, votes, letters, and news are filed."
-    right: "[Session Archive](archive/)"
+    # Root-absolute on purpose: footer markdown isn't rewritten per page,
+    # so a relative link 404s from pages in subfolders (senator-pages/…)
+    right: "[Session Archive](/archive/)"
 
 format:
   html:
