@@ -306,9 +306,70 @@ contribution amount, a duplicate letter — edit or delete the row in
 the matching intake tab. Wire changes show in seconds; everything else
 on the next build. Two cautions: (1) never delete rows in the
 **Bills** tab to undo a bill — bill numbering reads the highest SB
-number present, so voiding is a job for the runbooks; ask before
-improvising; (2) votes are fixed in the **LegSim Votes** workbook, not
-the intake workbook.
+number present, and "When bills are filed wrong" below has the right
+procedure for every case; (2) votes are fixed in the **LegSim Votes**
+workbook, not the intake workbook.
+
+### When bills are filed wrong
+
+Every one of these happened in the first two days of bill filing in
+2026. How a filing works, which explains all of them: the form collects
+the title, digest, and flags; the **legal text is copied from the
+student's Draft A or Draft B doc at the moment they click Submit**; the
+bill gets the next SB number; the student is emailed the finished PDF;
+the site shows it after the next build.
+
+| What you see | What happened | Fix |
+| --- | --- | --- |
+| Legal text is only the draft doc's "How to write your bill" instructions | They submitted before writing in the provisioned doc (or wrote in a copy, their own doc, Suggesting mode, or a second tab) | Student puts the text in the right draft and files an **Amendment**, all "Updated" fields blank |
+| The instructions print above or below real bill text | They never deleted the instruction block | Student deletes it, files an Amendment |
+| The whole bill prints in blue | The draft docs start in italics; italic means "added language" | Student turns italics off for everything except language added to existing law, files an Amendment |
+| One senator has three or four bills | Told to amend, they chose "New bill" again | Keep the good copies, **void** the others (below) |
+| Subject is a paragraph, or ends in ".." | The short subject is a title of a few words | Amendment with only "Updated short subject" filled |
+| Student says they filed; no bill, no confirmation email | Wrong Google account (not their registered one) — nothing was filed | Refile from the registered account; Check My Role confirms which account that is |
+
+To tell whether a student wrote their text before or after submitting:
+open the draft doc (its ID is in their Roster row's Bill Doc cells) and
+use File → Version history. The Bills tab has the submission time.
+
+**Hiding a botched earlier version.** An amendment keeps the previous
+PDF and the bill page lists it under Previous Text. To remove it, trash
+`LASTNAME_SBn_v1.pdf` in LegSim Files → `previous_bills`, then LegSim →
+Rebuild site now. Do **not** use the Status column for this: voiding
+the original row of a bill you are keeping blanks its title, digest,
+and flags, because amendment rows only hold what changed.
+
+**Voiding a whole bill** (a duplicate, or one filed by mistake):
+
+1. Bills tab: type `void` in the Status cell of **every** row with that
+   SB Number. The number is retired for good; gaps are harmless.
+2. LegSim Files → `bills`: trash `LASTNAME_SBn.pdf`.
+3. Forms editor: remove the `SB-n — Subject` choice from the Bills
+   form's "Which of your bills does this amend?" and from the Letters
+   form's bill picker.
+4. LegSim → Rebuild site now.
+
+Check the Letters and Referrals tabs first — anything already filed
+against that bill would point at nothing.
+
+**What to tell students before bills are due** (send this; most of the
+table above disappears):
+
+1. Write your legal text in your Draft A / Draft B doc **first**, and
+   delete the instructions in it. Only those two shared docs work, one
+   bill per doc.
+2. Only language you are *adding to existing law* is italic; struck
+   text is what you remove. Everything else is plain. Don't color.
+3. Then fill in the form from your registered Google account. The
+   subject is a short title, no period.
+4. A confirmation email with your PDF arrives in a minute or two. Read
+   it. No email means wrong account and nothing was filed.
+5. To fix anything after submitting, choose **Amendment**. Never choose
+   "New bill" a second time for the same bill.
+
+Make sure the course's bill assignment instructions say the same thing.
+In 2026 they still described the old process, where students wrote a
+whole bill themselves, and students followed them.
 
 **Replace files.** A corrected bill PDF, letter, agenda, or profile
 can be dropped over the old one — same folder, same exact filename —

@@ -212,6 +212,37 @@ after the merge, because only the new workflow on main listens for
    needed) and file one submission (site updates after the triggered
    build finishes).
 
+## Voiding a bill (filed by mistake, or a duplicate)
+
+A student who was told to amend and filed a *new* bill instead ends up
+with duplicates. Decide which copy survives, then retire the other.
+Never delete its rows: numbering reads the highest SB number present,
+and deleting also strands the bill's PDF and dropdown entries.
+
+1. **Bills tab:** type `void` in the Status cell of **every** row
+   carrying that SB Number (the original filing and any amendments to
+   it). The site, the amendment ownership check, and future amendments
+   all skip void rows. The number is retired for good; a gap in the
+   sequence is normal and harmless.
+2. **LegSim Files → bills:** trash `LASTNAME_SBn.pdf` (and any
+   `LASTNAME_SBn_vN.pdf` in `previous_bills`).
+3. **Two dropdowns** still list it. In the Forms editor, remove the
+   `SB-n — Subject` choice from the Bills form's "Which of your bills
+   does this amend?" and from the Letters form's bill picker.
+4. **LegSim → Rebuild site now.**
+
+Check the Letters and Referrals tabs first: anything already filed
+against the bill would be left pointing at nothing. And never void only
+the *original* row of a bill you are keeping. Its amendment rows are
+blank wherever they "keep the current value", so the subject, digest,
+and flags live in that first row.
+
+To hide only an old *version* of a bill that is staying (say, a botched
+first filing the student has since amended), trash its
+`LASTNAME_SBn_vN.pdf` in `previous_bills` and rebuild. Do not touch the
+Status column for that. TA-GUIDE.md ("When bills are filed wrong") has
+the full table of bill-filing mistakes and their fixes.
+
 ## The role checker (self-service hookup receipts)
 
 Built mid-semester 2026 (`role_check.gs`): a question-free **Check My
@@ -224,6 +255,14 @@ Role checks trigger no site rebuild. Install steps are in the file's
 header; the builder (`buildRoleCheckForm()`) creates and links the form.
 
 ## Parked for next year
+
+- **Rewrite the bill assignment instructions before bills are due.**
+  In 2026 the course materials still described the old process (write
+  a whole bill yourself), so students mis-filed: empty legal text,
+  leftover doc instructions, duplicates filed as "New bill". The
+  instructions must describe the form + two-draft-doc workflow; the
+  student checklist in TA-GUIDE.md ("When bills are filed wrong") is
+  the basis.
 
 - **Welcome email on hookup** (the push version of the role checker): an
   installable trigger on the Roster — when a row gains its Role, the
