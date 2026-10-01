@@ -303,6 +303,17 @@ which year it is.
 
 ## Open items
 
+- **Bills form: say what Submit does.** Add closing text on the last
+  page stating plainly that pressing Submit makes the bill builder take
+  the fields entered plus the legal text in the chosen draft doc,
+  construct the bill, and post it.
+- **Bills form: show where each input lands.** Two annotated images of
+  a sample bill, with a line of instruction each: on the page with the
+  text fields, the top portion highlighted ("what you enter here goes
+  here"); on the next page, the legal-text portion highlighted ("the
+  text in your doc goes here, exactly as you format it"). Build into
+  `buildBills()` and `patchBillsForm()` so the live form and future
+  years both get them.
 - The policy topic tag list (instructor drafting; placeholder list lives
   in `forms_builder.gs`).
 - (Settled by the beta, for the record: PDFs reach the build by file id —
