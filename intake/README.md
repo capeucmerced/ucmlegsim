@@ -314,6 +314,16 @@ which year it is.
   text in your doc goes here, exactly as you format it"). Build into
   `buildBills()` and `patchBillsForm()` so the live form and future
   years both get them.
+- **Draft docs: fuller instructions on what belongs in them.** The
+  block `provisionBillDocs()` writes at the top of each draft should
+  say specifically what goes in the doc and what does not: only the
+  legal text, meaning everything *below* (not including) the line "The
+  people of the State of California do enact as follows:". The bill
+  number, author, title, digest, and flags all come from the form and
+  must not be typed here. While rewriting it, stop the doc from
+  starting in italics (the instructions' italic currently carries into
+  "SECTION 1.", so typed bills print all blue). Affects docs created
+  after the change; this year's are already handed out.
 - The policy topic tag list (instructor drafting; placeholder list lives
   in `forms_builder.gs`).
 - (Settled by the beta, for the record: PDFs reach the build by file id —
