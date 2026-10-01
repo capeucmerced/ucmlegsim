@@ -84,7 +84,19 @@ function handleBillSubmit(e) {
 
     archiveCurrentVersion(lastNameSlug, sbNumber);
   } else {
-    sbNumber = nextSbNumber(sheet, head);
+    // Bills filed seconds apart run this handler at the same time.
+    // Without the lock, both read the same "highest number so far" and
+    // take the same SB (it happened at the 2026 deadline, burying a
+    // bill). The lock covers only choosing the number and writing it.
+    var lock = LockService.getScriptLock();
+    lock.waitLock(120000);
+    try {
+      sbNumber = nextSbNumber(sheet, head);
+      sheet.getRange(e.range.getRow(), head.indexOf('SB Number') + 1).setValue(sbNumber);
+      SpreadsheetApp.flush();
+    } finally {
+      lock.releaseLock();
+    }
   }
 
   // Record the assigned number on the row so the site and later
@@ -364,4 +376,63 @@ function testBillAssembly() {
     'Local program: no.", then the senator\'s draft text.',
     { attachments: [pdf] });
   Logger.log('Dry run emailed to ' + Session.getEffectiveUser().getEmail());
+}
+
+/**
+ * Admin: repairs new-bill rows that share an SB number (bills filed
+ * within seconds of each other before the numbering lock existed). The
+ * site shows only the LATER row of such a pair; the earlier one is
+ * buried. This re-files each buried row under the next free number —
+ * fresh PDF from the senator's draft doc as it is now, confirmation
+ * email to the senator, dropdown entries — while the bill the site
+ * already shows keeps its number. Does nothing if there are no
+ * duplicates, so it is safe to run as a check.
+ */
+function repairDuplicateBillNumbers() {
+  var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Bills');
+  var vals = sheet.getDataRange().getValues();
+  var head = vals[0];
+  var cSb   = head.indexOf('SB Number');
+  var cStat = head.indexOf('Status');
+  var cType = colStartingWith(head, 'Is this a new bill');
+  var cMail = colStartingWith(head, 'Email Address');
+  var slugOf = function (sheetRow) {
+    var who = rosterLookup(vals[sheetRow - 1][cMail]);
+    return who ? String(who['Last Name']).toUpperCase().replace(/ /g, '_') : '';
+  };
+
+  var rowsBySb = {};                     // SB number -> its new-bill rows, in order
+  for (var i = 1; i < vals.length; i++) {
+    if (cStat >= 0 && vals[i][cStat]) continue;            // void rows
+    if (String(vals[i][cType]) === 'Amendment') continue;  // amendments share numbers by design
+    var sb = parseInt(vals[i][cSb], 10);
+    if (isNaN(sb)) continue;
+    (rowsBySb[sb] = rowsBySb[sb] || []).push(i + 1);
+  }
+
+  var log = [];
+  Object.keys(rowsBySb).forEach(function (sb) {
+    var rows = rowsBySb[sb];
+    if (rows.length < 2) return;
+    var keptSlug = slugOf(rows[rows.length - 1]);
+    rows.slice(0, -1).forEach(function (sheetRow) {
+      // The buried bill's PDF carries the duplicated number: retire it
+      // (unless it shares a filename with the bill being kept).
+      var slug = slugOf(sheetRow);
+      if (slug && slug !== keptSlug) {
+        var old = filesSubfolder('bills').getFilesByName(slug + '_SB' + sb + '.pdf');
+        while (old.hasNext()) old.next().setTrashed(true);
+      }
+      sheet.getRange(sheetRow, cSb + 1).clearContent();
+      SpreadsheetApp.flush();
+      handleBillSubmit({ range: sheet.getRange(sheetRow, 1) });
+      SpreadsheetApp.flush();
+      var now = sheet.getRange(sheetRow, cSb + 1).getValue();
+      log.push('row ' + sheetRow + ' (' + vals[sheetRow - 1][cMail] + '): was SB-' + sb +
+               (now ? ', now SB-' + now : ', NOT re-filed — check the Roster for this account'));
+    });
+  });
+
+  Logger.log(log.length ? 'Re-filed:\n' + log.join('\n') : 'No duplicate bill numbers.');
+  if (log.length) requestSiteRebuild();
 }

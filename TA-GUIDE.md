@@ -326,6 +326,7 @@ the site shows it after the next build.
 | The whole bill prints in blue | The draft docs start in italics; italic means "added language" | Student turns italics off for everything except language added to existing law, files an Amendment |
 | One senator has three or four bills | Told to amend, they chose "New bill" again | Keep the good copies, **void** the others (below) |
 | Subject is a paragraph, or ends in ".." | The short subject is a title of a few words | Amendment with only "Updated short subject" filled |
+| A bill is missing from the site and two senators' rows show the same SB number | Filed within seconds of each other; both took the same number and the site shows only the later row (a numbering lock added Oct 2026 should prevent this) | Run `repairDuplicateBillNumbers()` — the buried bill is re-filed under the next free number, no resubmission |
 | Student says they filed; no bill, no confirmation email | Wrong Google account (not their registered one) — nothing was filed | Refile from the registered account; Check My Role confirms which account that is |
 
 To tell whether a student wrote their text before or after submitting:
