@@ -459,7 +459,28 @@ function buildAssignments() {
   f.addListItem().setTitle('Pro Tem').setChoiceValues([PLACEHOLDER]);
   f.addListItem().setTitle('Majority Leader').setChoiceValues([PLACEHOLDER]);
   f.addListItem().setTitle('Minority Leader').setChoiceValues([PLACEHOLDER]);
+  f.addListItem().setTitle('Majority Whip').setChoiceValues([PLACEHOLDER]);
+  f.addListItem().setTitle('Minority Whip').setChoiceValues([PLACEHOLDER]);
   return finish(f, 'Assignments');
+}
+
+/**
+ * Adds the two whip questions to the LIVE Assignments form (Oct 2026:
+ * the form shipped without them), right after Minority Leader, then
+ * fills them from the Roster via syncRosterDropdowns(). Same form, same
+ * URL, existing responses untouched. Safe to run more than once.
+ */
+function patchAssignmentsForm() {
+  var form = FormApp.openById(deployProp('FORM_ID_Assignments', ''));
+  var titles = form.getItems().map(function (it) { return it.getTitle(); });
+  var after = form.getItems()[titles.indexOf('Minority Leader')];
+  ['Majority Whip', 'Minority Whip'].forEach(function (t, k) {
+    if (titles.indexOf(t) !== -1) return;
+    var q = form.addListItem().setTitle(t).setChoiceValues([PLACEHOLDER]);
+    if (after) form.moveItem(q.getIndex(), after.getIndex() + 1 + k);
+  });
+  syncRosterDropdowns();
+  Logger.log('Assignments form now has whip questions: ' + form.getPublishedUrl());
 }
 
 function buildReferrals() {

@@ -218,7 +218,9 @@ function buildAssignmentsJson() {
     leadership: {
       protem:   one('Pro Tem'),
       majority: one('Majority Leader'),
-      minority: one('Minority Leader')
+      minority: one('Minority Leader'),
+      majwhip:  one('Majority Whip'),
+      minwhip:  one('Minority Whip')
     }
   }});
 }
