@@ -436,3 +436,83 @@ function repairDuplicateBillNumbers() {
   Logger.log(log.length ? 'Re-filed:\n' + log.join('\n') : 'No duplicate bill numbers.');
   if (log.length) requestSiteRebuild();
 }
+
+// --- Bills that were submitted but never filed ------------------------------
+// A new-bill row with no SB Number means the handler quit before
+// numbering (account not on the Roster as a senator) or never ran
+// (Google failed the trigger). listUnnumberedBills() reports each such
+// row and why; refileUnnumberedBills() files the ones that can be filed.
+
+/** Why a Bills row cannot be filed right now ('' when it can). */
+function billRowProblem_(rowObj) {
+  var who = rosterLookup(rowObj['Email Address']);
+  if (!who) return 'this account is not on the Roster';
+  if (who['Role'] !== 'senator') {
+    return 'Roster Role cell must be exactly "senator" (found "' + who['Role'] + '")';
+  }
+  var draft = String(valueByPrefix(rowObj, 'Which of your two draft docs'));
+  if (!(/[B2]/.test(draft) ? who['Bill Doc 2'] : who['Bill Doc 1'])) {
+    return 'no draft doc on the Roster for this senator (run provisionBillDocs)';
+  }
+  return '';
+}
+
+/** The Bills rows that have no SB Number and no Status. */
+function unnumberedBillRows_() {
+  var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Bills');
+  var vals = sheet.getDataRange().getValues();
+  var head = vals[0];
+  var cSb = head.indexOf('SB Number'), cStat = head.indexOf('Status');
+  var cTime = colStartingWith(head, 'Timestamp');
+  var out = [];
+  for (var i = 1; i < vals.length; i++) {
+    if (vals[i][cSb] !== '' && vals[i][cSb] !== null) continue;
+    if (cStat >= 0 && vals[i][cStat]) continue;
+    var row = {};
+    for (var j = 0; j < head.length; j++) row[head[j]] = vals[i][j];
+    var when = vals[i][cTime] instanceof Date
+      ? Utilities.formatDate(vals[i][cTime], Session.getScriptTimeZone(), 'MMM d h:mm a')
+      : String(vals[i][cTime]);
+    out.push({
+      sheetRow: i + 1, row: row, when: when,
+      isNew: String(valueByPrefix(row, 'Is this a new bill')) !== 'Amendment',
+      subject: String(valueByPrefix(row, 'Short subject') || ''),
+      problem: billRowProblem_(row)
+    });
+  }
+  return { sheet: sheet, rows: out };
+}
+
+/** Admin, read-only: lists every submitted-but-unfiled bill and why. */
+function listUnnumberedBills() {
+  var found = unnumberedBillRows_().rows;
+  if (!found.length) { Logger.log('Every Bills row has an SB Number or a Status.'); return; }
+  Logger.log(found.map(function (r) {
+    return 'row ' + r.sheetRow + ' | ' + r.when + ' | ' + r.row['Email Address'] + ' | ' +
+           (r.isNew ? 'New bill' : 'Amendment') + ' | ' + r.subject + '\n    -> ' +
+           (!r.isNew ? 'amendment that was never processed: have the senator resubmit it'
+            : r.problem ? 'CANNOT FILE: ' + r.problem
+            : 'ready: refileUnnumberedBills() will file it');
+  }).join('\n'));
+}
+
+/** Admin: files every unnumbered new-bill row that can be filed, as if
+ *  it had just been submitted (next SB number, PDF from the draft doc as
+ *  it is now, confirmation email, dropdown entries). Run
+ *  listUnnumberedBills() first to see what it will do. */
+function refileUnnumberedBills() {
+  var found = unnumberedBillRows_();
+  var cSb = found.sheet.getRange(1, 1, 1, found.sheet.getLastColumn()).getValues()[0]
+    .indexOf('SB Number');
+  var log = [];
+  found.rows.forEach(function (r) {
+    if (!r.isNew || r.problem) return;
+    handleBillSubmit({ range: found.sheet.getRange(r.sheetRow, 1) });
+    SpreadsheetApp.flush();
+    var n = found.sheet.getRange(r.sheetRow, cSb + 1).getValue();
+    log.push('row ' + r.sheetRow + ' (' + r.row['Email Address'] + '): ' +
+             (n ? 'filed as SB-' + n : 'still not filed'));
+  });
+  Logger.log(log.length ? log.join('\n') : 'Nothing to file.');
+  if (log.length) requestSiteRebuild();
+}
