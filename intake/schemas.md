@@ -154,7 +154,7 @@ chairs handle time and room in class.)
 
 ## Tab: Assignments  (form: "Committee Assignments & Leadership")
 
-One row per submission; the newest row is the current state of the body.
+One row per submission. Submissions may be partial: each question's newest NON-BLANK answer is the current state (`currentAssignments()`), so leadership and each committee can be filed separately, and a Members answer replaces that committee's whole list. To clear a role outright, delete its answer from every row.
 
 | Column | Question |
 | --- | --- |
@@ -163,9 +163,9 @@ One row per submission; the newest row is the current state of the body.
 | ANR Chair / ANR Vice Chair / ANR Members | 〃 |
 | BLH Chair / BLH Vice Chair / BLH Members | 〃 |
 | APP Chair / APP Vice Chair / APP Members | 〃 |
-| Pro Tem / Majority Leader / Minority Leader / Majority Whip / Minority Whip | dropdowns of senators (the whips were added Oct 2026 by `patchAssignmentsForm()`) |
+| Pro Tem / Majority Leader / Vice Majority Leader / Minority Leader / Majority Whip / Minority Whip | dropdowns of senators (Vice Majority Leader and the whips were added Oct 2026 by `patchAssignmentsForm()`) |
 
-Served by `?view=assignments` as district numbers only. On submit, the
+Served by `?view=assignments` (the merged state) as district numbers only. On submit, the
 votes workbook's senator columns are rewritten to match (floor = every
 senator; data rows never touched) and the submitter gets a receipt.
 Any senator account may submit — leadership is *defined by* this form,

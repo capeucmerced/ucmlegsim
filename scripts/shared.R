@@ -245,6 +245,8 @@ load_senators <- function() {
       s$Leadership[s$District == led$protem] <- "Pro Tem"
     if (!is.null(led$majority) && !is.na(led$majority))
       s$Leadership[s$District == led$majority] <- "Majority Leader"
+    if (!is.null(led$vicemaj)  && !is.na(led$vicemaj))
+      s$Leadership[s$District == led$vicemaj]  <- "Vice Majority Leader"
     if (!is.null(led$minority) && !is.na(led$minority))
       s$Leadership[s$District == led$minority] <- "Minority Leader"
     if (!is.null(led$majwhip)  && !is.na(led$majwhip))

@@ -177,17 +177,15 @@ function buildBillsJson() {
   return JSON.stringify({ bills: out });
 }
 
-/** Current committee assignments: the NEWEST Assignments row, reduced to
+/** Current committee assignments: each question's newest answer (currentAssignments), reduced to
  *  district numbers (parsed from the "SD-2 · Tester, New (D)" labels —
  *  districts are the stable key; names never leave in this view).
  *  Empty object when nothing has been submitted yet. */
 function buildAssignmentsJson() {
-  var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Assignments');
-  if (!sheet || sheet.getLastRow() < 2) return JSON.stringify({ assignments: null });
-
-  var rows = sheet.getDataRange().getValues();
-  var head = rows[0];
-  var last = rows[rows.length - 1];
+  var current = currentAssignments();    // merged across submissions
+  if (!current) return JSON.stringify({ assignments: null });
+  var head = current.head;
+  var last = current.row;
 
   var one = function (prefix) {           // first SD-number in a cell
     var c = headIndexByPrefix(head, prefix);
@@ -218,6 +216,7 @@ function buildAssignmentsJson() {
     leadership: {
       protem:   one('Pro Tem'),
       majority: one('Majority Leader'),
+      vicemaj:  one('Vice Majority Leader'),
       minority: one('Minority Leader'),
       majwhip:  one('Majority Whip'),
       minwhip:  one('Minority Whip')

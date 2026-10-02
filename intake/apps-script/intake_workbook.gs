@@ -363,14 +363,45 @@ function handleAssignmentsSubmit(e) {
 
   var notes = syncVoteSheetColumns();
 
+  // The receipt shows the whole merged state, since one submission may
+  // only have changed part of it
+  var current = currentAssignments();
+  var state = current.head.map(function (h, i) {
+    if (/^(Timestamp|Email Address)/.test(h)) return null;
+    return h + ': ' + (String(current.row[i]).trim() || '(not set)');
+  }).filter(function (x) { return x; }).join('\n');
+
   GmailApp.sendEmail(
     row['Email Address'],
     'Committee assignments updated',
-    'Your assignments submission is now the current state of the Senate: ' +
-    'the site updates on its next build, and the vote sheets\' senator ' +
-    'columns were rewritten to match.\n\n' + notes +
-    '\nSubmitting the form again replaces this state entirely.'
+    'Your submission is recorded. The current state of the Senate is ' +
+    'below: anything you left blank kept its earlier value. The site ' +
+    'updates on its next build, and the vote sheets\' senator columns ' +
+    'were rewritten to match.\n\n' + state + '\n\n' + notes
   );
+}
+
+/**
+ * The current assignments: for each question, its NEWEST NON-BLANK
+ * answer across every Assignments submission. Submissions can therefore
+ * be partial: leaders filed one day, committees the next, one committee
+ * at a time. A Members answer replaces that committee's whole member
+ * list. Returns { head, row } shaped like a single sheet row, or null
+ * before the first submission. (To clear a role outright, delete its
+ * answer from every row of the Assignments tab.)
+ */
+function currentAssignments() {
+  var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Assignments');
+  if (!sheet || sheet.getLastRow() < 2) return null;
+  var rows = sheet.getDataRange().getValues();
+  var head = rows[0];
+  var row = head.map(function (h, c) {
+    for (var r = rows.length - 1; r >= 1; r--) {
+      if (String(rows[r][c]).trim() !== '') return rows[r][c];
+    }
+    return '';
+  });
+  return { head: head, row: row };
 }
 
 // Committee code -> how its tab is recognized in the votes workbook
@@ -410,13 +441,12 @@ function syncVoteSheetColumns() {
   }
   allDistricts.sort(function (a, b) { return a - b; });
 
-  // Newest assignments row -> member districts per committee
+  // Current assignments (merged across submissions) -> member districts
   var districtsFor = { floor: allDistricts };
-  var aSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Assignments');
-  if (aSheet && aSheet.getLastRow() > 1) {
-    var aRows = aSheet.getDataRange().getValues();
-    var aHead = aRows[0];
-    var last = aRows[aRows.length - 1];
+  var current = currentAssignments();
+  if (current) {
+    var aHead = current.head;
+    var last = current.row;
     ['LGL', 'ANR', 'BLH', 'APP'].forEach(function (up) {
       var seen = {};
       var ds = [];

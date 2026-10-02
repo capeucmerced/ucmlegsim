@@ -447,8 +447,18 @@ function buildAgenda(body) {
   return finish(f, tab);
 }
 
+// Every leadership question, in on-form order
+var LEADERSHIP_TITLES = ['Pro Tem', 'Majority Leader', 'Vice Majority Leader',
+                         'Minority Leader', 'Majority Whip', 'Minority Whip'];
+var ASSIGNMENTS_HELP = 'Fill in only what you are setting or changing. ' +
+  'Anything left blank keeps its current value, so leadership and each ' +
+  'committee can be filed separately. A Members selection replaces that ' +
+  'committee\'s whole member list. You will get an email showing the ' +
+  'complete current state after each submission.';
+
 function buildAssignments() {
   var f = newForm('Committee Assignments & Leadership', 'Assignments');
+  f.setDescription(ASSIGNMENTS_HELP);
   ['LGL', 'ANR', 'BLH', 'APP'].forEach(function (c) {
     f.addSectionHeaderItem().setTitle(c);
     f.addListItem().setTitle(c + ' Chair').setChoiceValues([PLACEHOLDER]);
@@ -456,31 +466,37 @@ function buildAssignments() {
     f.addCheckboxItem().setTitle(c + ' Members').setChoiceValues([PLACEHOLDER]);
   });
   f.addSectionHeaderItem().setTitle('Leadership');
-  f.addListItem().setTitle('Pro Tem').setChoiceValues([PLACEHOLDER]);
-  f.addListItem().setTitle('Majority Leader').setChoiceValues([PLACEHOLDER]);
-  f.addListItem().setTitle('Minority Leader').setChoiceValues([PLACEHOLDER]);
-  f.addListItem().setTitle('Majority Whip').setChoiceValues([PLACEHOLDER]);
-  f.addListItem().setTitle('Minority Whip').setChoiceValues([PLACEHOLDER]);
+  LEADERSHIP_TITLES.forEach(function (t) {
+    f.addListItem().setTitle(t).setChoiceValues([PLACEHOLDER]);
+  });
   return finish(f, 'Assignments');
 }
 
 /**
- * Adds the two whip questions to the LIVE Assignments form (Oct 2026:
- * the form shipped without them), right after Minority Leader, then
- * fills them from the Roster via syncRosterDropdowns(). Same form, same
- * URL, existing responses untouched. Safe to run more than once.
+ * Brings the LIVE Assignments form up to buildAssignments(), in place
+ * (Oct 2026: it shipped without the Vice Majority Leader and whip
+ * questions, and without the partial-submission note). Adds each
+ * missing leadership question after the one before it in
+ * LEADERSHIP_TITLES, sets the description, then fills the new dropdowns
+ * via syncRosterDropdowns(). Same form, same URL, existing responses
+ * untouched. Safe to run more than once.
  */
 function patchAssignmentsForm() {
   var form = FormApp.openById(deployProp('FORM_ID_Assignments', ''));
-  var titles = form.getItems().map(function (it) { return it.getTitle(); });
-  var after = form.getItems()[titles.indexOf('Minority Leader')];
-  ['Majority Whip', 'Minority Whip'].forEach(function (t, k) {
-    if (titles.indexOf(t) !== -1) return;
-    var q = form.addListItem().setTitle(t).setChoiceValues([PLACEHOLDER]);
-    if (after) form.moveItem(q.getIndex(), after.getIndex() + 1 + k);
-  });
+  var find = function (t) {
+    var items = form.getItems();
+    for (var i = 0; i < items.length; i++) if (items[i].getTitle() === t) return items[i];
+    return null;
+  };
+  for (var k = 1; k < LEADERSHIP_TITLES.length; k++) {
+    if (find(LEADERSHIP_TITLES[k])) continue;
+    var prev = find(LEADERSHIP_TITLES[k - 1]);
+    var q = form.addListItem().setTitle(LEADERSHIP_TITLES[k]).setChoiceValues([PLACEHOLDER]);
+    if (prev) form.moveItem(q.getIndex(), prev.getIndex() + 1);
+  }
+  form.setDescription(ASSIGNMENTS_HELP);
   syncRosterDropdowns();
-  Logger.log('Assignments form now has whip questions: ' + form.getPublishedUrl());
+  Logger.log('Assignments form patched: ' + form.getPublishedUrl());
 }
 
 function buildReferrals() {
