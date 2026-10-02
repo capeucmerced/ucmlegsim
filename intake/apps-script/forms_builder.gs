@@ -448,8 +448,8 @@ function buildAgenda(body) {
 }
 
 // Every leadership question, in on-form order
-var LEADERSHIP_TITLES = ['Pro Tem', 'Majority Leader',
-                         'Minority Leader', 'Majority Whip', 'Minority Whip'];
+var LEADERSHIP_TITLES = ['Pro Tem', 'Majority Leader', 'Majority Whip',
+                         'Minority Leader', 'Minority Whip', 'Minority Deputy Whip'];
 var ASSIGNMENTS_HELP = 'Fill in only what you are setting or changing. ' +
   'Anything left blank keeps its current value, so leadership and each ' +
   'committee can be filed separately. A Members selection replaces that ' +
@@ -474,7 +474,7 @@ function buildAssignments() {
 
 /**
  * Brings the LIVE Assignments form up to buildAssignments(), in place
- * (Oct 2026: it shipped without the whip questions and without the
+ * (Oct 2026: it shipped without the three whip questions and without the
  * partial-submission note). Adds each
  * missing leadership question after the one before it in
  * LEADERSHIP_TITLES, sets the description, then fills the new dropdowns

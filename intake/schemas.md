@@ -163,7 +163,7 @@ One row per submission. Submissions may be partial: each question's newest NON-B
 | ANR Chair / ANR Vice Chair / ANR Members | 〃 |
 | BLH Chair / BLH Vice Chair / BLH Members | 〃 |
 | APP Chair / APP Vice Chair / APP Members | 〃 |
-| Pro Tem / Majority Leader / Minority Leader / Majority Whip / Minority Whip | dropdowns of senators (the whips were added Oct 2026 by `patchAssignmentsForm()`) |
+| Pro Tem / Majority Leader / Majority Whip / Minority Leader / Minority Whip / Minority Deputy Whip | dropdowns of senators (the three whips were added Oct 2026 by `patchAssignmentsForm()`) |
 
 Served by `?view=assignments` (the merged state) as district numbers only. On submit, the
 votes workbook's senator columns are rewritten to match (floor = every

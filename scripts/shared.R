@@ -251,6 +251,8 @@ load_senators <- function() {
       s$Leadership[s$District == led$majwhip]  <- "Majority Whip"
     if (!is.null(led$minwhip)  && !is.na(led$minwhip))
       s$Leadership[s$District == led$minwhip]  <- "Minority Whip"
+    if (!is.null(led$mindep)   && !is.na(led$mindep))
+      s$Leadership[s$District == led$mindep]   <- "Minority Deputy Whip"
   }
   s
 }

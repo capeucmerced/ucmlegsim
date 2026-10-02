@@ -218,7 +218,8 @@ function buildAssignmentsJson() {
       majority: one('Majority Leader'),
       minority: one('Minority Leader'),
       majwhip:  one('Majority Whip'),
-      minwhip:  one('Minority Whip')
+      minwhip:  one('Minority Whip'),
+      mindep:   one('Minority Deputy Whip')
     }
   }});
 }
