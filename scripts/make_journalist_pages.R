@@ -4,8 +4,8 @@
 # automatically before every render (see pre-render in _quarto.yml).
 #
 # Each page has two tabs: the outlet's wire history (client-side — the
-# same js/feed.js the News page uses, filtered to this outlet, so it
-# updates in seconds with no rebuild) and the outlet's role profile.
+# site-wide js/feed.js, filtered to this outlet, so it updates in
+# seconds with no rebuild) and the outlet's role profile.
 # Profile presence is baked in at generation time, like every other
 # generated page; the page always exists either way.
 # ---------------------------------------------------------------------------
@@ -53,7 +53,6 @@ for (i in seq_len(nrow(news))) {
     "Dispatches from this outlet — newest first, live from the feed.",
     "",
     sprintf('<div class="wire-feed" data-outlet="%s"></div>', outlet),
-    '<script src="../js/feed.js"></script>',
     "",
     link_line,
     "",

@@ -1,9 +1,13 @@
-// js/feed.js — renders The Wire (the journalist newsfeed).
+// js/feed.js — renders The Wire (the journalist newsfeed), and the
+// new-edition banner under the navbar.
 //
 // Posts are fetched straight from the intake system's JSON endpoint in the
 // reader's browser, so new posts appear seconds after submission with no
 // site rebuild. The endpoint is the Apps Script web app from
 // intake/apps-script/newsfeed_api.gs.
+//
+// Loaded once on EVERY page (include-after-body in _quarto.yml), so pages
+// never add their own <script> tag for it.
 //
 // DEPLOY: paste the /exec URL into FEED_URL below. While it is empty, feed
 // containers show a quiet placeholder instead.
@@ -20,9 +24,12 @@
 // scripts/shared.R; changes once a year at turnover).
 var FEED_URL = "https://script.google.com/macros/s/AKfycbwcPcwt8LTJri6lBrbarYTzzxuMyDPSR5Ek1nNXrsAzLSDEinia3oXBgt9PEshfqEjoSw/exec";
 var REFRESH_SECONDS = 60;    // gentle background refresh while the page is open
+var BANNER_HOURS = 48;       // how long a new edition is announced
 
 (function () {
   "use strict";
+  if (window.legsimFeedLoaded) return;   // never run twice on one page
+  window.legsimFeedLoaded = true;
 
   function timeLabel(iso) {
     var then = new Date(iso);
@@ -148,7 +155,65 @@ var REFRESH_SECONDS = 60;    // gentle background refresh while the page is open
       .catch(function () { /* keep whatever is currently shown */ });
   }
 
+  // --- New-edition banner ---------------------------------------------------
+  // For BANNER_HOURS after an edition is filed, every page shows a strip
+  // under the navbar linking to it. It lives inside the fixed header, and
+  // Quarto watches the header's size, so page content moves down to make
+  // room. A reader who closes it isn't shown that edition again.
+  var DISMISS_KEY = "edition-banner-dismissed";
+
+  function showEditionBanner(editions) {
+    var newest = null;
+    (editions || []).forEach(function (e) {
+      if (safeUrl(e.link) && (!newest || e.time > newest.time)) newest = e;
+    });
+    if (!newest) return;
+    if (Date.now() - new Date(newest.time).getTime() > BANNER_HOURS * 3600000) return;
+    try { if (localStorage.getItem(DISMISS_KEY) === newest.time) return; } catch (e) {}
+
+    var header = document.querySelector("header.fixed-top") || document.body;
+    if (header.querySelector(".edition-banner")) return;
+
+    var bar = document.createElement("div");
+    bar.className = "edition-banner";
+    var name = /^\d+$/.test(String(newest.edition).trim())
+      ? "Edition " + String(newest.edition).trim()
+      : (newest.edition || "A new edition");
+    var lead = document.createElement("span");
+    lead.textContent = (newest.outlet ? newest.outlet + ": " : "") + name + " is out. ";
+    var a = document.createElement("a");
+    a.href = safeUrl(newest.link);
+    a.target = "_blank";
+    a.rel = "noopener";
+    a.textContent = "Read it →";
+    var close = document.createElement("button");
+    close.type = "button";
+    close.className = "edition-banner-close";
+    close.setAttribute("aria-label", "Dismiss");
+    close.textContent = "×";
+    close.addEventListener("click", function () {
+      try { localStorage.setItem(DISMISS_KEY, newest.time); } catch (e) {}
+      bar.parentNode.removeChild(bar);
+      // Quarto grows the page's top padding when the header grows, but
+      // not back when it shrinks — so close the gap by hand
+      if (header !== document.body) {
+        document.body.style.paddingTop = header.clientHeight + "px";
+      }
+    });
+    bar.appendChild(lead);
+    bar.appendChild(a);
+    bar.appendChild(close);
+    header.appendChild(bar);
+  }
+
   document.addEventListener("DOMContentLoaded", function () {
+    if (FEED_URL) {
+      fetch(FEED_URL + "?view=editions")
+        .then(function (r) { return r.json(); })
+        .then(function (data) { showEditionBanner(data.editions); })
+        .catch(function () { /* no banner is the safe failure */ });
+    }
+
     if (document.querySelectorAll(".wire-feed").length === 0) return;
 
     if (!FEED_URL) {

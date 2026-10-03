@@ -65,14 +65,30 @@ map <- leaflet(districts) |>
 # Clicking a district opens that senator's page. The click is bound to each
 # polygon layer itself, so it lands on the exact district shape (not a
 # bounding box), and the URL is relative so it works wherever the site lives.
+#
+# Arriving with ?district=N (the district link on a senator's page) zooms
+# to that district and keeps it outlined in gold, with its label open.
 map |>
   onRender("
     function(el, x) {
+      var map = this;
+      var want = new URLSearchParams(window.location.search).get('district');
+      var picked = { weight: 4, color: '#d4a821', dashArray: '', fillOpacity: 0.7 };
       this.eachLayer(function(layer) {
         if (layer.options && layer.options.layerId) {
           layer.on('click', function() {
             window.open('senator-pages/district_' + layer.options.layerId + '.html', '_blank');
           });
+          if (want && String(layer.options.layerId) === want) {
+            map.fitBounds(layer.getBounds(), { padding: [40, 40], maxZoom: 10 });
+            layer.setStyle(picked);
+            layer.bringToFront();
+            layer.openTooltip(layer.getBounds().getCenter());
+            // the hover highlight resets the style on mouseout; put it back
+            layer.on('mouseout', function() {
+              setTimeout(function() { layer.setStyle(picked); }, 0);
+            });
+          }
         }
       });
     }

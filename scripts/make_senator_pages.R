@@ -174,7 +174,8 @@ for (i in seq_len(nrow(senators))) {
     "",
     "## Details",
     "",
-    sprintf("**District:** %s", district),
+    # links to the Districts map, zoomed to and highlighting this district
+    sprintf("**District:** [%s](../map.html?district=%s)", district, district),
     "",
     sprintf("**Committee Assignments:** %s", committees_line),
     "",

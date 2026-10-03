@@ -31,7 +31,6 @@ if (length(links) > 0)
 ```
 
 <div class="wire-feed"></div>
-<script src="js/feed.js"></script>
 
 :::
 

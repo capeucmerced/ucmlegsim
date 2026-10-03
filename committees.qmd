@@ -29,6 +29,47 @@ bills$committee_code <- vapply(bills$committee, committee_code_from_name, charac
 sync_intake_agendas()
 agenda_files <- list.files(AGENDAS_DIR, pattern = "\\.pdf$")
 
+# --- Leadership at a glance -------------------------------------------------
+# Everyone who runs something, in one place: the party leadership, then
+# each committee's chair and vice chair. Both come from the Committee
+# Assignments & Leadership form (via load_senators()).
+senator_link <- function(d) {
+  if (length(d) == 0 || is.na(d[1])) return("—")
+  s <- senators[senators$District == d[1], ]
+  sprintf("[%s](%s/district_%s.html) (%s)", s$Name, SENATOR_PAGES_DIR, s$District, s$Party)
+}
+lead_roles <- c("Pro Tem", "Majority Leader", "Majority Whip",
+                "Minority Leader", "Minority Whip", "Minority Deputy Whip")
+party_tbl <- data.frame(
+  Role    = lead_roles,
+  Senator = vapply(lead_roles, function(r)
+    senator_link(senators$District[!is.na(senators$Leadership) & senators$Leadership == r]),
+    character(1)),
+  row.names = NULL
+)
+policy <- setdiff(names(COMMITTEE_NAMES), "floor")
+chair_tbl <- data.frame(
+  Committee    = unname(COMMITTEE_NAMES[policy]),
+  Chair        = vapply(policy, function(c)
+    senator_link(senators$District[!is.na(senators$Chair) & senators$Chair == c]), character(1)),
+  `Vice Chair` = vapply(policy, function(c)
+    senator_link(senators$District[!is.na(senators$Vice.Chair) & senators$Vice.Chair == c]), character(1)),
+  check.names = FALSE, row.names = NULL
+)
+
+cat("## Leadership\n\n")
+if (all(party_tbl$Senator == "—") && all(chair_tbl$Chair == "—") &&
+    all(chair_tbl$`Vice Chair` == "—")) {
+  cat("*Leadership and committee chairs have not been chosen yet.*\n\n")
+} else {
+  cat("::: {.grid}\n\n::: {.g-col-12 .g-col-lg-5}\n\n")
+  cat(kable(party_tbl, format = "pipe"), sep = "\n")
+  cat("\n\n:::\n\n::: {.g-col-12 .g-col-lg-7}\n\n")
+  cat(kable(chair_tbl, format = "pipe"), sep = "\n")
+  cat("\n\n:::\n\n:::\n\n")
+}
+
+cat("## Committees\n\n")
 cat("::: {.panel-tabset}\n\n")
 
 for (code in names(COMMITTEE_NAMES)) {

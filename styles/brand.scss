@@ -687,6 +687,42 @@ ol.leaderboard {
   .wire-more { font-size: 0.72rem; }
 }
 
+// --- New-edition banner (added under the navbar by js/feed.js) ---------------
+// Shown for two days after an edition is filed. It sits inside the fixed
+// header, so it scrolls away and returns with the navbar.
+.edition-banner {
+  position: relative;
+  background: $gold;
+  color: $navy;
+  text-align: center;
+  font-size: 0.85rem;
+  padding: 0.35rem 2.5rem;
+  line-height: 1.35;
+
+  a {
+    color: $navy;
+    font-weight: 700;
+    text-decoration: underline;
+    &:hover { color: $navy; text-decoration: none; }
+  }
+}
+
+.edition-banner-close {
+  position: absolute;
+  right: 0.6rem;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: 0;
+  color: $navy;
+  font-size: 1.15rem;
+  line-height: 1;
+  padding: 0 0.25rem;
+  cursor: pointer;
+  opacity: 0.7;
+  &:hover { opacity: 1; }
+}
+
 // --- The Wire (newsfeed posts, rendered by js/feed.js) -----------------------
 .wire-post {
   padding: 0.65rem 0;
