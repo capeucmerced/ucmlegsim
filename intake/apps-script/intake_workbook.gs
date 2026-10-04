@@ -57,6 +57,13 @@ function onAnyFormSubmit(e) {
     } catch (mailErr) {}
   }
 
+  // A newly numbered bill joins the vote sheets' Bill dropdown. Separate
+  // from the handlers on purpose: a problem here can never affect filing.
+  if (tab === 'Bills') {
+    try { syncVoteBillList(); }
+    catch (err) { console.error('Vote-sheet bill list not refreshed: ' + err); }
+  }
+
   // Wire posts are rendered client-side (js/feed.js polls the gateway),
   // so the most frequent submission type never needs a site rebuild.
   // Role checks change nothing on the site at all.
@@ -649,4 +656,112 @@ function addVoteTallies() {
     log.push('Tab "' + sheet.getName() + '": ' + (problem ? 'SKIPPED (' + problem + ')' : 'tallies written'));
   });
   Logger.log(log.length ? log.join('\n') : 'No vote tabs matched.');
+}
+
+// --- Controlled vote entry ----------------------------------------------------
+// The Bill column is a dropdown of every filed bill (read from a hidden
+// "Bill numbers" tab this script keeps current), the Date column takes
+// only dates, and the header row plus the tally columns warn before
+// anyone edits them. Run setupVoteSheets() once; syncVoteBillList() then
+// runs by itself whenever a bill is filed (and by hand after voiding).
+
+var VOTE_BILL_LIST_TAB = 'Bill numbers';
+
+/** Every vote tab in the votes workbook (matched by VOTE_TAB_WORDS). */
+function voteTabs_() {
+  var votesId = deployProp('VOTES_WORKBOOK_ID', '');
+  if (!votesId) throw new Error('VOTES_WORKBOOK_ID is not set in Script Properties.');
+  var ss = SpreadsheetApp.openById(votesId);
+  var tabs = ss.getSheets().filter(function (sheet) {
+    var norm = sheet.getName().toLowerCase();
+    return Object.keys(VOTE_TAB_WORDS).some(function (k) {
+      return VOTE_TAB_WORDS[k].some(function (w) { return norm.indexOf(w) !== -1; });
+    });
+  });
+  return { ss: ss, tabs: tabs };
+}
+
+/** Rewrites the hidden bill list: "SB-n" for every numbered, non-void
+ *  bill, in number order. The site reads "SB-12" fine, so chairs pick
+ *  exactly the form the site expects. */
+function syncVoteBillList() {
+  var bills = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Bills');
+  var nums = {};
+  if (bills && bills.getLastRow() > 1) {
+    var rows = bills.getDataRange().getValues();
+    var cSb = rows[0].indexOf('SB Number'), cStat = rows[0].indexOf('Status');
+    for (var i = 1; i < rows.length; i++) {
+      if (cStat >= 0 && rows[i][cStat]) continue;
+      var n = parseInt(rows[i][cSb], 10);
+      if (!isNaN(n)) nums[n] = true;
+    }
+  }
+  var list = Object.keys(nums).map(Number).sort(function (a, b) { return a - b; })
+    .map(function (n) { return ['SB-' + n]; });
+
+  var ss = voteTabs_().ss;
+  var tab = ss.getSheetByName(VOTE_BILL_LIST_TAB) || ss.insertSheet(VOTE_BILL_LIST_TAB);
+  tab.clearContents();
+  if (list.length) tab.getRange(1, 1, list.length, 1).setValues(list);
+  if (!tab.isSheetHidden()) tab.hideSheet();
+  return list.length;
+}
+
+/** Admin, run once (safe to rerun): bill dropdowns, date-only entry with
+ *  a calendar, and edit warnings on the headers and tally columns. */
+function setupVoteSheets() {
+  var count = syncVoteBillList();
+  var v = voteTabs_();
+  var listRange = v.ss.getSheetByName(VOTE_BILL_LIST_TAB).getRange('A1:A');
+  var log = ['Bill list: ' + count + ' bills.'];
+
+  v.tabs.forEach(function (sheet) {
+    var head = sheet.getRange(1, 1, 1, Math.max(sheet.getLastColumn(), 1)).getValues()[0];
+    var rows = sheet.getMaxRows() - 1;
+    var did = [], failed = [];
+    var attempt = function (what, fn) {
+      try { fn(); did.push(what); } catch (err) { failed.push(what + ' (' + err.message + ')'); }
+    };
+
+    var billCol = head.indexOf('Bill') + 1;
+    if (billCol && rows > 0) attempt('bill dropdown', function () {
+      sheet.getRange(2, billCol, rows, 1).setDataValidation(
+        SpreadsheetApp.newDataValidation().requireValueInRange(listRange, true)
+          .setAllowInvalid(false)
+          .setHelpText('Pick the bill from the list. If it is missing, it has not been filed.')
+          .build());
+    });
+
+    var dateCol = head.indexOf('Date') + 1;
+    if (dateCol && rows > 0) attempt('date-only entry', function () {
+      var dates = sheet.getRange(2, dateCol, rows, 1);
+      dates.setDataValidation(
+        SpreadsheetApp.newDataValidation().requireDate().setAllowInvalid(false)
+          .setHelpText('Enter a date, or double-click for a calendar.').build());
+      // The site reads dates as month/day/year; keep the display in that
+      // form whatever the calendar picker writes.
+      dates.setNumberFormat('M/d/yy');
+    });
+
+    // Warning-only protection: anyone can still edit after confirming.
+    // Scripts are never stopped by it (the column sync keeps working).
+    attempt('header warning', function () {
+      sheet.getProtections(SpreadsheetApp.ProtectionType.RANGE).forEach(function (p) {
+        if (/^LegSim:/.test(p.getDescription())) p.remove();   // rerun-safe
+      });
+      sheet.getRange(1, 1, 1, sheet.getMaxColumns()).protect()
+        .setDescription('LegSim: column names (the site and scripts rely on them)')
+        .setWarningOnly(true);
+      ['Ayes', 'Present'].forEach(function (label) {
+        var c = head.indexOf(label) + 1;
+        if (c && rows > 0) sheet.getRange(2, c, rows, 1).protect()
+          .setDescription('LegSim: ' + label + ' is counted automatically')
+          .setWarningOnly(true);
+      });
+    });
+
+    log.push('Tab "' + sheet.getName() + '": ' + (did.join(', ') || 'nothing') +
+             (failed.length ? '  |  FAILED: ' + failed.join('; ') : ''));
+  });
+  Logger.log(log.join('\n'));
 }

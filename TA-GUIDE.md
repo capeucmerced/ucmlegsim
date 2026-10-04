@@ -348,7 +348,9 @@ and flags, because amendment rows only hold what changed.
 3. Forms editor: remove the `SB-n — Subject` choice from the Bills
    form's "Which of your bills does this amend?" and from the Letters
    form's bill picker.
-4. LegSim → Rebuild site now.
+4. Apps Script editor: run `syncVoteBillList` so the bill leaves the vote
+   sheets' Bill dropdown.
+5. LegSim → Rebuild site now.
 
 Check the Letters and Referrals tabs first — anything already filed
 against that bill would point at nothing.

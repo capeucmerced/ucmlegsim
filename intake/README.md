@@ -229,7 +229,9 @@ and deleting also strands the bill's PDF and dropdown entries.
 3. **Two dropdowns** still list it. In the Forms editor, remove the
    `SB-n — Subject` choice from the Bills form's "Which of your bills
    does this amend?" and from the Letters form's bill picker.
-4. **LegSim → Rebuild site now.**
+4. **Run `syncVoteBillList`** (Apps Script editor) so the bill leaves the
+   vote sheets' Bill dropdown.
+5. **LegSim → Rebuild site now.**
 
 Check the Letters and Referrals tabs first: anything already filed
 against the bill would be left pointing at nothing. And never void only
