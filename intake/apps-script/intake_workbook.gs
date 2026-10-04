@@ -579,17 +579,10 @@ function handleRegistrationSubmit(e) {
 // (the column sync clears everything right of Result, so tallies must
 // sit left of it). A bill passes with a majority of those present, or
 // two-thirds of those present for 2/3rds-vote bills; Present counts
-// Aye + No + Abstain (a blank cell means absent). One formula in each
-// header cell fills the whole column, so rows chairs add later are
+// Aye + No + Abstain (a blank cell means absent). Every row of the tab
+// carries the count formulas in advance, so rows chairs add later are
 // counted with no copying down. The site reads senator columns by name,
 // so these extra columns don't affect it.
-
-/** Column number -> letters (1 -> A, 27 -> AA). */
-function colLetter_(n) {
-  var s = '';
-  while (n > 0) { var m = (n - 1) % 26; s = String.fromCharCode(65 + m) + s; n = (n - m - 1) / 26; }
-  return s;
-}
 
 /** Ensure one vote tab has Ayes/Present columns before Result, with
  *  formulas spanning its current senator columns. Safe to rerun. */
@@ -617,19 +610,25 @@ function writeVoteTallies_(sheet) {
   for (var c = head.length; c > resultCol; c--) {
     if (String(head[c - 1]).trim() !== '') { lastSen = c; break; }
   }
-  var bill = colLetter_(head.indexOf('Bill') + 1);
 
+  // The vote tabs are Google Sheets Tables, which forbid formulas in the
+  // header row. So the header stays plain text and every data row gets
+  // its own formula (R1C1, so one call fills the whole column): blank
+  // while the row has no bill, otherwise that row's count. Rows below
+  // the current votes are pre-filled, so new votes count with no copying.
+  var billCol = head.indexOf('Bill') + 1;
+  var rows = sheet.getMaxRows() - 1;
   ['Ayes', 'Present'].forEach(function (label) {
-    var cell = sheet.getRange(1, head.indexOf(label) + 1);
-    if (lastSen < firstSen) { cell.setValue(label); return; }   // no senators yet
-    var span = colLetter_(firstSen) + '2:' + colLetter_(lastSen);
-    // 1 for each counted cell in the row; MMULT sums each row
-    var counted = label === 'Ayes'
-      ? '(' + span + '="Aye")*1'
-      : '(' + span + '="Aye")+(' + span + '="No")+(' + span + '="Abstain")';
-    cell.setFormula('={"' + label + '";ARRAYFORMULA(IF(LEN(' + bill + '2:' + bill + ')=0,"",' +
-      'MMULT(' + counted + ',SEQUENCE(COLUMNS(' + span + '),1,1,0))))}');
-    cell.setFontWeight('bold');
+    var col = head.indexOf(label) + 1;
+    sheet.getRange(1, col).setValue(label).setFontWeight('bold');
+    if (rows < 1) return;
+    var body = sheet.getRange(2, col, rows, 1);
+    if (lastSen < firstSen) { body.clearContent(); return; }   // no senators yet
+    var span = 'RC' + firstSen + ':RC' + lastSen;
+    var count = label === 'Ayes'
+      ? 'COUNTIF(' + span + ',"Aye")'
+      : 'COUNTIF(' + span + ',"Aye")+COUNTIF(' + span + ',"No")+COUNTIF(' + span + ',"Abstain")';
+    body.setFormulaR1C1('=IF(LEN(RC' + billCol + ')=0,"",' + count + ')');
   });
   return '';
 }
