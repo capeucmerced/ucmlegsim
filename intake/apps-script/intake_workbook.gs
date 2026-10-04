@@ -575,11 +575,14 @@ function handleRegistrationSubmit(e) {
 }
 
 // --- Vote tallies -------------------------------------------------------------
-// Each vote tab gets "Ayes" and "Noes" columns just LEFT of "Result" (the
-// column sync clears everything right of Result, so tallies must sit
-// left of it). One formula in each header cell fills the whole column,
-// so rows chairs add later are counted with no copying down. The site
-// reads senator columns by name, so these extra columns don't affect it.
+// Each vote tab gets "Ayes" and "Present" columns just LEFT of "Result"
+// (the column sync clears everything right of Result, so tallies must
+// sit left of it). A bill passes with a majority of those present, or
+// two-thirds of those present for 2/3rds-vote bills; Present counts
+// Aye + No + Abstain (a blank cell means absent). One formula in each
+// header cell fills the whole column, so rows chairs add later are
+// counted with no copying down. The site reads senator columns by name,
+// so these extra columns don't affect it.
 
 /** Column number -> letters (1 -> A, 27 -> AA). */
 function colLetter_(n) {
@@ -588,7 +591,7 @@ function colLetter_(n) {
   return s;
 }
 
-/** Ensure one vote tab has Ayes/Noes columns before Result, with
+/** Ensure one vote tab has Ayes/Present columns before Result, with
  *  formulas spanning its current senator columns. Safe to rerun. */
 function writeVoteTallies_(sheet) {
   var lastCol = Math.max(sheet.getLastColumn(), 1);
@@ -596,9 +599,9 @@ function writeVoteTallies_(sheet) {
   if (head.indexOf('Result') === -1 || head.indexOf('Bill') === -1) return 'no Bill/Result column';
 
   // Insert the two columns right before Result if they aren't there yet
-  // (each lands just left of Result, so Ayes first gives Ayes | Noes).
+  // (each lands just left of Result, so Ayes first gives Ayes | Present).
   // A new column can inherit its neighbor's dropdown, so clear it.
-  ['Ayes', 'Noes'].forEach(function (label) {
+  ['Ayes', 'Present'].forEach(function (label) {
     if (head.indexOf(label) !== -1) return;
     var at = head.indexOf('Result') + 1;
     sheet.insertColumnBefore(at);
@@ -616,19 +619,22 @@ function writeVoteTallies_(sheet) {
   }
   var bill = colLetter_(head.indexOf('Bill') + 1);
 
-  ['Ayes', 'Noes'].forEach(function (label) {
+  ['Ayes', 'Present'].forEach(function (label) {
     var cell = sheet.getRange(1, head.indexOf(label) + 1);
     if (lastSen < firstSen) { cell.setValue(label); return; }   // no senators yet
     var span = colLetter_(firstSen) + '2:' + colLetter_(lastSen);
-    var word = label === 'Ayes' ? 'Aye' : 'No';
+    // 1 for each counted cell in the row; MMULT sums each row
+    var counted = label === 'Ayes'
+      ? '(' + span + '="Aye")*1'
+      : '(' + span + '="Aye")+(' + span + '="No")+(' + span + '="Abstain")';
     cell.setFormula('={"' + label + '";ARRAYFORMULA(IF(LEN(' + bill + '2:' + bill + ')=0,"",' +
-      'MMULT((' + span + '="' + word + '")*1,SEQUENCE(COLUMNS(' + span + '),1,1,0))))}');
+      'MMULT(' + counted + ',SEQUENCE(COLUMNS(' + span + '),1,1,0))))}');
     cell.setFontWeight('bold');
   });
   return '';
 }
 
-/** Admin: adds (or refreshes) the Ayes/Noes tallies on every vote tab,
+/** Admin: adds (or refreshes) the Ayes/Present tallies on every vote tab,
  *  without touching the senator columns or any vote. */
 function addVoteTallies() {
   var votesId = deployProp('VOTES_WORKBOOK_ID', '');
