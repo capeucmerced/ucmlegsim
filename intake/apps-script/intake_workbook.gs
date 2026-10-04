@@ -495,6 +495,7 @@ function syncVoteSheetColumns() {
       sheet.getRange(1, resultCol + 1, 1, names.length).setValues([names])
         .setFontWeight('bold');
     }
+    writeVoteTallies_(sheet);   // tally formulas follow the new columns
     notes += 'Tab "' + sheet.getName() + '": ' + names.length + ' senator column(s) written.' +
              (sheet.getLastRow() > 1
                ? ' CAUTION: this tab already holds vote rows — check they still align.'
@@ -571,4 +572,76 @@ function handleRegistrationSubmit(e) {
   newRow[head.indexOf('First Name')] = parts.slice(0, -1).join(' ') || parts[0];
   newRow[head.indexOf('Last Name')]  = parts.length > 1 ? parts[parts.length - 1] : '';
   roster.appendRow(newRow);
+}
+
+// --- Vote tallies -------------------------------------------------------------
+// Each vote tab gets "Ayes" and "Noes" columns just LEFT of "Result" (the
+// column sync clears everything right of Result, so tallies must sit
+// left of it). One formula in each header cell fills the whole column,
+// so rows chairs add later are counted with no copying down. The site
+// reads senator columns by name, so these extra columns don't affect it.
+
+/** Column number -> letters (1 -> A, 27 -> AA). */
+function colLetter_(n) {
+  var s = '';
+  while (n > 0) { var m = (n - 1) % 26; s = String.fromCharCode(65 + m) + s; n = (n - m - 1) / 26; }
+  return s;
+}
+
+/** Ensure one vote tab has Ayes/Noes columns before Result, with
+ *  formulas spanning its current senator columns. Safe to rerun. */
+function writeVoteTallies_(sheet) {
+  var lastCol = Math.max(sheet.getLastColumn(), 1);
+  var head = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
+  if (head.indexOf('Result') === -1 || head.indexOf('Bill') === -1) return 'no Bill/Result column';
+
+  // Insert the two columns right before Result if they aren't there yet
+  // (each lands just left of Result, so Ayes first gives Ayes | Noes).
+  // A new column can inherit its neighbor's dropdown, so clear it.
+  ['Ayes', 'Noes'].forEach(function (label) {
+    if (head.indexOf(label) !== -1) return;
+    var at = head.indexOf('Result') + 1;
+    sheet.insertColumnBefore(at);
+    sheet.getRange(1, at, sheet.getMaxRows(), 1).clearDataValidations();
+    sheet.getRange(1, at).setValue(label).setFontWeight('bold');
+    lastCol = sheet.getLastColumn();
+    head = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
+  });
+
+  var resultCol = head.indexOf('Result') + 1;
+  var firstSen = resultCol + 1;
+  var lastSen = resultCol;                       // last non-empty header
+  for (var c = head.length; c > resultCol; c--) {
+    if (String(head[c - 1]).trim() !== '') { lastSen = c; break; }
+  }
+  var bill = colLetter_(head.indexOf('Bill') + 1);
+
+  ['Ayes', 'Noes'].forEach(function (label) {
+    var cell = sheet.getRange(1, head.indexOf(label) + 1);
+    if (lastSen < firstSen) { cell.setValue(label); return; }   // no senators yet
+    var span = colLetter_(firstSen) + '2:' + colLetter_(lastSen);
+    var word = label === 'Ayes' ? 'Aye' : 'No';
+    cell.setFormula('={"' + label + '";ARRAYFORMULA(IF(LEN(' + bill + '2:' + bill + ')=0,"",' +
+      'MMULT((' + span + '="' + word + '")*1,SEQUENCE(COLUMNS(' + span + '),1,1,0))))}');
+    cell.setFontWeight('bold');
+  });
+  return '';
+}
+
+/** Admin: adds (or refreshes) the Ayes/Noes tallies on every vote tab,
+ *  without touching the senator columns or any vote. */
+function addVoteTallies() {
+  var votesId = deployProp('VOTES_WORKBOOK_ID', '');
+  if (!votesId) { Logger.log('VOTES_WORKBOOK_ID is not set in Script Properties.'); return; }
+  var log = [];
+  SpreadsheetApp.openById(votesId).getSheets().forEach(function (sheet) {
+    var norm = sheet.getName().toLowerCase();
+    var isVoteTab = Object.keys(VOTE_TAB_WORDS).some(function (k) {
+      return VOTE_TAB_WORDS[k].some(function (w) { return norm.indexOf(w) !== -1; });
+    });
+    if (!isVoteTab) return;
+    var problem = writeVoteTallies_(sheet);
+    log.push('Tab "' + sheet.getName() + '": ' + (problem ? 'SKIPPED (' + problem + ')' : 'tallies written'));
+  });
+  Logger.log(log.length ? log.join('\n') : 'No vote tabs matched.');
 }
