@@ -248,6 +248,43 @@ function fillDigest(body, digest) {
     paras.push(body.insertParagraph(at + k, para.copy()));
   }
   paras.forEach(function (p, i) { putLiteral(p, '{{DIGEST}}', parts[i]); });
+  return paras;
+}
+
+/**
+ * The look of everything above the legal text, set explicitly on every
+ * bill (the template's own styling cascaded bold italic down the page,
+ * so it can't be trusted): no italics anywhere above the legal text, a
+ * plain-weight digest, bold flag names with plain values, and a rule
+ * between the vote line and the enacting clause. Runs before the legal
+ * text is imported, so the student's own formatting is never touched.
+ */
+function styleBillTop_(body, digestParas, flagsPara) {
+  var marker = body.findText('{{BODY}}').getElement().getParent();
+  for (var i = 0; i < body.getChildIndex(marker); i++) {
+    var el = body.getChild(i);
+    if (el.getType() !== DocumentApp.ElementType.PARAGRAPH) continue;
+    var t = el.asParagraph().editAsText();
+    if (t.getText().length) t.setItalic(false);
+  }
+
+  digestParas.forEach(function (p) {
+    var t = p.editAsText();
+    if (t.getText().length) t.setBold(false);
+  });
+
+  // The vote line is found through its placeholder's paragraph, never by
+  // searching for "Vote:" (students have pasted vote lines into digests)
+  var line = flagsPara.asParagraph().editAsText();
+  var s = line.getText();
+  if (s.length) {
+    line.setBold(false);
+    ['Vote:', 'Appropriations/fiscal:', 'Local program:'].forEach(function (label) {
+      var at = s.indexOf(label);
+      if (at !== -1) line.setBold(at, at + label.length - 1, true);
+    });
+  }
+  body.insertParagraph(body.getChildIndex(flagsPara) + 1, '').appendHorizontalRule();
 }
 
 /** Swap every occurrence of a placeholder for text, keeping the
@@ -295,8 +332,10 @@ function assembleBillPdf(spec) {
   body.replaceText('{{SB}}', 'SB-' + spec.sb);
   body.replaceText('{{AUTHOR}}', spec.author);
   putLiteral(body, '{{TITLE}}', spec.title);
-  fillDigest(body, spec.digest);
+  var digestParas = fillDigest(body, spec.digest);
+  var flagsPara = body.findText('{{FLAGS}}').getElement().getParent();
   body.replaceText('{{FLAGS}}', spec.flags);
+  styleBillTop_(body, digestParas, flagsPara);
 
   // Replace the {{BODY}} placeholder paragraph with the student's legal
   // text, copied element by element so italics/strikethrough survive.
