@@ -587,3 +587,94 @@ function refileUnnumberedBills() {
   Logger.log(log.length ? log.join('\n') : 'Nothing to file.');
   if (log.length) requestSiteRebuild();
 }
+
+// --- Rebuilding published bills ------------------------------------------------
+// After a change to how bills are assembled (Oct 2026: list numbering),
+// rebuildBillPdfs() regenerates every current bill's PDF in place: the
+// number, author, title, digest and flags as filed, and the legal text
+// from the draft doc the latest filing used. No new Previous Text
+// version, no email to anyone. A bill is SKIPPED when its draft doc was
+// edited after that bill was last filed: the doc may now hold unfiled
+// changes, and publishing them would be wrong. Runs in batches under
+// Google's 6-minute limit: rerun until the log says it is finished.
+
+var REBUILD_PROGRESS_KEY = 'REBUILD_PROGRESS';
+
+function rebuildBillPdfs() {
+  var started = Date.now();
+  var props = PropertiesService.getScriptProperties();
+  var progress = JSON.parse(props.getProperty(REBUILD_PROGRESS_KEY) || '{}');
+
+  var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Bills');
+  var vals = sheet.getDataRange().getValues();
+  var head = vals[0];
+  var cSb = head.indexOf('SB Number'), cStat = head.indexOf('Status');
+  var cTime = colStartingWith(head, 'Timestamp');
+  var cDraft = colStartingWith(head, 'Which of your two draft docs');
+
+  var latest = {};                         // SB -> its newest non-void row
+  for (var i = 1; i < vals.length; i++) {
+    if (cStat >= 0 && vals[i][cStat]) continue;
+    var sb = parseInt(vals[i][cSb], 10);
+    if (!isNaN(sb)) latest[sb] = i;
+  }
+  var all = Object.keys(latest).map(Number).sort(function (a, b) { return a - b; });
+  var templateId = deployProp('BILL_TEMPLATE_DOC_ID', BILL_TEMPLATE_DOC_ID);
+  var rebuiltNow = 0;
+
+  for (var k = 0; k < all.length; k++) {
+    var n = all[k];
+    if (progress[n]) continue;
+    if (Date.now() - started > 4.5 * 60 * 1000) break;   // leave room to save
+
+    try {
+      var r = latest[n];
+      var meta = latestBillMeta(sheet, head, n, -1);
+      var who = rosterLookup(meta.email);
+      if (!who) { progress[n] = 'skipped: author not on the Roster'; continue; }
+      var docId = /[B2]/.test(String(vals[r][cDraft])) ? who['Bill Doc 2'] : who['Bill Doc 1'];
+      if (!docId) { progress[n] = 'skipped: no draft doc on the Roster'; continue; }
+
+      var filed = new Date(vals[r][cTime]);
+      var edited = DriveApp.getFileById(docId).getLastUpdated();
+      if (edited.getTime() > filed.getTime() + 60 * 1000) {
+        var hasList = DocumentApp.openById(docId).getBody()
+          .getListItems().length > 0;
+        progress[n] = 'skipped: draft doc edited after filing' +
+          (hasList ? ' (USES LISTS: needs an amendment to fix numbering)' : '');
+        continue;
+      }
+
+      var slug = String(who['Last Name']).toUpperCase().replace(/ /g, '_');
+      assembleBillPdf({
+        sb: n,
+        author: who['First Name'] + ' ' + who['Last Name'] +
+                ' (' + (who['Party'] || 'D') + '-' + who['District'] + ')',
+        title: meta.subject,
+        digest: meta.digest,
+        flags: flagsLine(meta.flags),
+        bodyDocId: docId,
+        templateId: templateId,
+        fileName: slug + '_SB' + n + '.pdf'
+      });
+      progress[n] = 'rebuilt';
+      rebuiltNow++;
+    } catch (err) {
+      progress[n] = 'FAILED: ' + err.message;
+    }
+  }
+
+  var remaining = all.filter(function (n) { return !progress[n]; }).length;
+  if (remaining > 0) {
+    props.setProperty(REBUILD_PROGRESS_KEY, JSON.stringify(progress));
+    Logger.log('Rebuilt ' + rebuiltNow + ' this run; ' + remaining +
+               ' bill(s) left. Run rebuildBillPdfs again.');
+  } else {
+    props.deleteProperty(REBUILD_PROGRESS_KEY);
+    var lines = all.map(function (n) { return 'SB-' + n + ': ' + progress[n]; });
+    var notRebuilt = lines.filter(function (l) { return !/: rebuilt$/.test(l); });
+    Logger.log('FINISHED. ' + (all.length - notRebuilt.length) + ' of ' + all.length +
+               ' bills rebuilt.' + (notRebuilt.length ? '\nNot rebuilt:\n' + notRebuilt.join('\n') : ''));
+  }
+  if (rebuiltNow > 0) requestSiteRebuild();
+}
