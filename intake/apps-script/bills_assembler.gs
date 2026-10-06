@@ -342,13 +342,23 @@ function assembleBillPdf(spec) {
   var marker = body.findText('{{BODY}}').getElement().getParent();
   var markerIndex = body.getChildIndex(marker);
   var source = DocumentApp.openById(spec.bodyDocId).getBody();
+  // A list's numbering style belongs to the list in its own document, so
+  // a copied list item keeps its indent but loses its number or bullet.
+  // Restore each item's glyph and nesting, and rejoin items that shared
+  // a list so numbering continues (1, 2, 3) instead of restarting.
+  var listFor = {};   // source list id -> first item inserted for it
   for (var i = 0; i < source.getNumChildren(); i++) {
     var el = source.getChild(i).copy();
     var t = el.getType();
     if (t === DocumentApp.ElementType.PARAGRAPH) {
       body.insertParagraph(markerIndex + 1 + i, el);
     } else if (t === DocumentApp.ElementType.LIST_ITEM) {
-      body.insertListItem(markerIndex + 1 + i, el);
+      var src = source.getChild(i).asListItem();
+      var item = body.insertListItem(markerIndex + 1 + i, el);
+      var id = src.getListId();
+      if (listFor[id]) item.setListId(listFor[id]); else listFor[id] = item;
+      item.setNestingLevel(src.getNestingLevel());
+      if (src.getGlyphType()) item.setGlyphType(src.getGlyphType());
     } else if (t === DocumentApp.ElementType.TABLE) {
       body.insertTable(markerIndex + 1 + i, el);
     }
@@ -376,43 +386,65 @@ function assembleBillPdf(spec) {
 }
 
 /**
- * Dry run: assembles a sample bill exactly as a filing would (template,
- * multi-paragraph digest with a "$", 2/3rds + fiscal flags, a senator's
- * real draft doc as the body) and emails the PDF to you. Touches no
- * sheet row, takes no SB number, and trashes its Drive copy, so the site
+ * Dry run: assembles a sample bill exactly as a filing would and emails
+ * the PDF to you. The sample covers everything the assembler handles: a
+ * multi-paragraph digest with a "$", 2/3rds + fiscal flags, and legal
+ * text with a numbered list (one sub-point nested under it), a bulleted
+ * list, added (italic) and removed (struck) language. Touches no sheet
+ * row, takes no SB number, and trashes its temporary files, so the site
  * never sees it. Run it after any change to the bill assembly.
  */
 function testBillAssembly() {
-  var rows = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Roster')
-    .getDataRange().getValues();
-  var head = rows[0], who = null;
-  for (var i = 1; i < rows.length && !who; i++) {
-    if (String(rows[i][head.indexOf('Role')]).toLowerCase().trim() === 'senator' &&
-        rows[i][head.indexOf('Bill Doc 1')]) who = rows[i];
-  }
-  if (!who) { Logger.log('No provisioned senator on the Roster to borrow a draft doc from.'); return; }
+  var G = DocumentApp.GlyphType;
+  var sample = DocumentApp.create('LegSim dry run legal text (temporary)');
+  var b = sample.getBody();
+  b.appendParagraph('SECTION 1. The Legislature finds and declares all of the following:');
+  var first = b.appendListItem('First finding, numbered 1.').setGlyphType(G.NUMBER);
+  b.appendListItem('Second finding, numbered 2.').setListId(first).setGlyphType(G.NUMBER);
+  b.appendListItem('A sub-point nested under 2, lettered a.')
+    .setListId(first).setNestingLevel(1).setGlyphType(G.LATIN_LOWER);
+  b.appendListItem('Third finding, numbered 3.').setListId(first).setGlyphType(G.NUMBER);
+  b.appendParagraph('SEC. 2. The department shall consider:');
+  var dot = b.appendListItem('a bulleted item').setGlyphType(G.BULLET);
+  b.appendListItem('another bulleted item').setListId(dot).setGlyphType(G.BULLET);
+  var amend = b.appendParagraph('SEC. 3. Existing law reads in black. ');
+  var t = amend.editAsText();
+  var s = t.getText().length;
+  t.appendText('This added language prints blue. ');
+  t.setItalic(s, t.getText().length - 1, true);
+  var s2 = t.getText().length;
+  t.appendText('This removed language prints red.');
+  t.setItalic(s2, t.getText().length - 1, false);
+  t.setStrikethrough(s2, t.getText().length - 1, true);
+  sample.saveAndClose();
 
   var fileName = 'DRYRUN_SB0.pdf';
-  var pdf = assembleBillPdf({
-    sb: 0,
-    author: who[head.indexOf('First Name')] + ' ' + who[head.indexOf('Last Name')] +
-            ' (' + who[head.indexOf('Party')] + '-' + who[head.indexOf('District')] + ')',
-    title: 'Dry Run Act',
-    digest: 'Existing law establishes a sample program.\n' +
-            'This bill would appropriate $7 million to expand it.',
-    flags: flagsLine('Appropriations/fiscal, 2/3rds vote'),
-    bodyDocId: who[head.indexOf('Bill Doc 1')],
-    templateId: deployProp('BILL_TEMPLATE_DOC_ID', BILL_TEMPLATE_DOC_ID),
-    fileName: fileName
-  });
-  var left = filesSubfolder('bills').getFilesByName(fileName);
-  while (left.hasNext()) left.next().setTrashed(true);
+  try {
+    var pdf = assembleBillPdf({
+      sb: 0,
+      author: 'Dry Run (D-0)',
+      title: 'Dry Run Act',
+      digest: 'Existing law establishes a sample program.\n' +
+              'This bill would appropriate $7 million to expand it.',
+      flags: flagsLine('Appropriations/fiscal, 2/3rds vote'),
+      bodyDocId: sample.getId(),
+      templateId: deployProp('BILL_TEMPLATE_DOC_ID', BILL_TEMPLATE_DOC_ID),
+      fileName: fileName
+    });
+  } finally {
+    DriveApp.getFileById(sample.getId()).setTrashed(true);
+    var left = filesSubfolder('bills').getFilesByName(fileName);
+    while (left.hasNext()) left.next().setTrashed(true);
+  }
 
   MailApp.sendEmail(Session.getEffectiveUser().getEmail(),
     'LegSim dry run: sample bill assembly',
-    'Check the attached PDF: two digest paragraphs (the second with ' +
-    '"$7 million"), the line "Vote: 2/3rds. Appropriations/fiscal: yes. ' +
-    'Local program: no.", then the senator\'s draft text.',
+    'Check the attached PDF. Above the line: a plain digest in two ' +
+    'paragraphs (the second with "$7 million"), then "Vote: 2/3rds. ' +
+    'Appropriations/fiscal: yes. Local program: no." with only the names ' +
+    'bold, and no italics. Below it: findings numbered 1, 2, 3 with a ' +
+    'lettered sub-point under 2, two bulleted items, and a sentence ' +
+    'whose added part is blue and removed part red.',
     { attachments: [pdf] });
   Logger.log('Dry run emailed to ' + Session.getEffectiveUser().getEmail());
 }
