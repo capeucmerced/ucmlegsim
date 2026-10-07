@@ -71,7 +71,7 @@ website:
     center: "The site updates automatically as bills, votes, letters, and news are filed."
     # Root-absolute on purpose: footer markdown isn't rewritten per page,
     # so a relative link 404s from pages in subfolders (senator-pages/…)
-    right: "[Session Archive](/archive/)"
+    right: "[Session Archive](/archive/) · [Source on GitHub](https://github.com/capeucmerced/ucmlegsim)"
 
 format:
   html:
