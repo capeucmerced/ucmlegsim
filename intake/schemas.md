@@ -211,6 +211,26 @@ Served to the site by the gateway's `?view=editions` (edition, link,
 submission time, outlet from the Roster — never the email). The Home
 page's Papers card shows the newest row; the News page lists them all.
 
+## Tab: Stories  (form: "Publish a Story", built by `buildStories()`)
+
+A journalist's individual pieces — the required editorial and anything
+else they write — as PDFs, shown on their outlet's page (newest first,
+as the lead) and in "Latest stories" on the News page.
+
+| Column | Question |
+| --- | --- |
+| Timestamp / Email Address | automatic |
+| Headline | "Headline" (required) |
+| Subhead | "Subhead" (optional, one line) |
+| Story PDF | file upload (PDF only, required) — added by hand; any title |
+| Cover image | file upload (images only, optional) — added by hand; any title. Cropped to a wide frame on the site; under 600px wide it is ignored |
+| — Story File / Image File | script columns: the Drive ids of the filed PDF and image (`stories/<outlet slug>/<date-time>_<headline-slug>.<ext>`) |
+| — Status | admin column: any value hides the story from the site |
+
+Served by `?view=stories` (time, outlet from the Roster, headline,
+subhead, file ids and names — never the email); the build downloads the
+files into `files/stories/<outlet slug>/`.
+
 ## Tab: Budgets  (hand-maintained)
 
 | Column | Meaning |

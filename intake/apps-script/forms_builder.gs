@@ -20,11 +20,12 @@
  *   - Each form: Settings -> Responses -> Collect email addresses ->
  *     "Verified" (the script requests email collection, but the Verified
  *     mode may need the toggle confirmed by hand).
- *   - Two forms need their file-upload question added by hand (Add
- *     question -> File upload; PDF only; 10 MB) — scripts cannot create
- *     upload questions: "File a Position Letter" and "Upload Your Role
- *     Profile". Title them however you like ("Letter PDF" / "Profile
- *     PDF" recommended) — the scripts find uploads by their Drive link.
+ *   - Three forms need file-upload questions added by hand (Add
+ *     question -> File upload; 10 MB) — scripts cannot create upload
+ *     questions: "File a Position Letter" (PDF), "Upload Your Role
+ *     Profile" (PDF), and "Publish a Story" (a required PDF plus an
+ *     optional image upload). Title them however you like — the scripts
+ *     find uploads by their Drive link and tell PDF from image by type.
  *   - Response tabs land in the intake workbook already renamed; drag
  *     them into a sensible order if you like.
  *
@@ -533,4 +534,27 @@ function buildEditions() {
   var link = f.addTextItem().setTitle('Link to the edition').setRequired(true);
   link.setValidation(FormApp.createTextValidation().requireTextIsUrl().build());
   return finish(f, 'Editions');
+}
+
+/**
+ * "Publish a story": a journalist's individual pieces (the required
+ * editorial, and anything else they write) as PDFs, shown on their
+ * outlet's page. MANUAL FINISH after running: add TWO file-upload
+ * questions by hand — the story (PDF only, required; title it "Story
+ * PDF") and an optional cover image (images only; title it "Cover
+ * image") — plus Collect email -> Verified. The script tells the two
+ * uploads apart by file type, so the titles are only suggestions.
+ */
+function buildStories() {
+  var f = newForm('Publish a Story', 'Stories');
+  f.setDescription(
+    'For the pieces you write beyond the Wire: your editorial (required), ' +
+    'and anything else — breaking news, a feature, an interview, an exposé. ' +
+    'Each story posts to your outlet\'s page with its headline. The cover ' +
+    'image is optional; if you add one, make it at least 1200 pixels wide ' +
+    '(it is cropped to a wide frame, like a front-page photo).');
+  f.addTextItem().setTitle('Headline').setRequired(true);
+  f.addTextItem().setTitle('Subhead')
+    .setHelpText('One line under the headline (optional).');
+  return finish(f, 'Stories');
 }

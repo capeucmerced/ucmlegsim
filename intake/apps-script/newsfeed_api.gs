@@ -45,6 +45,7 @@ function doGet(e) {
            : view === 'bills'       ? buildBillsJson()
            : view === 'profiles'    ? buildProfilesJson()
            : view === 'editions'    ? buildEditionsJson()
+           : view === 'stories'     ? buildStoriesJson()
            : view === 'agendas'     ? buildAgendasJson()
            : view === 'assignments' ? buildAssignmentsJson()
            : view === 'referrals'   ? buildReferralsJson()
@@ -470,4 +471,59 @@ function buildPostsJson() {
   posts = posts.slice(0, 200);
 
   return JSON.stringify({ posts: posts });
+}
+
+/** Journalists' stories: headline, subhead, outlet (from the Roster),
+ *  time, and the Drive ids of the PDF and optional cover image — the
+ *  names the handler gave them, never the email. Rows with a Status
+ *  (voided) or no filed PDF are skipped. */
+function buildStoriesJson() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+
+  var outletByEmail = {};
+  var rosterRows = ss.getSheetByName('Roster').getDataRange().getValues();
+  var rHead = rosterRows[0];
+  for (var i = 1; i < rosterRows.length; i++) {
+    var em = String(rosterRows[i][rHead.indexOf('Email')]).toLowerCase().trim();
+    var outlet = String(rosterRows[i][rHead.indexOf('Outlet')] || '').trim();
+    if (em && outlet) outletByEmail[em] = outlet;
+  }
+
+  var out = [];
+  var sheet = ss.getSheetByName('Stories');
+  if (sheet && sheet.getLastRow() > 1) {
+    var rows = sheet.getDataRange().getValues();
+    var head = rows[0];
+    var cTime = colStartingWith(head, 'Timestamp');
+    var cMail = colStartingWith(head, 'Email Address');
+    var cHead = colStartingWith(head, 'Headline');
+    var cDek  = colStartingWith(head, 'Subhead');
+    var cPdf  = head.indexOf('Story File');
+    var cImg  = head.indexOf('Image File');
+    var cStat = head.indexOf('Status');
+    for (var j = 1; j < rows.length; j++) {
+      var r = rows[j];
+      if (cStat >= 0 && r[cStat]) continue;
+      if (cPdf < 0 || !r[cPdf]) continue;
+      var who = outletByEmail[String(r[cMail]).toLowerCase().trim()];
+      if (!who) continue;
+      var entry = {
+        time:     new Date(r[cTime]).toISOString(),
+        outlet:   who,
+        headline: String(r[cHead] || ''),
+        dek:      cDek >= 0 ? String(r[cDek] || '') : '',
+        pdf:      String(r[cPdf]),
+        pdfName:  '',
+        image:    cImg >= 0 ? String(r[cImg] || '') : '',
+        imageName: ''
+      };
+      try { entry.pdfName = DriveApp.getFileById(entry.pdf).getName(); } catch (err) {}
+      if (entry.image) {
+        try { entry.imageName = DriveApp.getFileById(entry.image).getName(); }
+        catch (err) { entry.image = ''; }
+      }
+      out.push(entry);
+    }
+  }
+  return JSON.stringify({ stories: out });
 }

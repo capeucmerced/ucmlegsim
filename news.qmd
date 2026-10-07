@@ -60,6 +60,19 @@ if (nrow(newspaper) > 0 && all(c("Edition", "Link") %in% names(newspaper))) {
 }
 ```
 
+```{r latest-stories}
+#| results: asis
+# The newest few pieces across every outlet, each linking to its PDF.
+# Nothing is shown until the first story is filed.
+sync_intake_stories()
+latest <- load_intake_stories()
+if (nrow(latest) > 0) {
+  cat('<div class="lb-label">Latest stories</div>',
+      stories_html(latest, show_outlet = TRUE, limit = 5),
+      sep = "\n")
+}
+```
+
 ```{r outlets}
 #| results: asis
 # The outlet directory as tiles: each paper's FULL name as its

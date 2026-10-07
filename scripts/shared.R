@@ -29,6 +29,7 @@ PROFILE_DIR       <- "files/pdfs/role_profiles"
 SEN_PROFILE_DIR   <- "files/pdfs/role_profiles/senators"
 LOBBY_PROFILE_DIR <- "files/pdfs/role_profiles/lobbyists"
 JOUR_PROFILE_DIR  <- "files/pdfs/role_profiles/journalists"
+STORIES_DIR       <- "files/stories"   # journalists' pieces, one subfolder per outlet
 
 # Filename slug for a journalist outlet — MUST mirror the intake
 # router's naming (intake_workbook.gs): lowercase, runs of non-
@@ -73,7 +74,7 @@ INTAKE_API_URL <- "https://script.google.com/macros/s/AKfycbwcPcwt8LTJri6lBrbarY
 # Which intake streams are live (their loaders merge rows in; the 2025
 # fixture files stay alongside until the semester-start data reset)
 INTAKE_LIVE <- c("spending", "letters", "bills", "profiles", "editions",
-                 "agendas", "assignments", "referrals", "forms")
+                 "agendas", "assignments", "referrals", "forms", "stories")
 
 # One gateway fetch, hardened for a full site build. Two problems this
 # solves, both discovered when a build baked INCONSISTENT pages:
@@ -823,4 +824,148 @@ empty_contributions <- function() {
     Recipient.District = integer(), Contribution = numeric(),
     Lobby_Code = character(), Lobby = character()
   )
+}
+
+# ---------------------------------------------------------------------------
+# Journalists' stories: a headline, an optional subhead, a PDF, and an
+# optional cover image per piece, filed through the "Publish a Story"
+# form. sync_intake_stories() downloads the files from the gateway's
+# stories view into files/stories/<outlet slug>/ (canonical names, so a
+# re-download overwrites); load_intake_stories() returns one row per
+# story, newest first, with site-relative paths. story_card_html() draws
+# a story the same way on the outlet pages and the News page.
+# ---------------------------------------------------------------------------
+
+# Download one shared Drive file. magic = the bytes a real file starts
+# with ("%PDF"); NULL means "any file that isn't an HTML sign-in page".
+fetch_drive_file <- function(id, dest, magic = "%PDF") {
+  ok <- tryCatch({
+    curl::curl_download(
+      paste0("https://drive.google.com/uc?export=download&id=", id), dest, quiet = TRUE)
+    head <- tryCatch(readBin(dest, "raw", n = 4), error = function(e) raw(0))
+    if (is.null(magic)) length(head) > 0 && head[1] != charToRaw("<")
+    else identical(head, charToRaw(magic))
+  }, error = function(e) FALSE)
+  if (!ok && file.exists(dest)) unlink(dest)
+  ok
+}
+
+sync_intake_stories <- function() {
+  if (!"stories" %in% INTAKE_LIVE) return(invisible())
+  if (isTRUE(getOption("legsim.stories_synced"))) return(invisible())
+  j <- read_intake_json("stories")
+  if (!is.null(j) && length(j$stories) > 0) {
+    s <- as.data.frame(j$stories)
+    for (i in seq_len(nrow(s))) {
+      dir <- file.path(STORIES_DIR, outlet_slug(s$outlet[i]))
+      if (!dir.exists(dir)) dir.create(dir, recursive = TRUE)
+      pdf_name <- if (nzchar(s$pdfName[i])) s$pdfName[i] else paste0(s$pdf[i], ".pdf")
+      if (!fetch_drive_file(s$pdf[i], file.path(dir, basename(pdf_name))))
+        message("WARNING: story PDF ", pdf_name, " could not be fetched; skipped.")
+      if (nzchar(s$image[i]) && nzchar(s$imageName[i]))
+        fetch_drive_file(s$image[i], file.path(dir, basename(s$imageName[i])), NULL)
+    }
+  }
+  options(legsim.stories_synced = TRUE)
+  invisible()
+}
+
+load_intake_stories <- function() {
+  empty <- data.frame(time = as.POSIXct(character()), outlet = character(),
+                      headline = character(), dek = character(),
+                      pdf = character(), image = character(),
+                      stringsAsFactors = FALSE)
+  if (!"stories" %in% INTAKE_LIVE) return(empty)
+  j <- read_intake_json("stories")
+  if (is.null(j) || length(j$stories) == 0) return(empty)
+  s <- as.data.frame(j$stories)
+  slug <- outlet_slug(s$outlet)
+  pdf_name <- ifelse(nzchar(s$pdfName), s$pdfName, paste0(s$pdf, ".pdf"))
+  out <- data.frame(
+    time     = as.POSIXct(s$time, format = "%Y-%m-%dT%H:%M:%OSZ", tz = "UTC"),
+    outlet   = s$outlet,
+    headline = s$headline,
+    dek      = s$dek,
+    pdf      = file.path(STORIES_DIR, slug, basename(pdf_name)),
+    image    = ifelse(nzchar(s$image) & nzchar(s$imageName),
+                      file.path(STORIES_DIR, slug, basename(s$imageName)), NA_character_),
+    stringsAsFactors = FALSE
+  )
+  out <- out[file.exists(out$pdf), , drop = FALSE]      # only what synced
+  out$image[!is.na(out$image) & !file.exists(out$image)] <- NA
+  out[order(out$time, decreasing = TRUE), , drop = FALSE]
+}
+
+# Pixel size of a PNG or JPEG from its header (no image packages needed);
+# c(NA, NA) for anything else.
+image_size <- function(path) {
+  be <- function(x) sum(as.numeric(x) * 256^(rev(seq_along(x)) - 1))
+  b <- tryCatch(readBin(path, "raw", n = 65536), error = function(e) raw(0))
+  if (length(b) >= 24 && identical(b[1:4], as.raw(c(0x89, 0x50, 0x4E, 0x47))))
+    return(c(w = be(b[17:20]), h = be(b[21:24])))
+  if (length(b) >= 4 && identical(b[1:2], as.raw(c(0xFF, 0xD8)))) {
+    i <- 3
+    while (i + 9 <= length(b)) {
+      if (b[i] != as.raw(0xFF)) { i <- i + 1; next }
+      m <- as.integer(b[i + 1])
+      if (m == 0xFF) { i <- i + 1; next }
+      if (m == 0x01 || (m >= 0xD0 && m <= 0xD9)) { i <- i + 2; next }
+      if (m %in% c(0xC0, 0xC1, 0xC2, 0xC3, 0xC5, 0xC6, 0xC7, 0xC9, 0xCA, 0xCB, 0xCD, 0xCE, 0xCF))
+        return(c(w = be(b[(i + 7):(i + 8)]), h = be(b[(i + 5):(i + 6)])))
+      i <- i + 2 + be(b[(i + 2):(i + 3)])
+    }
+  }
+  c(w = NA_real_, h = NA_real_)
+}
+
+# One story as HTML. lead = the big treatment (wide image frame, large
+# headline). show_outlet puts the paper's name in the kicker (the News
+# page); the outlet's own page shows only the date. rel prefixes file
+# paths for pages in subfolders ("../" on the outlet pages). An image
+# narrower than 600px is not used: it would be blown up blurry inside
+# the frame, so the card falls back to the typographic nameplate.
+story_card_html <- function(st, lead = FALSE, show_outlet = FALSE, rel = "") {
+  esc  <- htmltools::htmlEscape
+  pdf  <- paste0(rel, st$pdf)
+  when <- format(as.POSIXct(st$time, tz = "America/Los_Angeles"), "%B %d, %Y")
+  when <- sub(" 0", " ", when, fixed = TRUE)
+  kicker <- if (show_outlet) paste(esc(st$outlet), "\u00b7", when) else when
+
+  use_image <- !is.na(st$image)
+  if (use_image) {
+    w <- image_size(st$image)[["w"]]
+    use_image <- is.na(w) || w >= 600
+  }
+  art <- if (use_image) {
+    sprintf('<a class="story-art" href="%s" target="_blank" rel="noopener"><img src="%s" alt=""></a>',
+            pdf, paste0(rel, st$image))
+  } else {
+    sprintf('<a class="story-art story-type" href="%s" target="_blank" rel="noopener"><span>%s</span></a>',
+            pdf, esc(st$outlet))
+  }
+  dek <- if (!is.na(st$dek) && nzchar(st$dek)) sprintf('<p class="story-dek">%s</p>', esc(st$dek)) else ""
+
+  paste0(
+    '<article class="story', if (lead) ' story-lead' else '', '">', art,
+    '<div class="story-body">',
+    '<div class="story-kicker">', kicker, '</div>',
+    '<h3 class="story-headline"><a href="', pdf, '" target="_blank" rel="noopener">',
+    esc(st$headline), '</a></h3>', dek,
+    '<a class="story-read" href="', pdf, '" target="_blank" rel="noopener">Read the story &rarr;</a>',
+    '</div></article>'
+  )
+}
+
+# The stories section for one outlet (or any set of stories): newest as
+# the lead, the rest in a grid; a quiet line when there are none.
+stories_html <- function(stories, rel = "", show_outlet = FALSE, limit = NA) {
+  if (nrow(stories) == 0) return('<p class="stories-empty"><em>No stories published yet.</em></p>')
+  if (!is.na(limit)) stories <- head(stories, limit)
+  lead <- story_card_html(stories[1, ], lead = TRUE, show_outlet = show_outlet, rel = rel)
+  rest <- if (nrow(stories) > 1) {
+    cards <- vapply(seq_len(nrow(stories))[-1], function(i)
+      story_card_html(stories[i, ], show_outlet = show_outlet, rel = rel), character(1))
+    paste0('<div class="story-grid">', paste(cards, collapse = ""), '</div>')
+  } else ""
+  paste0(lead, rest)
 }

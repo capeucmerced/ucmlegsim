@@ -96,8 +96,8 @@ live in the Sep 2026 beta — the scripts carry those fixes):
    rebuild request (a logged no-op), which is right before launch anyway.
    Properties survive code re-pastes; never edit constants in the code.
 4. **Build the forms**: run `buildAllForms()`, then `addAdminTabs()`.
-   Manual finish per the builder's header: add a file-upload question
-   (PDF only, 10 MB) to the Letters and Role Profile forms — any
+   Manual finish per the builder's header: add the file-upload questions
+   (10 MB) to the Letters, Role Profile and Stories forms — any
    question title works; the scripts find uploads by their Drive link —
    and Settings → *Collect email addresses → Verified* on every form. Add the script columns by hand:
    `Status` on the Letters and Bills tabs, `SB Number` on Bills.

@@ -723,6 +723,98 @@ ol.leaderboard {
   &:hover { opacity: 1; }
 }
 
+// --- Stories (journalists' pieces: outlet pages and the News page) -----------
+// A front page: the newest story leads with a wide image frame and a
+// large headline; the rest follow as cards. Images are cropped to the
+// frame (never stretched); a story without one shows the outlet's
+// nameplate in the frame instead.
+.story {
+  margin-bottom: 1.4rem;
+
+  .story-art {
+    display: block;
+    position: relative;
+    overflow: hidden;
+    aspect-ratio: 4 / 3;
+    border-radius: 3px;
+    background: $role-journalist;
+    text-decoration: none;
+
+    img {
+      display: block;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    &.story-type {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1rem;
+      color: #fff;
+      font-family: $headings-font-family;
+      font-weight: 600;
+      font-size: 1.3rem;
+      line-height: 1.16;
+      text-align: center;
+      text-wrap: balance;
+    }
+  }
+
+  .story-body { padding-top: 0.6rem; }
+
+  .story-kicker {
+    font-size: 0.64rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: rgba($navy, 0.6);
+  }
+
+  .story-headline {
+    font-family: $headings-font-family;
+    font-size: 1.18rem;
+    line-height: 1.25;
+    margin: 0.3rem 0 0.25rem;
+    text-wrap: balance;
+
+    a { color: $navy; text-decoration: none; }
+    a:hover { color: $gold; }
+  }
+
+  .story-dek {
+    font-size: 0.92rem;
+    line-height: 1.4;
+    color: rgba($navy, 0.75);
+    margin: 0 0 0.4rem;
+  }
+
+  .story-read {
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: $navy;
+    text-decoration: none;
+    &:hover { color: $gold; }
+  }
+}
+
+.story-lead {
+  .story-art { aspect-ratio: 16 / 9; }
+  .story-art.story-type { font-size: 2rem; }
+  .story-headline { font-size: 1.75rem; }
+  .story-dek { font-size: 1rem; }
+}
+
+.story-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(13rem, 1fr));
+  gap: 1.2rem;
+  margin-top: 0.5rem;
+}
+
+.stories-empty { color: rgba($navy, 0.6); }
+
 // --- The Wire (newsfeed posts, rendered by js/feed.js) -----------------------
 .wire-post {
   padding: 0.65rem 0;

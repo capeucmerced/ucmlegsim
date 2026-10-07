@@ -40,6 +40,7 @@ function onAnyFormSubmit(e) {
     if (tab === 'Assignments')  handleAssignmentsSubmit(e);
     if (tab === 'Referrals')    handleReferralsSubmit(e);
     if (tab === 'Role Check')   handleRoleCheckSubmit(e);  // role_check.gs
+    if (tab === 'Stories')      handleStorySubmit(e);
     if (tab.indexOf('Agenda') === 0) handleAgendaSubmit(e); // agenda_builder.gs
   } catch (err) {
     // A handler problem should never stop the rebuild (the row is still
@@ -764,4 +765,87 @@ function setupVoteSheets() {
              (failed.length ? '  |  FAILED: ' + failed.join('; ') : ''));
   });
   Logger.log(log.join('\n'));
+}
+
+// --- Stories (a journalist's individual pieces) -------------------------------
+// A Stories submission carries a headline, an optional subhead, a story
+// PDF and an optional cover image (two upload questions; told apart by
+// file type). Both files are renamed to a canonical base name and filed
+// under stories/<outlet slug>/, and their Drive ids are written to two
+// script columns on the row ("Story File", "Image File"), which is what
+// the gateway's stories view serves. The site downloads them at build.
+
+/** Every Drive file id in the row's upload cells. */
+function driveIdsFrom_(row) {
+  var ids = [];
+  Object.keys(row).forEach(function (k) {
+    var v = String(row[k] || '');
+    if (!/https:\/\/(drive|docs)\.google\.com\//.test(v)) return;
+    var m, re = /[-\w]{25,}/g;
+    while ((m = re.exec(v)) !== null) if (ids.indexOf(m[0]) === -1) ids.push(m[0]);
+  });
+  return ids;
+}
+
+/** Writes a value into a script column of the row, creating the header
+ *  right of the response columns if needed. */
+function setScriptColumn_(e, header, value) {
+  var sheet = e.range.getSheet();
+  var head = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+  var col = head.indexOf(header);
+  if (col === -1) {
+    col = head.length;
+    sheet.getRange(1, col + 1).setValue(header);
+  }
+  sheet.getRange(e.range.getRow(), col + 1).setValue(value);
+}
+
+function handleStorySubmit(e) {
+  var row = rowAsObject(e);
+  var who = rosterLookup(row['Email Address']);
+  if (!who || !who['Outlet']) {
+    throw new Error('Story from ' + row['Email Address'] + ', which has no ' +
+                    'Outlet on the Roster (stories are attributed by it). ' +
+                    'Fix the Roster, then have them resubmit.');
+  }
+
+  // Which upload is the story and which the cover image: by file type
+  var pdf = null, image = null;
+  driveIdsFrom_(row).forEach(function (id) {
+    var f = DriveApp.getFileById(id);
+    var mime = f.getMimeType();
+    if (mime === 'application/pdf' && !pdf) pdf = f;
+    else if (/^image\//.test(mime) && !image) image = f;
+  });
+  if (!pdf) {
+    throw new Error('No PDF upload found in the Stories row — the story ' +
+                    'must be a PDF (is the upload question missing?).');
+  }
+
+  var outletSlug = String(who['Outlet']).toLowerCase().trim()
+    .replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
+  var headSlug = String(row['Headline'] || 'story').toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 60) || 'story';
+  var when = row['Timestamp'] instanceof Date ? row['Timestamp'] : new Date();
+  var base = Utilities.formatDate(when, Session.getScriptTimeZone(), 'yyyy-MM-dd-HHmm') +
+             '_' + headSlug;
+
+  var parent = filesSubfolder('stories');
+  var it = parent.getFoldersByName(outletSlug);
+  var folder = it.hasNext() ? it.next() : parent.createFolder(outletSlug);
+
+  pdf.setName(base + '.pdf');
+  pdf.moveTo(folder);
+  pdf.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+  setScriptColumn_(e, 'Story File', pdf.getId());
+
+  if (image) {
+    var ext = (image.getName().match(/\.(jpe?g|png|gif|webp)$/i) || ['', 'jpg'])[1].toLowerCase();
+    image.setName(base + '.' + ext);
+    image.moveTo(folder);
+    image.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+    setScriptColumn_(e, 'Image File', image.getId());
+  } else {
+    setScriptColumn_(e, 'Image File', '');
+  }
 }

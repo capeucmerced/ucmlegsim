@@ -47,6 +47,7 @@ if (is.null(urls)) {
   ))
   drawer("Journalists", "role-journalist", c(
     Posts    = "Post to the Wire",
+    Stories  = "Publish a story",
     Editions = "Publish a newspaper edition"
   ))
   drawer("Leadership & chairs", "role-leadership", c(
