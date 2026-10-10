@@ -131,8 +131,9 @@ function handleBillSubmit(e) {
     { attachments: [pdf] }
   );
 
-  // Every dropdown that lists filed bills learns the new one immediately
-  if (!isAmendment) addBillToFormDropdowns(sbNumber, meta.subject);
+  // Every dropdown that lists filed bills learns the new one immediately —
+  // and an amendment that changes the title refreshes its entry
+  addBillToFormDropdowns(sbNumber, meta.subject);
 }
 
 /** Newest non-empty metadata (and owner email) across a bill's earlier
@@ -677,4 +678,40 @@ function rebuildBillPdfs() {
                ' bills rebuilt.' + (notRebuilt.length ? '\nNot rebuilt:\n' + notRebuilt.join('\n') : ''));
   }
   if (rebuiltNow > 0) requestSiteRebuild();
+}
+
+/**
+ * Admin: rebuilds every dropdown that lists filed bills — the Bills
+ * form's amend picker, the Letters form's bill picker, and the vote
+ * sheets' Bill list — from the bills now on file: one entry per SB
+ * number, newest title, void rows ignored. Run it after voiding a bill,
+ * or whenever a picker shows a stale title.
+ */
+function syncBillDropdowns() {
+  var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Bills');
+  var vals = sheet.getDataRange().getValues();
+  var head = vals[0];
+  var cSb = head.indexOf('SB Number'), cStat = head.indexOf('Status');
+  var nums = {};
+  for (var i = 1; i < vals.length; i++) {
+    if (cStat >= 0 && vals[i][cStat]) continue;
+    var n = parseInt(vals[i][cSb], 10);
+    if (!isNaN(n)) nums[n] = true;
+  }
+  var choices = Object.keys(nums).map(Number).sort(function (a, b) { return a - b; })
+    .map(function (n) { return 'SB-' + n + ' — ' + latestBillMeta(sheet, head, n, -1).subject; });
+
+  [['Bills', 'Which of your bills'], ['Letters', 'Which bill']].forEach(function (t) {
+    var fid = deployProp('FORM_ID_' + t[0], '');
+    if (!fid) return;
+    FormApp.openById(fid).getItems(FormApp.ItemType.LIST).forEach(function (it) {
+      var li = it.asListItem();
+      if (li.getTitle().indexOf(t[1]) === 0) {
+        li.setChoiceValues(choices.length ? choices : [PLACEHOLDER]);
+      }
+    });
+  });
+  var voteCount = syncVoteBillList();
+  Logger.log('Form pickers rebuilt with ' + choices.length + ' bill(s); vote-sheet list: ' +
+             voteCount + ' bill(s).');
 }

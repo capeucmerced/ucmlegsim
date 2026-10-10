@@ -226,12 +226,11 @@ and deleting also strands the bill's PDF and dropdown entries.
    sequence is normal and harmless.
 2. **LegSim Files → bills:** trash `LASTNAME_SBn.pdf` (and any
    `LASTNAME_SBn_vN.pdf` in `previous_bills`).
-3. **Two dropdowns** still list it. In the Forms editor, remove the
-   `SB-n — Subject` choice from the Bills form's "Which of your bills
-   does this amend?" and from the Letters form's bill picker.
-4. **Run `syncVoteBillList`** (Apps Script editor) so the bill leaves the
-   vote sheets' Bill dropdown.
-5. **LegSim → Rebuild site now.**
+3. **Run `syncBillDropdowns`** (Apps Script editor). It rebuilds the two
+   form pickers (the Bills form's amend picker and the Letters form's
+   bill picker) and the vote sheets' Bill dropdown from the bills now on
+   file, so the voided bill leaves all three and every title is current.
+4. **LegSim → Rebuild site now.**
 
 Check the Letters and Referrals tabs first: anything already filed
 against the bill would be left pointing at nothing. And never void only
