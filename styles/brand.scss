@@ -140,6 +140,16 @@ h3.drawer::before {
   margin-right: 0.55rem;
   background: $navy;
 }
+// The small "guide (PDF)" link after a form's name in the Filing Cabinet
+a.form-guide {
+  font-size: 0.78rem;
+  color: rgba($navy, 0.6);
+  text-decoration: none;
+  margin-left: 0.35rem;
+  &::before { content: "\00b7"; margin-right: 0.35rem; }
+  &:hover { color: $gold; }
+}
+
 h3.drawer.role-senator::before    { background: $role-senator; }
 h3.drawer.role-lobbyist::before   { background: $role-lobbyist; }
 h3.drawer.role-journalist::before { background: $role-journalist; }

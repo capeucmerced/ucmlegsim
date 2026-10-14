@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Filing a Bill</title>
+<link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+<style>
+  @page { size: Letter; margin: 0.6in 0.65in; }
+  :root { --navy: #17345a; --gold: #d4a821; --paper: #f9f7f1; --muted: #5b6573; --rule: #d9d4c7; --purple: #5F3A8E; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body { font-family: "Atkinson Hyperlegible", Arial, sans-serif; color: #1c1c1c; font-size: 10.6pt; line-height: 1.42; }
+  h1, h2, h3 { font-family: "EB Garamond", Georgia, serif; color: var(--navy); margin: 0; }
+  h1 { font-size: 24pt; font-weight: 600; letter-spacing: .01em; }
+  h2 { font-size: 14.5pt; font-weight: 600; margin: 14pt 0 5pt; padding-bottom: 3pt; border-bottom: 1.5px solid var(--navy); }
+  p { margin: 0 0 7pt; }
+  .kicker { font-size: 8pt; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: var(--gold); margin-bottom: 3pt; }
+  .lede { font-size: 11pt; color: #2b3540; }
+  .page-break { break-before: page; }
+
+  /* --- Diagram -------------------------------------------------------- */
+  .diagram { display: grid; grid-template-columns: 1.08fr 1fr; gap: 18pt; align-items: start; margin-top: 10pt; }
+  .bill { position: relative; background: #fff; border: 1px solid var(--rule); box-shadow: 0 1px 0 var(--rule); padding: 14pt 16pt 14pt 30pt; font-family: "EB Garamond", Georgia, serif; font-size: 8.6pt; line-height: 1.32; color: #222; }
+  .bill .c { text-align: center; }
+  .bill .sm { font-size: 7.2pt; letter-spacing: .06em; font-weight: 600; }
+  .bill .title { font-size: 13.5pt; font-weight: 700; margin: 4pt 0 2pt; }
+  .bill .intro { font-weight: 600; }
+  .bill .act { margin: 4pt 0 5pt; }
+  .bill .dhead { font-size: 7.4pt; font-weight: 700; letter-spacing: .04em; margin-top: 4pt; }
+  .bill .digest { margin: 3pt 0 0; }
+  .bill .digest p { margin: 0 0 3pt; }
+  .bill .vote { font-size: 7.8pt; margin: 2pt 0 4pt; }
+  .bill .vote b { font-weight: 700; }
+  .bill hr { border: 0; border-top: 1px solid #333; margin: 4pt 0 6pt; }
+  .bill .enact { font-weight: 700; font-size: 8.4pt; margin-bottom: 5pt; }
+  .bill .legal p { margin: 0 0 3pt; }
+  .bill .ins { color: #1155cc; font-style: italic; }
+  .bill .del { color: #c00000; text-decoration: line-through; }
+  .part { position: relative; }
+  /* The parts the student supplies are shaded; template parts stay plain */
+  .part.form, .part.doc { border-radius: 3pt; padding: 4pt 7pt 3pt; margin: 3pt -4pt; }
+  .part.form { background: rgba(23, 52, 90, 0.085); }
+  .part.doc { background: rgba(95, 58, 142, 0.09); }
+  .badge { position: absolute; left: -24pt; top: 3pt; width: 15pt; height: 15pt; border-radius: 50%; background: var(--navy); color: #fff; font-family: "Atkinson Hyperlegible", Arial, sans-serif; font-size: 8.5pt; font-weight: 700; display: flex; align-items: center; justify-content: center; }
+  .badge.doc { background: var(--purple); }
+
+  .key { font-size: 9.6pt; }
+  .key .item { display: grid; grid-template-columns: 17pt 1fr; gap: 7pt; margin-bottom: 8pt; align-items: start; }
+  .key .b { width: 15pt; height: 15pt; border-radius: 50%; background: var(--navy); color: #fff; font-size: 8.5pt; font-weight: 700; display: flex; align-items: center; justify-content: center; margin-top: 1pt; }
+  .key .b.doc { background: var(--purple); }
+  .key .src { font-weight: 700; color: var(--navy); }
+  .key .src.doc { color: var(--purple); }
+  .key .rest { font-size: 9pt; color: var(--muted); margin-top: 10pt; padding-top: 7pt; border-top: 1px solid var(--rule); }
+  .legend { display: flex; gap: 14pt; font-size: 8.4pt; color: var(--muted); margin: 0 0 9pt; }
+  .legend span::before { content: ""; display: inline-block; width: 10pt; height: 10pt; border-radius: 2pt; margin-right: 4pt; vertical-align: -1px; }
+  .legend .f::before { background: rgba(23, 52, 90, 0.18); } .legend .d::before { background: rgba(95, 58, 142, 0.2); }
+
+  /* --- Steps ---------------------------------------------------------- */
+  ol.steps { margin: 4pt 0 0; padding-left: 0; counter-reset: s; list-style: none; }
+  ol.steps li { counter-increment: s; position: relative; padding-left: 26pt; margin-bottom: 7pt; }
+  ol.steps li::before { content: counter(s); position: absolute; left: 0; top: 1pt; width: 17pt; height: 17pt; border-radius: 50%; background: var(--gold); color: var(--navy); font-weight: 700; font-size: 9.5pt; display: flex; align-items: center; justify-content: center; }
+  ol.steps b { color: var(--navy); }
+  .two { display: grid; grid-template-columns: 1fr 1fr; gap: 16pt; }
+  .box { background: var(--paper); border-left: 3px solid var(--gold); padding: 7pt 10pt; margin-top: 6pt; }
+  .box.warn { border-left-color: #c00000; }
+  .box p:last-child { margin-bottom: 0; }
+  ul.tight { margin: 2pt 0 6pt; padding-left: 16pt; }
+  ul.tight li { margin-bottom: 2.5pt; }
+  .foot { font-size: 8.3pt; color: var(--muted); margin-top: 10pt; border-top: 1px solid var(--rule); padding-top: 5pt; }
+</style>
+</head>
+<body>
+
+<div class="kicker">UC Merced California Legislative Simulation</div>
+<h1>Filing a bill: how the pieces fit</h1>
+<p class="lede">You don't typeset your bill. You give the system two things — a few answers on the <b>File or amend a bill</b> form, and your legal text in one of your two <b>Draft</b> Google Docs — and it builds the formatted bill, numbers it, emails you the PDF, and posts it to the site. Here is which part of the finished bill comes from where.</p>
+
+<div class="legend"><span class="f">Shaded navy: you type this on the form</span><span class="d">Shaded purple: comes from your Draft doc</span></div>
+
+<div class="diagram">
+  <div class="bill">
+    <div class="part">
+      <div class="c sm">CALIFORNIA LEGISLATURE — UC MERCED LEGISLATIVE SIMULATION</div>
+      <div class="c title">SENATE BILL &nbsp;SB-12</div>
+      <div class="c intro">Introduced by Senator Jerry McNerney (D-5)</div>
+    </div>
+    <div class="part form"><span class="badge">1</span>
+      <div class="c act"><i>An act relating to Veterans Employment Tax Credit Act.</i></div>
+    </div>
+    <div class="part">
+      <div class="c dhead">LEGISLATIVE COUNSEL'S DIGEST</div>
+      <div class="digest"><p><b>SB-12, Jerry McNerney (D-5). Veterans Employment Tax Credit Act.</b></p></div>
+    </div>
+    <div class="part form"><span class="badge">2</span>
+      <div class="digest">
+        <p>Existing law permits specific tax incentives for eligible California firms and offers employment and workforce aid to veterans.</p>
+        <p>This bill would establish a Veterans Employment Tax Credit for companies that hire eligible veterans for full-time employment, with a maximum credit of $5,000 per veteran.</p>
+      </div>
+    </div>
+    <div class="part form"><span class="badge">3</span>
+      <div class="vote"><b>Vote:</b> Majority. <b>Appropriations/fiscal:</b> yes. <b>Local program:</b> no.</div>
+    </div>
+    <div class="part">
+      <hr>
+      <div class="c enact">THE PEOPLE OF THE STATE OF CALIFORNIA DO ENACT AS FOLLOWS:</div>
+    </div>
+    <div class="part doc"><span class="badge doc">4</span>
+      <div class="legal">
+        <p><b>SECTION 1.</b> Section 17053.9 of the Revenue and Taxation Code is amended to read:</p>
+        <p>17053.9. (a) An eligible employer <span class="del">may</span> <span class="ins">shall</span> be allowed a credit against the tax for hiring a qualified veteran for full-time employment. <span class="ins">The credit shall not exceed five thousand dollars ($5,000) per qualified veteran.</span></p>
+        <p><b>SEC. 2.</b> The Franchise Tax Board shall administer the credit and report annually to the Legislature.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="key">
+    <div class="item"><div class="b">1</div><div><span class="src">Form — Short subject.</span> A title of a few words, with no period at the end. It also appears in the bill tables on the site.</div></div>
+    <div class="item"><div class="b">2</div><div><span class="src">Form — Digest.</span> A plain-text description of existing law and what your bill changes. Several paragraphs are fine. Just the description — not the legal text, and not a copy of the header.</div></div>
+    <div class="item"><div class="b">3</div><div><span class="src">Form — Flags.</span> Check what applies: <i>Appropriations/fiscal</i>, <i>Local program</i>, <i>2/3rds vote</i>. Leave 2/3rds unchecked for a majority-vote bill.</div></div>
+    <div class="item"><div class="b doc">4</div><div><span class="src doc">Your Draft doc — the legal text.</span> Everything below the enacting clause comes from your Draft A or Draft B doc, exactly as you format it. Italic language prints <span style="color:#1155cc">blue</span> (added to existing law); struck-through language prints <span style="color:#c00000">red</span> (removed). Plain text for brand-new sections. Never add color yourself.</div></div>
+    <div class="rest">Everything unshaded is added for you: the header, the bill number, the author line (from your registration, so sign in with the account you registered with), the digest's first line, the rule, and the enacting clause. Don't type any of it in your doc.</div>
+  </div>
+</div>
+
+<div class="page-break"></div>
+
+<h2>The steps, in order</h2>
+<div class="two">
+<ol class="steps">
+  <li><b>Write the legal text first</b>, in one of your two Google Docs ("LegSim — SB Draft A" and "SB Draft B"). One bill per doc. Delete the instructions at the top. Stay in Editing mode, not Suggesting.</li>
+  <li><b>Open the form</b> from the site's Filing Cabinet → <i>File or amend a bill</i>, signed in with your registered Google account. Choose <b>New bill</b>.</li>
+  <li><b>Fill in the fields</b>: the short subject, the digest, the flags, and at least one topic.</li>
+  <li><b>Pick the draft</b> that holds this bill's text (Draft A or Draft B), confirm it's final, and submit.</li>
+  <li><b>Check your email.</b> Within a minute or two you get "Filed: SB-n" with the finished PDF attached. Read it. The site shows the bill about ten minutes later. No email means nothing was filed — almost always because you were signed into a different Google account.</li>
+</ol>
+<div>
+  <div class="box">
+    <p><b>Need to fix something?</b> Correct your doc or your answers, then use the same form and choose <b>Amendment</b>. Pick your bill, leave every "Updated" field blank unless you're changing it, pick the same draft, and submit. The bill keeps its number.</p>
+    <p><b>Never choose "New bill" a second time for the same bill.</b> That files a duplicate with a new number.</p>
+  </div>
+  <div class="box warn">
+    <p><b>The three mistakes we see most</b></p>
+    <ul class="tight">
+      <li>Submitting before the doc has your legal text — the bill prints with only the placeholder instructions.</li>
+      <li>Pasting the whole bill into the doc — the header and digest print twice.</li>
+      <li>Leaving the doc's instructions in — they print as part of your bill.</li>
+    </ul>
+  </div>
+</div>
+</div>
+
+<p class="foot">Your Draft docs are shared to your registered account; look for "LegSim — SB Draft" in Drive under <i>Shared with me</i>. Questions? Ask your instructor.</p>
+
+</body>
+</html>

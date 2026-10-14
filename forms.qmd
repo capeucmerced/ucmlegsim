@@ -23,11 +23,17 @@ urls <- load_form_urls()
 # they are always current — nothing here changes at yearly turnover.
 # Each drawer heading carries its role's canonical color as a small tick
 # (classes styled in brand.scss).
-drawer <- function(title, role_class, items) {
+# guides: optional per-form links to a short how-to (PDFs in files/guides/,
+# sources in guides/), shown as small text after the form's link.
+drawer <- function(title, role_class, items, guides = c()) {
   have <- items[names(items) %in% names(urls)]
   if (length(have) == 0) return(invisible(NULL))
   cat(sprintf('\n<h3 class="drawer %s">%s</h3>\n\n', role_class, title))
-  cat(sprintf("- [%s](%s)\n", unname(have), urls[names(have)]), sep = "")
+  aside <- ifelse(names(have) %in% names(guides),
+                  sprintf(' <a class="form-guide" href="%s" target="_blank" rel="noopener">guide (PDF)</a>',
+                          guides[names(have)]),
+                  "")
+  cat(sprintf("- [%s](%s)%s\n", unname(have), urls[names(have)], aside), sep = "")
 }
 
 if (is.null(urls)) {
@@ -40,7 +46,7 @@ if (is.null(urls)) {
   ))
   drawer("Senators", "role-senator", c(
     Bills = "File or amend a bill"
-  ))
+  ), guides = c(Bills = "files/guides/filing-a-bill.pdf"))
   drawer("Lobbyists", "role-lobbyist", c(
     Letters  = "File a position letter",
     Spending = "Report a contribution"
