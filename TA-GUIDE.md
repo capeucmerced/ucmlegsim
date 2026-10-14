@@ -379,6 +379,15 @@ can be dropped over the old one — same folder, same exact filename —
 either in `files/pdfs/...` (commit + push) or by re-submitting through
 the form. Filename conventions are in README.md.
 
+**Agendas, all at once.** If the agenda template changes (it must
+never carry a time or room — the script strips such lines anyway) or a
+committee's membership was corrected after agendas were filed, open the
+Apps Script editor and run `rebuildAgendas`. It regenerates every filed
+agenda from its sheet row with the current template and membership,
+keeps each meeting's revision trail, emails nobody, and asks the site to
+rebuild. `previewAgendaTemplate` / `fixAgendaTemplate` tidy the template
+itself.
+
 **During class votes:** nothing. The vote sheet's own script stamps
 dates; the site reads the published vote tabs on each build.
 

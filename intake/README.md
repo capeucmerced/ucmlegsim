@@ -20,8 +20,10 @@ runs from the repository.
     PDFs (leginfo-style red/blue amendment marks); beta-tested end to end
   - `provisioning.gs` — one-time runs: the bill-template Doc and each
     senator's two draft docs
-  - `agenda_builder.gs` — agenda assembly (drafted; the one script not
-    yet walked live — test at deploy)
+  - `agenda_builder.gs` — agenda assembly with revision trail; never
+    prints a time or room; `rebuildAgendas()` regenerates every filed
+    agenda (template or membership changes), `previewAgendaTemplate()` /
+    `fixAgendaTemplate()` tidy the template
 
 ## Beta on a personal account (supported)
 
