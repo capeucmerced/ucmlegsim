@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Assigning committees and referring bills</title>
+<link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+<style>
+  @page { size: Letter; margin: 0.6in 0.65in; }
+  :root { --navy: #17345a; --gold: #d4a821; --paper: #f9f7f1; --muted: #5b6573; --rule: #d9d4c7; --purple: #5F3A8E; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body { font-family: "Atkinson Hyperlegible", Arial, sans-serif; color: #1c1c1c; font-size: 10.6pt; line-height: 1.42; }
+  h1, h2, h3 { font-family: "EB Garamond", Georgia, serif; color: var(--navy); margin: 0; }
+  h1 { font-size: 24pt; font-weight: 600; letter-spacing: .01em; }
+  h2 { font-size: 14.5pt; font-weight: 600; margin: 14pt 0 5pt; padding-bottom: 3pt; border-bottom: 1.5px solid var(--navy); }
+  p { margin: 0 0 7pt; }
+  .kicker { font-size: 8pt; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: var(--gold); margin-bottom: 3pt; }
+  .lede { font-size: 11pt; color: #2b3540; }
+  .page-break { break-before: page; }
+
+  /* --- Diagram: a mock of the site's Committees page ------------------ */
+  .diagram { display: grid; grid-template-columns: 1.08fr 1fr; gap: 18pt; align-items: start; margin-top: 10pt; }
+  .site { position: relative; background: #fff; border: 1px solid var(--rule); box-shadow: 0 1px 0 var(--rule); padding: 12pt 14pt 12pt 30pt; font-size: 8.4pt; line-height: 1.3; color: #222; }
+  .site h3 { font-size: 11.5pt; font-weight: 600; margin: 0 0 4pt; }
+  .site .tab { display: inline-block; font-size: 7.6pt; color: var(--muted); border: 1px solid var(--rule); border-bottom: 0; padding: 2pt 6pt; margin-right: 2pt; border-radius: 3pt 3pt 0 0; }
+  .site .tab.on { color: var(--navy); font-weight: 700; background: var(--paper); }
+  .site .tabs { border-bottom: 1px solid var(--rule); margin: 6pt 0 5pt; }
+  .site table { border-collapse: collapse; width: 100%; margin: 2pt 0 4pt; }
+  .site th { text-align: left; font-size: 7.4pt; letter-spacing: .04em; text-transform: uppercase; color: var(--navy); border-bottom: 1.2px solid var(--navy); padding: 2pt 4pt; }
+  .site td { padding: 2pt 4pt; border-bottom: 1px solid #eee; }
+  .site td.link { color: #1155cc; white-space: nowrap; }
+  .site .h4 { font-size: 8.2pt; font-weight: 700; color: var(--navy); margin: 5pt 0 2pt; }
+  .site .meta { font-size: 7.6pt; color: var(--muted); }
+  .part { position: relative; }
+  /* The parts a form supplies are shaded; everything automatic stays plain */
+  .part.form, .part.doc { border-radius: 3pt; padding: 3pt 6pt 2pt; margin: 2pt -4pt; }
+  .part.form { background: rgba(23, 52, 90, 0.085); }
+  .part.doc { background: rgba(95, 58, 142, 0.09); }
+  .badge { position: absolute; left: -24pt; top: 3pt; width: 15pt; height: 15pt; border-radius: 50%; background: var(--navy); color: #fff; font-family: "Atkinson Hyperlegible", Arial, sans-serif; font-size: 8.5pt; font-weight: 700; display: flex; align-items: center; justify-content: center; }
+  .badge.doc { background: var(--purple); }
+
+  .key { font-size: 9.6pt; }
+  .key .item { display: grid; grid-template-columns: 17pt 1fr; gap: 7pt; margin-bottom: 8pt; align-items: start; }
+  .key .b { width: 15pt; height: 15pt; border-radius: 50%; background: var(--navy); color: #fff; font-size: 8.5pt; font-weight: 700; display: flex; align-items: center; justify-content: center; margin-top: 1pt; }
+  .key .b.doc { background: var(--purple); }
+  .key .src { font-weight: 700; color: var(--navy); }
+  .key .src.doc { color: var(--purple); }
+  .key .rest { font-size: 9pt; color: var(--muted); margin-top: 10pt; padding-top: 7pt; border-top: 1px solid var(--rule); }
+  .legend { display: flex; gap: 14pt; font-size: 8.4pt; color: var(--muted); margin: 0 0 9pt; }
+  .legend span::before { content: ""; display: inline-block; width: 10pt; height: 10pt; border-radius: 2pt; margin-right: 4pt; vertical-align: -1px; }
+  .legend .f::before { background: rgba(23, 52, 90, 0.18); } .legend .d::before { background: rgba(95, 58, 142, 0.2); }
+
+  /* --- Steps ---------------------------------------------------------- */
+  ol.steps { margin: 4pt 0 0; padding-left: 0; counter-reset: s; list-style: none; }
+  ol.steps li { counter-increment: s; position: relative; padding-left: 26pt; margin-bottom: 7pt; }
+  ol.steps li::before { content: counter(s); position: absolute; left: 0; top: 1pt; width: 17pt; height: 17pt; border-radius: 50%; background: var(--gold); color: var(--navy); font-weight: 700; font-size: 9.5pt; display: flex; align-items: center; justify-content: center; }
+  ol.steps b { color: var(--navy); }
+  .two { display: grid; grid-template-columns: 1fr 1fr; gap: 16pt; }
+  .box { background: var(--paper); border-left: 3px solid var(--gold); padding: 7pt 10pt; margin-top: 6pt; }
+  .box.warn { border-left-color: #c00000; }
+  .box p:last-child { margin-bottom: 0; }
+  ul.tight { margin: 2pt 0 6pt; padding-left: 16pt; }
+  ul.tight li { margin-bottom: 2.5pt; }
+  .foot { font-size: 8.3pt; color: var(--muted); margin-top: 10pt; border-top: 1px solid var(--rule); padding-top: 5pt; }
+  code { font-family: Consolas, Menlo, monospace; font-size: 9pt; background: #f1efe8; padding: 0 3pt; border-radius: 2pt; }
+</style>
+</head>
+<body>
+
+<div class="kicker">UC Merced California Legislative Simulation</div>
+<h1>Assigning committees and referring bills</h1>
+<p class="lede">Leadership doesn't edit the website. Two forms in the Filing Cabinet (under <b>Leadership &amp; chairs</b>) do it: <b>Committee assignments &amp; leadership</b> sets who holds each office and who sits on each committee, and <b>Refer bills to committee</b> sends filed bills to a policy committee. Together they fill the Committees page, every senator's page, the vote sheets, and the letterhead of every agenda. Here is which part comes from where.</p>
+
+<div class="legend"><span class="f">Shaded navy: from the assignments form</span><span class="d">Shaded purple: from the referrals form</span></div>
+
+<div class="diagram">
+  <div class="site">
+    <h3>Leadership</h3>
+    <div class="part form"><span class="badge">1</span>
+      <table>
+        <tr><th>Office</th><th>Senator</th><th>Party</th></tr>
+        <tr><td>Pro Tem</td><td class="link">Mike McGuire</td><td>D</td></tr>
+        <tr><td>Majority Leader</td><td class="link">Lena Gonzalez</td><td>D</td></tr>
+        <tr><td>Majority Whip</td><td class="link">Jerry McNerney</td><td>D</td></tr>
+        <tr><td>Minority Leader</td><td class="link">Brian Jones</td><td>R</td></tr>
+        <tr><td>Minority Whip</td><td class="link">Shannon Grove</td><td>R</td></tr>
+        <tr><td>Minority Deputy Whip</td><td class="link">Roger Niello</td><td>R</td></tr>
+      </table>
+    </div>
+    <h3 style="margin-top:8pt">Committees</h3>
+    <div class="tabs"><span class="tab on">Local Government and Labor</span><span class="tab">Agriculture and Natural Resources</span><span class="tab">Business, Law, and Health</span><span class="tab">Appropriations</span><span class="tab">Floor</span></div>
+    <table>
+      <tr><th>Senator</th><th>Role</th><th>Party</th><th>District</th></tr>
+    </table>
+    <div class="part form"><span class="badge">2</span>
+      <table><tr><td class="link" style="width:42%">Caroline Menjivar</td><td style="width:25%">Chair</td><td style="width:16%">D</td><td>20</td></tr></table>
+    </div>
+    <div class="part form"><span class="badge">3</span>
+      <table><tr><td class="link" style="width:42%">Marie Alvarado-Gil</td><td style="width:25%">Vice Chair</td><td style="width:16%">R</td><td>4</td></tr></table>
+    </div>
+    <div class="part form"><span class="badge">4</span>
+      <table>
+        <tr><td class="link" style="width:42%">Josh Becker</td><td style="width:25%">Member</td><td style="width:16%">D</td><td>13</td></tr>
+        <tr><td class="link">Brian Dahle</td><td>Member</td><td>R</td><td>1</td></tr>
+        <tr><td class="link">Sabrina Cervantes</td><td>Member</td><td>D</td><td>31</td></tr>
+      </table>
+    </div>
+    <div class="part"><div class="h4">Latest agenda</div><div class="meta">Filed by the chair with the agenda form; see the agendas guide.</div></div>
+    <div class="part doc"><span class="badge doc">5</span>
+      <div class="h4" style="margin-top:2pt">Docket</div>
+      <table>
+        <tr><th>Bill</th><th>Author</th><th>Subject</th></tr>
+        <tr><td class="link">SB-12</td><td>McNerney</td><td>Veterans Employment Tax Credit Act</td></tr>
+        <tr><td class="link">SB-31</td><td>Becker</td><td>Community College Housing Pilot</td></tr>
+      </table>
+    </div>
+  </div>
+
+  <div class="key">
+    <div class="item"><div class="b">1</div><div><span class="src">Assignments form &mdash; Leadership.</span> Six dropdowns at the bottom of the form: Pro Tem, Majority Leader, Majority Whip, Minority Leader, Minority Whip, Minority Deputy Whip. One senator each. Fill only the offices you are setting.</div></div>
+    <div class="item"><div class="b">2</div><div><span class="src">Assignments form &mdash; <i>Committee</i> Chair.</span> One dropdown per committee (LGL, ANR, BLH, APP).</div></div>
+    <div class="item"><div class="b">3</div><div><span class="src">Assignments form &mdash; <i>Committee</i> Vice Chair.</span> Same, one per committee.</div></div>
+    <div class="item"><div class="b">4</div><div><span class="src">Assignments form &mdash; <i>Committee</i> Members.</span> Checkboxes. The chair and vice chair sit on the committee automatically, so check only the other members. <b>Each Members answer replaces that committee's whole list</b>: every time you touch it, check everyone who serves.</div></div>
+    <div class="item"><div class="b doc">5</div><div><span class="src doc">Referrals form &mdash; one bill per line.</span> Three boxes, one per policy committee (LGL, ANR, BLH). Type each bill's number on its own line, e.g. <code>SB-12</code>. A referred bill leaves "Unassigned" and lands on that committee's docket.</div></div>
+    <div class="rest">Everything unshaded is automatic: party, district, the links, the committee's agenda, and the bill authors and subjects on the docket. Blank questions on either form keep whatever was set before.</div>
+  </div>
+</div>
+
+<div class="page-break"></div>
+
+<h2>The steps, in order</h2>
+<div class="two">
+<ol class="steps">
+  <li><b>Open the assignments form</b> from the Filing Cabinet &rarr; <i>Leadership &amp; chairs</i> &rarr; <i>Committee assignments &amp; leadership</i>, signed in with your registered Google account. It must be a senator's account; anything else is ignored.</li>
+  <li><b>Fill in only what the Senate has decided.</b> Leadership today and committees tomorrow is fine: a blank question keeps its current value, so each committee can be filed on its own.</li>
+  <li><b>For each committee</b>, pick the Chair and the Vice Chair from the dropdowns, then check every other member under Members.</li>
+  <li><b>Submit and read the receipt.</b> The email "Committee assignments updated" shows the <i>complete</i> current state of the Senate, not just what you sent. If a line is wrong, resubmit the form with just that question answered.</li>
+  <li><b>Refer the bills</b> with <i>Refer bills to committee</i>: under each committee, one bill number per line. Leave a committee's box empty if nothing goes there. The receipt "Bill referrals recorded" lists what was understood.</li>
+  <li><b>Check the site</b> about ten minutes later: the Committees page, each senator's page, and the bill tables all update. The vote sheets' senator columns are rewritten the moment you submit.</li>
+</ol>
+<div>
+  <div class="box">
+    <p><b>Changing something later?</b> Submit the same form again, answering only the questions that change. The newest answer to each question wins.</p>
+    <p>To take one senator off a committee, re-check everyone who <i>stays</i>. A Members answer is the whole list, not an addition.</p>
+    <p>To move a bill, list it under its new committee. The most recent referral of a bill is the one that counts.</p>
+  </div>
+  <div class="box warn">
+    <p><b>The mistakes we see most</b></p>
+    <ul class="tight">
+      <li>Checking only the new member when adding someone. The others drop off the committee.</li>
+      <li>Submitting from a non-senator account, or one that isn't registered. Nothing is applied and no receipt arrives.</li>
+      <li>Putting more than one bill on a referral line. Only the first number on a line counts: "SB-12 and SB-14" refers SB-12 alone.</li>
+      <li>Ignoring a <b>NOT RECOGNIZED</b> line in the referrals receipt. It means no filed bill has that number. Fix the typo and resubmit those lines.</li>
+    </ul>
+  </div>
+</div>
+</div>
+
+<p class="foot">The senator dropdowns list everyone on the roster, by district. Chairs file meeting agendas with a separate form; that guide sits next to the agenda forms in the Filing Cabinet. Questions? Ask your instructor.</p>
+
+</body>
+</html>

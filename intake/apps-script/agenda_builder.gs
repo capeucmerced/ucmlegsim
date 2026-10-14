@@ -116,18 +116,20 @@ function itemLine(value) {
 
 /** Chair/vice/member names for a committee, from the newest Assignments row. */
 function latestAssignments(code) {
-  var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Assignments');
+  // Merged state across submissions (newest non-blank answer per question,
+  // via currentAssignments), so a partial filing such as leadership-only
+  // never blanks a committee header on the next agenda
   var out = { chair: '', vice: '', members: '' };
-  if (!sheet || sheet.getLastRow() < 2) return out;
-  var vals = sheet.getDataRange().getValues();
-  var head = vals[0];
-  var last = vals[vals.length - 1];
+  var current = currentAssignments();
+  if (!current || code === 'floor') return out;
   var up = code.toUpperCase();
-  if (code !== 'floor') {
-    out.chair   = String(last[head.indexOf(up + ' Chair')] || '');
-    out.vice    = String(last[head.indexOf(up + ' Vice Chair')] || '');
-    out.members = String(last[head.indexOf(up + ' Members')] || '');
-  }
+  var get = function (title) {
+    var c = current.head.indexOf(title);
+    return c < 0 ? '' : String(current.row[c] || '');
+  };
+  out.chair   = get(up + ' Chair');
+  out.vice    = get(up + ' Vice Chair');
+  out.members = get(up + ' Members');
   return out;
 }
 

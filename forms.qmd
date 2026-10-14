@@ -64,6 +64,14 @@ if (is.null(urls)) {
     `Agenda BLH`   = "File an agenda — Business, Law, and Health",
     `Agenda APP`   = "File an agenda — Appropriations",
     `Agenda Floor` = "File an agenda — Senate Floor"
+  ), guides = c(
+    Assignments    = "files/guides/committee-assignments.pdf",
+    Referrals      = "files/guides/committee-assignments.pdf",
+    `Agenda LGL`   = "files/guides/committee-agendas.pdf",
+    `Agenda ANR`   = "files/guides/committee-agendas.pdf",
+    `Agenda BLH`   = "files/guides/committee-agendas.pdf",
+    `Agenda APP`   = "files/guides/committee-agendas.pdf",
+    `Agenda Floor` = "files/guides/committee-agendas.pdf"
   ))
 }
 ```

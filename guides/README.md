@@ -7,5 +7,9 @@ PDF with Edge in headless mode and replace the PDF:
     "C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe" --headless=new --disable-gpu --no-pdf-header-footer --virtual-time-budget=8000 --print-to-pdf="files\guides\filing-a-bill.pdf" "guides\filing-a-bill.html"
 
 (Any browser's "Print to PDF" on the HTML file gives the same result.)
+Guides so far: filing-a-bill (senators), committee-assignments (leadership:
+assignments + referrals), committee-agendas (chairs). The Filing Cabinet
+(forms.qmd) links each one beside its form via the drawer() guides argument.
+
 This folder is not rendered or published: `_quarto.yml` renders only
 `*.qmd` and the generated page folders.
