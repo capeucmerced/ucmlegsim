@@ -626,19 +626,30 @@ LETTER_POSITIONS <- c(
 # Rows carry org/bill/position/file id (no emails); the conventional
 # filename is composed here so everything downstream stays unchanged.
 load_intake_letters <- function() {
-  if (!"letters" %in% INTAKE_LIVE) return(data.frame())
-  j <- read_intake_json("letters")
-  if (is.null(j) || length(j$letters) == 0) return(data.frame())
-
-  as.data.frame(j$letters) |>
-    transmute(
-      org_code    = toupper(as.character(org)),
-      bill_number = suppressWarnings(as.integer(bill)),
-      token       = names(LETTER_POSITIONS)[match(as.character(position), LETTER_POSITIONS)],
-      file_id     = as.character(fileId)
-    ) |>
-    filter(!is.na(bill_number) & !is.na(token) & file_id != "") |>
-    mutate(filename = paste0(org_code, "_SB", bill_number, "_", token, ".pdf"))
+  cached <- getOption("legsim.intake_letters")
+  if (!is.null(cached)) return(cached)
+  out <- data.frame()
+  if ("letters" %in% INTAKE_LIVE) {
+    j <- read_intake_json("letters")
+    if (!is.null(j) && length(j$letters) > 0) {
+      d <- as.data.frame(j$letters)
+      if (!"time" %in% names(d)) d$time <- NA_character_
+      out <- d |>
+        transmute(
+          org_code    = toupper(as.character(org)),
+          bill_number = suppressWarnings(as.integer(bill)),
+          token       = names(LETTER_POSITIONS)[match(as.character(position), LETTER_POSITIONS)],
+          file_id     = as.character(fileId),
+          # Filing day in California time (the gateway sends UTC instants)
+          filed       = as.Date(as.POSIXct(as.character(time), format = "%Y-%m-%dT%H:%M:%OSZ",
+                                           tz = "UTC"), tz = "America/Los_Angeles")
+        ) |>
+        filter(!is.na(bill_number) & !is.na(token) & file_id != "") |>
+        mutate(filename = paste0(org_code, "_SB", bill_number, "_", token, ".pdf"))
+    }
+  }
+  options(legsim.intake_letters = out)
+  out
 }
 
 # Download filed letter PDFs into the letters folder so links and the
@@ -759,7 +770,54 @@ scan_letters <- function() {
     ) |>
     select(-token) |>
     left_join(lobbys |> select(Code, Lobby, any_of("Color")), by = c("org_code" = "Code")) |>
-    mutate(Lobby = ifelse(is.na(Lobby), org_code, Lobby))
+    mutate(Lobby = ifelse(is.na(Lobby), org_code, Lobby)) |>
+    # Filing date for letters that came through the form (NA for the
+    # fixture files, which carry no date)
+    left_join(letter_dates(), by = "filename")
+}
+
+# filename -> filed (Date) for the letters filed through the form
+letter_dates <- function() {
+  intake <- load_intake_letters()
+  if (nrow(intake) > 0) intake |> select(filename, filed) |> distinct(filename, .keep_all = TRUE)
+  else data.frame(filename = character(0), filed = as.Date(character(0)))
+}
+
+# Letters newest first (undated fixture letters sort last, by bill number)
+arrange_letters <- function(letters) {
+  letters |> arrange(desc(coalesce(filed, as.Date("1900-01-01"))), desc(bill_number))
+}
+
+# The Letters Desk feed (Lobbyists page): one entry per letter with the
+# org's color chip, position, bill, subject, date and a link to the PDF.
+# rel = "../" from a generated page. Build-time, like everything else.
+letters_feed_html <- function(letters, bills, rel = "", limit = NA) {
+  if (nrow(letters) == 0) return('<p class="wire-empty">No position letters filed yet.</p>')
+  d <- letters |>
+    left_join(bills |> select(bill_number, title, url_slug), by = "bill_number") |>
+    arrange_letters()
+  if (!is.na(limit)) d <- head(d, limit)
+  color <- if ("Color" %in% names(d)) ifelse(is.na(d$Color) | d$Color == "", "#17345a", d$Color) else rep("#17345a", nrow(d))
+  bill_link <- ifelse(is.na(d$url_slug), sprintf("SB-%d", d$bill_number),
+                      sprintf('<a href="%s%s/%s.html">SB-%d</a>', rel, BILL_PAGES_DIR, d$url_slug, d$bill_number))
+  subject <- ifelse(is.na(d$title) | d$title == "", "",
+                    sprintf('<div class="letter-subject">%s</div>', d$title))
+  when <- ifelse(is.na(d$filed), "", sprintf('<span class="letter-date">%s</span>', format(d$filed, "%b %d")))
+  items <- sprintf(paste0(
+    '<div class="letter-item">',
+    '<div class="letter-meta"><span class="org-chip" style="--org-color:%s">%s</span>',
+    '<a class="letter-org" href="%s%s/%s.html">%s</a>%s</div>',
+    '<div class="letter-line"><b>%s</b> on %s</div>%s',
+    '<a class="wire-more" href="%s%s/%s">Read the letter &rarr;</a></div>'),
+    color, d$org_code, rel, LOBBY_PAGES_DIR, d$org_code, d$Lobby, when,
+    d$position, bill_link, subject, rel, LETTERS_DIR, d$filename)
+  paste(items, collapse = "\n")
+}
+
+# Status dot color class for a bill status (bills table, senator pages)
+status_dot_class <- function(status) {
+  ifelse(status == "Passed Senate", "s-pass",
+         ifelse(startsWith(status, "Failed"), "s-fail", "s-active"))
 }
 
 # --- Lobbyist contributions -------------------------------------------------
@@ -1021,6 +1079,19 @@ senator_finance <- function(senators = load_senators(), contribs = load_all_cont
 
 # A thin progress bar as HTML (for tables and stat blocks). pct may exceed
 # 100 (over goal); the fill caps at full and the label shows the real number.
+# One stat block for a .stat-strip (label, big value, optional sub line,
+# optional extra HTML such as a progress bar)
+stat_html <- function(label, value, sub = "", extra = "") {
+  sprintf('<div class="stat"><span class="stat-label">%s</span><span class="stat-value">%s</span>%s%s</div>',
+          label, value,
+          if (sub == "") "" else sprintf('<span class="stat-sub">%s</span>', sub),
+          extra)
+}
+
+# Lines of HTML as a raw block for a generated .qmd, so Pandoc never
+# parses them as markdown (bill titles can contain * and _)
+raw_html <- function(...) c("```{=html}", c(...), "```")
+
 progress_bar_html <- function(pct, label = NULL) {
   pct <- ifelse(is.na(pct), 0, pct)
   if (is.null(label)) label <- paste0(round(pct), "%")

@@ -30,7 +30,7 @@ To force an immediate rebuild: GitHub → Actions → "Build and Deploy Site" �
 
 | Path | What it is |
 | --- | --- |
-| `*.qmd` (top level) | The main pages (Home, Bills, Committees, Votes, Senators, Lobbyists, News, Stats, Districts, Life of a Bill, Filing Cabinet, Playbook) |
+| `*.qmd` (top level) | The main pages (Home, Bills, Committees, Votes, Senators, Lobbyists, News, Stats, Districts, Life of a Bill, Filing Cabinet, Playbook), plus Position Letters (`letters.qmd`, linked from the Lobbyists page and the home page rather than the navbar) |
 | `scripts/shared.R` | **The one place** for data locations, Google Sheet URLs, committee names, and shared loading/cleaning functions |
 | `scripts/make_*.R` | Generators that write one page per bill / senator / lobby before each render |
 | `scripts/archive_site.ps1` | The crawler used to snapshot a retiring year's site |

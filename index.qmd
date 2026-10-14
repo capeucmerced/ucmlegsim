@@ -108,7 +108,7 @@ if (nrow(letters) > 0) {
   lob_colors <- tryCatch(read.csv(LOBBY_CSV), error = function(e) data.frame())
   desk <- letters |>
     left_join(bills |> select(bill_number, url_slug), by = "bill_number") |>
-    arrange(desc(bill_number)) |>
+    arrange_letters() |>
     head(6)
   color_of <- function(code) {
     if ("Color" %in% names(lob_colors)) {
@@ -123,7 +123,7 @@ if (nrow(letters) > 0) {
     desk$org_code, desk$position, BILL_PAGES_DIR, desk$url_slug, desk$bill_number
   )
 }
-letters_card <- card("Letters Desk", li(letter_items), "lobby.html", "All lobbies →")
+letters_card <- card("Letters Desk", li(letter_items), "letters.html", "All letters →")
 
 # --- Money Watch: latest contributions -------------------------------------
 money_items <- character(0)

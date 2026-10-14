@@ -1,0 +1,73 @@
+---
+title: "Position Letters"
+format:
+  html:
+    page-layout: full
+execute:
+  echo: false
+  warning: false
+  message: false
+---
+
+Every position letter the lobby corps has filed, newest first. Linked from
+the Lobbyists page and the home page's Letters Desk (not the navbar).
+
+```{r letters-summary}
+#| results: asis
+source("scripts/shared.R")
+
+letters <- scan_letters()
+bills   <- load_bills()
+
+n_all     <- nrow(letters)
+n_support <- if (n_all > 0) sum(letters$position %in% c("Support", "Support If Amended")) else 0
+n_oppose  <- if (n_all > 0) sum(letters$position %in% c("Oppose", "Oppose Unless Amended")) else 0
+n_orgs    <- if (n_all > 0) length(unique(letters$org_code)) else 0
+n_bills   <- if (n_all > 0) length(unique(letters$bill_number)) else 0
+
+cat('<div class="stat-strip">',
+    stat_html("Letters Filed", n_all, sprintf("by %d organization%s", n_orgs, ifelse(n_orgs == 1, "", "s"))),
+    stat_html("In Support", n_support, "incl. support if amended"),
+    stat_html("In Opposition", n_oppose, "incl. oppose unless amended"),
+    stat_html("Bills Addressed", n_bills),
+    '</div>', sep = "\n")
+```
+
+```{r letters-table}
+library(reactable)
+if (n_all == 0) {
+  htmltools::p(class = "muted", "No position letters filed yet.")
+} else {
+  tbl <- letters |>
+    left_join(bills |> select(bill_number, title, url_slug, name), by = "bill_number") |>
+    arrange_letters() |>
+    transmute(Filed = filed, Lobby, org_code, Position = position,
+              bill_number, url_slug, Subject = title, Author = name, filename) |>
+    as.data.frame()
+
+  legsim_table(
+    tbl,
+    page_size = 25,
+    columns = list(
+      Filed = colDef(format = LEGSIM_DATE, width = 100),
+      Lobby = colDef(name = "Organization", minWidth = 170,
+                     cell = link_cell("", file.path(LOBBY_PAGES_DIR, paste0(tbl$org_code, ".html")))),
+      org_code = colDef(show = FALSE),
+      Position = colDef(width = 185, cell = function(value) {
+        cls <- if (value == "Support") "s-pass"
+               else if (value == "Oppose") "s-fail"
+               else "s-active"
+        htmltools::tagList(htmltools::span(class = paste("status-dot", cls)), " ", value)
+      }),
+      bill_number = colDef(name = "Bill", width = 85,
+                           cell = link_cell("SB-", ifelse(is.na(tbl$url_slug), NA,
+                                                          file.path(BILL_PAGES_DIR, paste0(tbl$url_slug, ".html"))))),
+      url_slug = colDef(show = FALSE),
+      Subject = colDef(minWidth = 180),
+      Author = colDef(minWidth = 120),
+      filename = colDef(name = "Letter", sortable = FALSE, width = 100,
+                        cell = function(value) htmltools::tags$a(href = file.path(LETTERS_DIR, value), "View letter"))
+    )
+  )
+}
+```

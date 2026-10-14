@@ -1038,3 +1038,131 @@ $track-fail: #a33131;
   }
   .booktab { border-radius: 3px; }
 }
+
+// --- Dossier header (senator and lobbyist pages) ------------------------------
+// Compact facts under the page title — party, district and leadership (or
+// the org chip, tier and budget) — then a label/value list of committees,
+// bills, letters and the profile link. Written by scripts/make_senator_pages.R
+// and scripts/make_lobby_pages.R.
+.muted { color: $muted; }
+
+.dossier {
+  margin: -0.3rem 0 1.2rem;
+  padding-bottom: 0.9rem;
+  border-bottom: 1px solid rgba($navy, 0.2);
+}
+
+.dossier-meta {
+  font-size: 1.02rem;
+  color: mix($ink, $muted, 60%);
+  margin-bottom: 0.6rem;
+
+  a { font-weight: 600; }
+}
+
+.party-chip,
+.org-chip {
+  display: inline-block;
+  color: #fff;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 0.14rem 0.5rem;
+  border-radius: 2px;
+  margin-right: 0.35rem;
+  vertical-align: 0.1rem;
+}
+.party-chip.d { background: $party-dem; }
+.party-chip.r { background: $party-rep; }
+.org-chip { background: var(--org-color, $navy); letter-spacing: 0.06em; }
+
+.dossier-facts {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 0.35rem 1.1rem;
+  margin: 0;
+  font-size: 0.95rem;
+
+  dt { @extend .label-caps; padding-top: 0.22rem; }
+  dd { margin: 0; }
+  .bill-row { display: block; }
+  .bill-status { color: $muted; font-size: 0.85rem; }
+}
+
+@media (max-width: 600px) {
+  .dossier-facts {
+    grid-template-columns: 1fr;
+    gap: 0.1rem 0;
+    dt { margin-top: 0.5rem; }
+  }
+}
+
+// A progress bar inside a stat block (senator fundraising)
+.stat .goal-bar { margin-top: 0.5rem; }
+
+// Four-way vote split on senator pages: Aye / No / Abstain / Absent
+.vote-bar {
+  display: flex;
+  height: 0.7rem;
+  max-width: 34rem;
+  border: 1px solid rgba($navy, 0.25);
+  border-radius: 2px;
+  overflow: hidden;
+  margin: 0.3rem 0 0.25rem;
+  background: $paper;
+
+  .v-aye     { background: $track-pass; }
+  .v-no      { background: $track-fail; }
+  .v-abstain { background: $gold; }
+  .v-absent  { background: rgba($navy, 0.25); }
+}
+
+.share-legend {
+  .dot-aye     { color: $track-pass; }
+  .dot-no      { color: $track-fail; }
+  .dot-abstain { color: $gold; }
+  .dot-absent  { color: rgba($navy, 0.35); }
+}
+
+// --- Letters Desk feed (Lobbyists page) ---------------------------------------
+// Build-time list of position letters, newest first; the full sortable
+// table lives on letters.qmd.
+.letter-item {
+  padding: 0.65rem 0;
+  border-bottom: 1px solid rgba($navy, 0.1);
+  &:last-child { border-bottom: none; }
+}
+
+.letter-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.2rem;
+  font-size: 0.76rem;
+  color: $muted;
+
+  .letter-org {
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: $navy;
+    text-decoration: none;
+    &:hover { text-decoration: underline; }
+  }
+  .letter-date { margin-left: auto; }
+}
+
+.letter-line {
+  font-family: $headings-font-family;
+  font-size: 1.12rem;
+  line-height: 1.25;
+  margin-top: 0.15rem;
+
+  b { font-weight: 600; color: $navy; }
+}
+
+.letter-subject {
+  font-size: 0.9rem;
+  color: mix($ink, $muted, 55%);
+  margin-top: 0.1rem;
+}

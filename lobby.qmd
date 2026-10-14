@@ -9,10 +9,39 @@ execute:
   message: false
 ---
 
-```{r}
+::: {.grid}
+
+::: {.g-col-12 .g-col-lg-4}
+
+## Letters Desk
+
+Position letters filed by the lobby corps — newest first.
+
+```{r letters-feed}
 #| results: asis
 source("scripts/shared.R")
 
+fl <- form_url("Letters")
+if (!is.na(fl))
+  cat('<p class="table-note"><a href="', fl, '">File a position letter</a></p>', sep = "")
+
+# Build-time feed (letters reach the site on each build, unlike the Wire,
+# which browsers read live). The full sortable table is letters.qmd.
+letters <- scan_letters()
+bills   <- load_bills()
+cat(letters_feed_html(letters, bills, limit = 12))
+if (nrow(letters) > 12)
+  cat('<p><a class="wire-more" href="letters.html">All ', nrow(letters), ' position letters &rarr;</a></p>', sep = "")
+```
+
+:::
+
+::: {.g-col-12 .g-col-lg-8}
+
+## The Organizations
+
+```{r tiles}
+#| results: asis
 # One square tile per organization, linking to its page: the org's code
 # as a monogram on its color, name beneath, spending power (when set) as
 # a corner badge.
@@ -40,3 +69,7 @@ role-played for the simulation. Anything you create for the simulation
 outside this site — social-media accounts, posts, flyers, anything public —
 must be clearly marked as fictional UC Merced simulation work, so it can
 never be mistaken for the real organization.</p>
+
+:::
+
+:::
