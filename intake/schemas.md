@@ -144,7 +144,7 @@ lobby pages grow a Profile tab when their org's PDF exists.
 Campaign finance rules (`finance.gs`; the site uses the same numbers in
 `scripts/shared.R`): each org has one PAC budget for the session by tier
 (High $225,000 / Medium $125,000 / Low $75,000, from the Spending Power
-column of `lobbyist_list.csv`) and may give at most $11,800 in total to
+column of `lobbyist_list.csv`) and may give at most $15,000 in total to
 any one senator. A contribution that would break either rule is refused
 whole — row voided, lobbyist emailed why — and must be refiled with a
 legal amount. Accepted contributions get a receipt with the org's

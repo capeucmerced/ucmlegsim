@@ -1037,7 +1037,7 @@ stories_html <- function(stories, rel = "", show_outlet = FALSE, limit = NA) {
 # with the SAME numbers — change them in both places together.
 # ---------------------------------------------------------------------------
 
-CONTRIBUTION_LIMIT <- 11800
+CONTRIBUTION_LIMIT <- 15000   # classroom number; must match finance.gs
 TIER_BUDGETS <- c(High = 225000, Medium = 125000, Low = 75000)
 
 # One row per organization: Code, Lobby, Tier, Budget

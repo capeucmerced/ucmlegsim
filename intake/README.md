@@ -250,7 +250,7 @@ the full table of bill-filing mistakes and their fixes.
 
 `finance.gs` enforces the money rules when a lobbyist files a
 contribution: one PAC budget per organization for the session (by tier:
-High $225,000, Medium $125,000, Low $75,000) and at most $11,800 in total
+High $225,000, Medium $125,000, Low $75,000) and at most $15,000 in total
 from any organization to any one senator. A contribution that would
 break either rule is refused whole (row voided, lobbyist emailed why,
 nothing deducted); an accepted one gets a receipt with the org's

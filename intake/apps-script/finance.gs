@@ -21,7 +21,7 @@
  * files/csvs/lobbyist_list.csv.
  */
 
-var CONTRIBUTION_LIMIT = 11800;   // per organization, per senator, whole session
+var CONTRIBUTION_LIMIT = 15000;   // per organization, per senator, whole session (a classroom number, set above California's real $11,800 so top-tier goals stay reachable)
 var TIER_BUDGETS = { High: 225000, Medium: 125000, Low: 75000 };
 var ORG_TIERS = {
   COM: 'High', LABOR: 'High', ELEC: 'High', OIL: 'High', CTA: 'High', TRIBE: 'High', TECH: 'High',
