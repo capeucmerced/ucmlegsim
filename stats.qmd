@@ -193,3 +193,59 @@ cat(sprintf('
   <div class="stat"><span class="stat-label">Still Moving</span><span class="stat-value">%d</span></div>
 </div>', nrow(bills), n_passed, n_failed, n_moving))
 ```
+
+## Fundraising
+
+Every senator has a fundraising goal set by their district's electoral
+circumstances; every lobbying organization has one PAC budget for the
+session and may give at most `r scales::dollar(CONTRIBUTION_LIMIT)` to any
+one senator.
+
+```{r fundraising}
+#| results: asis
+library(reactable)
+fin <- senator_finance(senators, contribs)
+cat(sprintf('
+<div class="stat-strip">
+  <div class="stat"><span class="stat-label">All Goals Combined</span><span class="stat-value">%s</span></div>
+  <div class="stat"><span class="stat-label">Raised So Far</span><span class="stat-value">%s</span><span class="stat-sub">%s%% of all goals</span></div>
+  <div class="stat"><span class="stat-label">PAC Money Available</span><span class="stat-value">%s</span><span class="stat-sub">%s%% of what senators need</span></div>
+</div>',
+  scales::dollar(sum(fin$Goal, na.rm = TRUE)), scales::dollar(sum(fin$Raised)),
+  round(100 * sum(fin$Raised) / sum(fin$Goal, na.rm = TRUE)),
+  scales::dollar(sum(load_budgets()$Budget, na.rm = TRUE)),
+  round(100 * sum(load_budgets()$Budget, na.rm = TRUE) / sum(fin$Goal, na.rm = TRUE))))
+```
+
+### Senators: progress toward goal
+
+```{r goals-table}
+goal_tbl <- fin |>
+  arrange(desc(Pct), District) |>
+  transmute(Senator = Name, District, Party, Race, Goal, Raised, Progress = Pct)
+legsim_table(goal_tbl, page_size = 40, searchable = FALSE, columns = list(
+  Senator  = colDef(cell = link_cell("", sprintf("%s/district_%s.html", SENATOR_PAGES_DIR, goal_tbl$District))),
+  District = colDef(width = 80),
+  Party    = colDef(width = 65),
+  Goal     = colDef(width = 100, format = colFormat(currency = "USD", separators = TRUE, digits = 0)),
+  Raised   = colDef(width = 100, format = colFormat(currency = "USD", separators = TRUE, digits = 0)),
+  Progress = colDef(width = 150, html = TRUE, cell = function(value) progress_bar_html(value))
+))
+```
+
+### Organizations: PAC balances
+
+```{r balances-table}
+bal <- org_finance(contribs) |>
+  arrange(desc(Remaining)) |>
+  transmute(Organization = Lobby, Code, Tier, Budget, Spent, Remaining, Used = Pct)
+legsim_table(bal, page_size = 20, searchable = FALSE, columns = list(
+  Organization = colDef(cell = link_cell("", sprintf("%s/%s.html", LOBBY_PAGES_DIR, bal$Code)), minWidth = 220),
+  Code      = colDef(width = 70),
+  Tier      = colDef(width = 80),
+  Budget    = colDef(width = 100, format = colFormat(currency = "USD", separators = TRUE, digits = 0)),
+  Spent     = colDef(width = 100, format = colFormat(currency = "USD", separators = TRUE, digits = 0)),
+  Remaining = colDef(width = 105, format = colFormat(currency = "USD", separators = TRUE, digits = 0)),
+  Used      = colDef(width = 130, html = TRUE, cell = function(value) progress_bar_html(value))
+))
+```

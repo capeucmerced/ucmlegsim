@@ -23,6 +23,7 @@ votes    <- load_all_votes(ns)
 
 # Contributions across all lobbies, plus each district's total-received rank
 contributions <- load_all_contributions()
+fin <- senator_finance(senators, contributions)   # goals and progress
 senator_totals <- data.frame()
 if (nrow(contributions) > 0) {
   senator_totals <- contributions |>
@@ -125,6 +126,16 @@ for (i in seq_len(nrow(senators))) {
   }
   contribs_code  <- paste(capture.output(dput(their_contribs)), collapse = "\n")
 
+  # Fundraising goal and progress (campaign finance), shown even before the
+  # first contribution so every senator sees their target
+  my_fin <- fin[fin$District == as.integer(district), , drop = FALSE]
+  goal_html <- if (nrow(my_fin) == 1 && !is.na(my_fin$Goal)) {
+    c(sprintf('<div class="stat-strip"><div class="stat"><span class="stat-label">Fundraising Goal</span><span class="stat-value">%s</span><span class="stat-sub">%s</span></div><div class="stat"><span class="stat-label">Raised So Far</span><span class="stat-value">%s</span><span class="stat-sub">%s%% of goal · %d donor%s</span></div></div>',
+              scales::dollar(my_fin$Goal), my_fin$Race, scales::dollar(my_fin$Raised),
+              round(my_fin$Pct), my_fin$Donors, ifelse(my_fin$Donors == 1, "", "s")),
+      progress_bar_html(my_fin$Pct, sprintf("%s of %s", scales::dollar(my_fin$Raised), scales::dollar(my_fin$Goal))))
+  } else character(0)
+
   # The contributions infographic (stat blocks + leaderboard), built here
   # as plain HTML in the site's own components
   if (nrow(their_contribs) > 0) {
@@ -148,8 +159,9 @@ for (i in seq_len(nrow(senators))) {
       )
     }
   } else {
-    contrib_html <- "No contribution data available for this senator."
+    contrib_html <- "No contributions received yet."
   }
+  contrib_html <- c(goal_html, contrib_html)
 
   # --- Assemble the page ---------------------------------------------------
   # The profile section only appears once the PDF exists (uploaded through

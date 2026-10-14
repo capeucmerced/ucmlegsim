@@ -426,8 +426,8 @@ function buildSpending() {
     .setChoiceValues([PLACEHOLDER]).setRequired(true);
   var amt = f.addTextItem().setTitle('Amount (dollars)').setRequired(true);
   amt.setValidation(FormApp.createTextValidation()
-    .requireNumberBetween(100, 10000)
-    .setHelpText('A number between 100 and 10000, digits only.')
+    .requireNumberBetween(100, CONTRIBUTION_LIMIT)   // finance.gs
+    .setHelpText('A number between 100 and ' + CONTRIBUTION_LIMIT + ', digits only.')
     .build());
   return finish(f, 'Spending');
 }

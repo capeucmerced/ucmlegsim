@@ -433,9 +433,28 @@ Bills form itself. Edit the form's question choices directly in the
 Google Forms editor (signed in as the CAPE account). Keep site-side
 displays in mind: topics are just text, nothing else keys off them.
 
-**Adjust spending-power badges.** Fill the Spending Power column in
-`lobbyist_list.csv` (e.g. High/Medium/Low) and the tiles show badges
-again; blank the column to hide them. That's the whole mechanism.
+**Campaign finance numbers.** Three things set the money game, and the
+same numbers live in two places that must match: `scripts/shared.R` (the
+site's displays) and `intake/apps-script/finance.gs` (the rules enforced
+when a lobbyist files a contribution). (1) Each org's tier is the
+Spending Power column of `lobbyist_list.csv` (High/Medium/Low — this also
+puts the badge on its tile), and each tier's PAC budget is
+`TIER_BUDGETS`. (2) The per-senator limit is `CONTRIBUTION_LIMIT`. (3)
+Each senator's goal is the Goal column of `senator_list.csv` (with a Race
+label for the page). Change a number in both files, then in the Apps
+Script editor run `setupBudgets()` (rewrites the Budgets ledger) and
+`patchSpendingForm()` (re-states the rules on the form). A contribution
+that breaks a rule is refused whole and the lobbyist is emailed why;
+refused rows sit in the Spending tab with a `void` Status.
+
+**Student guides (the "guide (PDF)" links in the Filing Cabinet).**
+Three two-page how-tos live in `files/guides/` (filing a bill;
+committee assignments + referrals; committee agendas). Their sources
+are the HTML files in `guides/`; edit one there and re-print it to PDF
+(the one-line Edge command is in `guides/README.md`). The link beside
+each form is the `guides =` argument of that drawer in `forms.qmd`.
+If a form question is renamed or added, update the matching guide the
+same day, or students will follow stale instructions.
 
 **Add a whole new form / role behavior.** This is the one "real
 programming" task. The pattern to copy is the role checker, our

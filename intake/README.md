@@ -244,6 +244,25 @@ first filing the student has since amended), trash its
 Status column for that. TA-GUIDE.md ("When bills are filed wrong") has
 the full table of bill-filing mistakes and their fixes.
 
+## Campaign finance (budgets, the contribution limit, the ledger)
+
+`finance.gs` enforces the money rules when a lobbyist files a
+contribution: one PAC budget per organization for the session (by tier:
+High $225,000, Medium $125,000, Low $75,000) and at most $11,800 in total
+from any organization to any one senator. A contribution that would
+break either rule is refused whole (row voided, lobbyist emailed why,
+nothing deducted); an accepted one gets a receipt with the org's
+remaining balance. The Budgets tab is the ledger (Budget / Spent /
+Remaining per org), kept current by the script.
+
+Setup, once: add `finance.gs` to the project, run **`setupBudgets()`**
+(fills the Budgets tab from the tiers) and **`patchSpendingForm()`**
+(amount validation up to the limit, rules in the form description).
+The site reads the same numbers from `scripts/shared.R` and the tiers
+from `lobbyist_list.csv`'s Spending Power column; senators' goals are
+the Goal column of `senator_list.csv`. To change any number, change it
+in both `finance.gs` and `shared.R`, then rerun the two functions.
+
 ## The role checker (self-service hookup receipts)
 
 Built mid-semester 2026 (`role_check.gs`): a question-free **Check My

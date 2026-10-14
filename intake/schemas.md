@@ -138,7 +138,18 @@ lobby pages grow a Profile tab when their org's PDF exists.
 | --- | --- |
 | Timestamp / Email Address | automatic |
 | Recipient | "Who received the contribution?" (dropdown: `SD-16 · Torres, Maria (D)` format, synced from Roster) |
-| Amount | "Amount (dollars)" (number, 100–10000) |
+| Amount | "Amount (dollars)" (number, 100 to the per-senator limit) |
+| — Status | script column: a refused contribution is marked `void: refused — …` and ignored everywhere |
+
+Campaign finance rules (`finance.gs`; the site uses the same numbers in
+`scripts/shared.R`): each org has one PAC budget for the session by tier
+(High $225,000 / Medium $125,000 / Low $75,000, from the Spending Power
+column of `lobbyist_list.csv`) and may give at most $11,800 in total to
+any one senator. A contribution that would break either rule is refused
+whole — row voided, lobbyist emailed why — and must be refiled with a
+legal amount. Accepted contributions get a receipt with the org's
+remaining balance. Each senator's fundraising goal is the Goal column of
+`senator_list.csv`.
 
 ## Tabs: Agenda LGL / ANR / BLH / APP / Floor  (five forms, one per body)
 
@@ -231,14 +242,14 @@ Served by `?view=stories` (time, outlet from the Roster, headline,
 subhead, file ids and names — never the email); the build downloads the
 files into `files/stories/<outlet slug>/`.
 
-## Tab: Budgets  (hand-maintained)
+## Tab: Budgets  (the campaign-finance ledger, kept by `finance.gs`)
 
 | Column | Meaning |
 | --- | --- |
 | Org Code | e.g. `ENV` |
-| Budget | total semester budget (number) |
-| Spent | formula: sum of that org's Spending rows |
-| Remaining | formula: Budget − Spent |
+| Budget | the org's PAC budget for the session, from its tier (`setupBudgets()` fills it; edit a cell to give one org a different budget) |
+| Spent | sum of that org's accepted Spending rows — rewritten by the handler after each contribution |
+| Remaining | Budget − Spent, likewise |
 
 ---
 

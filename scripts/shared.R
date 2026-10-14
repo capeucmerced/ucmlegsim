@@ -969,3 +969,61 @@ stories_html <- function(stories, rel = "", show_outlet = FALSE, limit = NA) {
   } else ""
   paste0(lead, rest)
 }
+
+# ---------------------------------------------------------------------------
+# Campaign finance. Each lobbying organization has one PAC budget for the
+# session, set by its tier (the Spending Power column of lobbyist_list.csv)
+# and may give at most CONTRIBUTION_LIMIT to any one senator; each senator
+# has a fundraising goal (the Goal column of senator_list.csv). The intake
+# script (intake/apps-script/finance.gs) enforces the rules at submission
+# with the SAME numbers — change them in both places together.
+# ---------------------------------------------------------------------------
+
+CONTRIBUTION_LIMIT <- 11800
+TIER_BUDGETS <- c(High = 225000, Medium = 125000, Low = 75000)
+
+# One row per organization: Code, Lobby, Tier, Budget
+load_budgets <- function() {
+  read.csv(LOBBY_CSV) |>
+    mutate(Code = toupper(Code),
+           Tier = ifelse(is.na(Spending.Power) | Spending.Power == "", NA, Spending.Power),
+           Budget = unname(TIER_BUDGETS[Tier])) |>
+    select(Code, Lobby, Tier, Budget)
+}
+
+# Each organization's budget, what it has given, and what is left
+org_finance <- function(contribs = load_all_contributions()) {
+  spent <- if (nrow(contribs) > 0) {
+    contribs |> group_by(Code = toupper(Lobby_Code)) |>
+      summarize(Spent = sum(Contribution, na.rm = TRUE), Gifts = n(), .groups = "drop")
+  } else data.frame(Code = character(), Spent = numeric(), Gifts = integer())
+  load_budgets() |>
+    left_join(spent, by = "Code") |>
+    mutate(Spent = coalesce(Spent, 0), Gifts = coalesce(Gifts, 0L),
+           Remaining = Budget - Spent,
+           Pct = ifelse(is.na(Budget) | Budget == 0, NA, pmin(100, 100 * Spent / Budget)))
+}
+
+# Each senator's goal, what they have raised, and progress
+senator_finance <- function(senators = load_senators(), contribs = load_all_contributions()) {
+  raised <- if (nrow(contribs) > 0) {
+    contribs |> filter(!is.na(Recipient.District)) |>
+      group_by(District = as.integer(Recipient.District)) |>
+      summarize(Raised = sum(Contribution, na.rm = TRUE), Donors = n_distinct(Lobby_Code), .groups = "drop")
+  } else data.frame(District = integer(), Raised = numeric(), Donors = integer())
+  senators |>
+    select(District, Name, Last.Name, Party, any_of(c("Goal", "Race"))) |>
+    left_join(raised, by = "District") |>
+    mutate(Raised = coalesce(Raised, 0), Donors = coalesce(Donors, 0L),
+           Goal = if ("Goal" %in% names(senators)) as.numeric(Goal) else NA_real_,
+           Pct = ifelse(is.na(Goal) | Goal == 0, NA, 100 * Raised / Goal))
+}
+
+# A thin progress bar as HTML (for tables and stat blocks). pct may exceed
+# 100 (over goal); the fill caps at full and the label shows the real number.
+progress_bar_html <- function(pct, label = NULL) {
+  pct <- ifelse(is.na(pct), 0, pct)
+  if (is.null(label)) label <- paste0(round(pct), "%")
+  sprintf('<div class="goal-bar" title="%s"><span class="goal-fill%s" style="width:%s%%"></span><span class="goal-label">%s</span></div>',
+          label, ifelse(pct >= 100, " goal-met", ""), round(pmin(100, pct)), label)
+}

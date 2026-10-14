@@ -23,6 +23,7 @@ senators <- load_senators() |>
 
 # Every org's contributions in one frame (2025 fixtures + 2026 intake rows)
 all_contributions <- load_all_contributions()
+budgets <- load_budgets()   # PAC budget and tier per org (campaign finance)
 
 for (i in seq_len(nrow(lobbys))) {
   lobby      <- lobbys$Lobby[i]
@@ -62,11 +63,15 @@ for (i in seq_len(nrow(lobbys))) {
                               full.names = TRUE, ignore.case = TRUE)
   org_rows <- all_contributions |> filter(Lobby_Code == lobby_code)
 
-  if (nrow(org_rows) > 0) {
-    if (length(spending_file) > 0) {
-      total_spend <- read_contribution_file(spending_file[1])$total
-    }
+  # The PAC budget comes from the org's tier (campaign finance; shared.R);
+  # the fixture file is only a fallback for an org without one
+  total_spend <- budgets$Budget[match(lobby_code, budgets$Code)]
+  if (is.na(total_spend) && length(spending_file) > 0) {
+    total_spend <- read_contribution_file(spending_file[1])$total
+  }
+  tier <- budgets$Tier[match(lobby_code, budgets$Code)]
 
+  if (nrow(org_rows) > 0) {
     spending_df <- org_rows |>
       arrange(desc(Date)) |>
       left_join(senators, by = c("Recipient.District" = "District")) |>
@@ -95,16 +100,24 @@ for (i in seq_len(nrow(lobbys))) {
 
   # The spending infographic (stat blocks + party share bar + leaderboard),
   # built here as plain HTML in the site's own components
+  # The budget strip appears even before the first contribution
+  spent_total <- if (nrow(spending_df) > 0) sum(spending_df$Contribution, na.rm = TRUE) else 0
+  budget_strip <- c(
+    '<div class="stat-strip">',
+    sprintf('<div class="stat"><span class="stat-label">PAC Budget</span><span class="stat-value">%s</span><span class="stat-sub">%s</span></div>',
+            ifelse(is.na(total_spend), "—", scales::dollar(total_spend)),
+            ifelse(is.na(tier), "", paste(tier, "capacity"))),
+    sprintf('<div class="stat"><span class="stat-label">Contributed So Far</span><span class="stat-value">%s</span><span class="stat-sub">across %d contribution%s</span></div>',
+            scales::dollar(spent_total), nrow(spending_df), ifelse(nrow(spending_df) == 1, "", "s")),
+    sprintf('<div class="stat"><span class="stat-label">Remaining</span><span class="stat-value">%s</span><span class="stat-sub">up to %s per senator</span></div>',
+            ifelse(is.na(total_spend), "—", scales::dollar(total_spend - spent_total)),
+            scales::dollar(CONTRIBUTION_LIMIT)),
+    '</div>'
+  )
+
   if (nrow(spending_df) > 0) {
     spent <- d_support + r_support
-    spend_html <- c(
-      '<div class="stat-strip">',
-      sprintf('<div class="stat"><span class="stat-label">Total Budget</span><span class="stat-value">%s</span></div>',
-              ifelse(is.na(total_spend), "—", scales::dollar(total_spend))),
-      sprintf('<div class="stat"><span class="stat-label">Contributed So Far</span><span class="stat-value">%s</span><span class="stat-sub">across %d contributions</span></div>',
-              scales::dollar(sum(spending_df$Contribution, na.rm = TRUE)), nrow(spending_df)),
-      '</div>'
-    )
+    spend_html <- budget_strip
     if (!is.na(total_spend) && total_spend > 0) {
       spend_html <- c(
         spend_html,
@@ -128,7 +141,7 @@ for (i in seq_len(nrow(lobbys))) {
       )
     }
   } else {
-    spend_html <- "No spending data available for this lobby group."
+    spend_html <- c(budget_strip, "<p>No contributions reported yet.</p>")
   }
 
   # --- Profile tab (always present; shows the PDF once it exists) ----------

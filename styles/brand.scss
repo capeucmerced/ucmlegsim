@@ -733,6 +733,34 @@ ol.leaderboard {
   &:hover { opacity: 1; }
 }
 
+// --- Fundraising progress bars (Senators table, senator pages, Stats) --------
+// Fills as contributions arrive; turns green once the goal is met.
+.goal-bar {
+  position: relative;
+  height: 1.05rem;
+  min-width: 6rem;
+  border-radius: 3px;
+  background: rgba($navy, 0.1);
+  overflow: hidden;
+
+  .goal-fill {
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    background: $gold;
+    &.goal-met { background: $role-lobbyist; }
+  }
+  .goal-label {
+    position: relative;
+    display: block;
+    text-align: center;
+    font-size: 0.68rem;
+    font-weight: 700;
+    line-height: 1.05rem;
+    color: $navy;
+  }
+}
+.stat-strip + .goal-bar { margin: 0.4rem 0 1rem; }
+
 // --- Stories (journalists' pieces: outlet pages and the News page) -----------
 // A front page: the newest story leads with a wide image frame and a
 // large headline; the rest follow as cards. Images are cropped to the

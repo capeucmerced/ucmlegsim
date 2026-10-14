@@ -33,6 +33,11 @@ leadership_has_data <- "Leadership" %in% names(senators) &&
 
 tbl <- senators |> select(District, display_name, Party)
 if (leadership_has_data) tbl$Leadership <- senators$Leadership
+
+# Fundraising: each senator's progress toward their goal, as a bar that
+# fills as contributions arrive (campaign finance; see shared.R)
+fin <- senator_finance(senators)
+tbl$Fundraising <- fin$Pct[match(senators$District, fin$District)]
 if (any(has_profile)) {
   tbl$Profile <- ifelse(has_profile,
                         file.path(SEN_PROFILE_DIR, profile_files),
@@ -45,7 +50,9 @@ cols <- list(
     name = "Name",
     cell = link_cell("", sprintf("%s/district_%s.html", SENATOR_PAGES_DIR, senators$District))
   ),
-  Party = colDef(width = 70)
+  Party = colDef(width = 70),
+  Fundraising = colDef(width = 150, html = TRUE,
+    cell = function(value) progress_bar_html(value))
 )
 if (any(has_profile)) {
   cols$Profile <- colDef(

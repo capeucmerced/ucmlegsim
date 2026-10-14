@@ -41,6 +41,7 @@ function onAnyFormSubmit(e) {
     if (tab === 'Referrals')    handleReferralsSubmit(e);
     if (tab === 'Role Check')   handleRoleCheckSubmit(e);  // role_check.gs
     if (tab === 'Stories')      handleStorySubmit(e);
+    if (tab === 'Spending')     handleSpendingSubmit(e);  // finance.gs
     if (tab.indexOf('Agenda') === 0) handleAgendaSubmit(e); // agenda_builder.gs
   } catch (err) {
     // A handler problem should never stop the rebuild (the row is still

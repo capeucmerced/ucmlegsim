@@ -393,9 +393,11 @@ function buildSpendingJson() {
     var cMail  = colStartingWith(head, 'Email Address');
     var cRecip = colStartingWith(head, 'Who received');
     var cAmt   = colStartingWith(head, 'Amount');
+    var cStat  = head.indexOf('Status');   // refused contributions are voided
 
     for (var j = 1; j < rows.length; j++) {
       var r = rows[j];
+      if (cStat >= 0 && r[cStat]) continue;
       var who = orgByEmail[String(r[cMail]).toLowerCase().trim()];
       if (!who || !r[cRecip]) continue; // no org registered -> not a contribution
       // Recipient format: "SD-16 · Hurtado, Melissa (D)"
