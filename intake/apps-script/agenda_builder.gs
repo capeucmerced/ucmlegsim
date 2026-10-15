@@ -10,7 +10,8 @@
  * The agenda template is a Google Doc modeled on the real CA Senate
  * agenda layout, with placeholders:
  *   {{COMMITTEE}} {{CHAIR}} {{VICE}} {{MEMBERS}} {{DATE}} {{REVISED}}
- *   {{ITEMS}}
+ *   {{ITEMS}}  — replaced by a four-column table of bills (number, bill,
+ *                author, subject) in that paragraph's font
  * Agendas carry only the meeting DATE — no time or room, by the
  * instructor's call: chairs handle those in class. Any "Time:" / "Room:"
  * line that finds its way into the template is dropped at assembly
@@ -97,7 +98,10 @@ function buildAgendaRow_(sheet, committee, head, vals, r) {
     .map(function (s) { return s.trim(); })
     .filter(function (s) { return s !== ''; })
     .slice(0, 30)
-    .map(function (v, idx) { return (idx + 1) + '.\t' + itemLine(v); });
+    .map(function (v, idx) {
+      var p = itemParts(v);
+      return [(idx + 1) + '.', p.bill, p.author, p.subject];   // one table row
+    });
 
   var membership = latestAssignments(committee.code);
   var tz = Session.getScriptTimeZone();
@@ -120,7 +124,7 @@ function buildAgendaRow_(sheet, committee, head, vals, r) {
         Utilities.formatDate(issued, tz, 'M/d h:mm a') +
         '. Supersedes all prior agendas for this meeting.'
       : '',
-    items: items.join('\n'),
+    items: items,
     fileName: fileName
   });
 
@@ -191,8 +195,8 @@ function rebuildAgendas() {
   if (built > 0) requestSiteRebuild();
 }
 
-/** Dropdown value "SB-12 — Affordable Housing" -> agenda line with author. */
-function itemLine(value) {
+/** A typed line ("SB-12", "sb 12", …) -> the agenda row's bill, author and subject. */
+function itemParts(value) {
   var no = billNumberFrom(value);
   var bills = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Bills');
   var vals = bills.getDataRange().getValues();
@@ -219,11 +223,51 @@ function itemLine(value) {
     var base    = cSubj   >= 0 ? String(vals[i][cSubj]   || '').trim() : '';
     subject = updated || base || subject;
   }
-  if (author === null) return String(value) + '\t\t[not found among filed bills — check the number]';
+  if (author === null) {
+    return { bill: String(value), author: '', subject: '[not found among filed bills — check the number]' };
+  }
   // Bills filed before the form enforced SUBJECT_MAX_CHARS (forms_builder.gs)
   // can carry a paragraph-length subject; keep agenda lines to two lines
   if (subject.length > SUBJECT_MAX_CHARS) subject = subject.slice(0, SUBJECT_MAX_CHARS - 1).replace(/\s+\S*$/, '') + '…';
-  return 'SB ' + no + '\t' + author + '\t' + subject;
+  return { bill: 'SB ' + no, author: author, subject: subject };
+}
+
+/**
+ * Puts the bills in as a borderless four-column table (number, bill,
+ * author, subject) where the template's {{ITEMS}} paragraph sits. A
+ * table keeps every column aligned whatever the author's name length,
+ * and a long subject wraps inside its own cell instead of back to the
+ * left margin. The font follows the placeholder paragraph, so the
+ * template can be restyled freely.
+ */
+function insertItemsTable_(body, rows) {
+  var hit = body.findText('{{ITEMS}}');
+  var anchor = hit ? hit.getElement().getParent() : null;
+  var idx = anchor ? body.getChildIndex(anchor) : body.getNumChildren() - 1;
+  var family = anchor ? anchor.editAsText().getFontFamily(0) : null;
+  var size   = anchor ? anchor.editAsText().getFontSize(0) : null;
+
+  if (!rows || !rows.length) rows = [['', '', '', 'No bills listed.']];
+  var table = body.insertTable(idx + 1, rows);
+  table.setBorderWidth(0);
+
+  // Column widths from the page's text width: number, bill, author, subject
+  var textWidth = body.getPageWidth() - body.getMarginLeft() - body.getMarginRight();
+  var widths = [26, 52, 120, textWidth - 26 - 52 - 120];
+  for (var c = 0; c < widths.length; c++) table.setColumnWidth(c, widths[c]);
+
+  for (var r = 0; r < table.getNumRows(); r++) {
+    var row = table.getRow(r);
+    for (var k = 0; k < row.getNumCells(); k++) {
+      var cell = row.getCell(k);
+      cell.setPaddingTop(2).setPaddingBottom(2).setPaddingLeft(0).setPaddingRight(6);
+      var t = cell.editAsText();
+      if (family) t.setFontFamily(family);
+      if (size)   t.setFontSize(size);
+      if (k === 1) t.setBold(true);
+    }
+  }
+  if (anchor) body.removeChild(anchor);
 }
 
 /** Chair/vice/member names for a committee, from the merged Assignments state. */
@@ -310,7 +354,7 @@ function assembleAgendaPdf(spec) {
   body.replaceText('{{MEMBERS}}', spec.members);
   body.replaceText('{{DATE}}', spec.date);
   body.replaceText('{{REVISED}}', spec.revised);
-  body.replaceText('{{ITEMS}}', spec.items);
+  insertItemsTable_(body, spec.items);
   doc.saveAndClose();
 
   var agendas = filesSubfolder('agendas');
