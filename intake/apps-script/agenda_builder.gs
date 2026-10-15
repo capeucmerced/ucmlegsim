@@ -197,14 +197,30 @@ function itemLine(value) {
   var bills = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Bills');
   var vals = bills.getDataRange().getValues();
   var head = vals[0];
+  // Bills columns carry the full form questions ("Short subject for the
+  // bill tables — …"), so match by prefix exactly as the gateway does;
+  // an exact-name lookup finds nothing and prints "undefined"
+  var cSb     = head.indexOf('SB Number');
+  var cStat   = head.indexOf('Status');
+  var cMail   = headIndexByPrefix(head, 'Email Address');
+  var cSubj   = headIndexByPrefix(head, 'Short subject');
+  var cUpSubj = headIndexByPrefix(head, 'Updated short subject');
+
+  var author = null, subject = '';
   for (var i = 1; i < vals.length; i++) {
-    if (parseInt(vals[i][head.indexOf('SB Number')], 10) === no) {
-      var who = rosterLookup(vals[i][head.indexOf('Email Address')]);
-      var author = who ? who['Last Name'] : '';
-      return 'SB ' + no + '\t' + author + '\t' + vals[i][head.indexOf('Short Subject')];
+    if (cStat >= 0 && vals[i][cStat]) continue;            // void rows
+    if (parseInt(vals[i][cSb], 10) !== no) continue;
+    if (author === null) {
+      var who = rosterLookup(vals[i][cMail]);
+      author = who ? who['Last Name'] : '';
     }
+    // An amendment's "Updated short subject" replaces the title; blank keeps it
+    var updated = cUpSubj >= 0 ? String(vals[i][cUpSubj] || '').trim() : '';
+    var base    = cSubj   >= 0 ? String(vals[i][cSubj]   || '').trim() : '';
+    subject = updated || base || subject;
   }
-  return String(value) + '\t\t[not found among filed bills — check the number]';
+  if (author === null) return String(value) + '\t\t[not found among filed bills — check the number]';
+  return 'SB ' + no + '\t' + author + '\t' + subject;
 }
 
 /** Chair/vice/member names for a committee, from the merged Assignments state. */
