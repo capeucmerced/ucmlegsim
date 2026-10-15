@@ -256,6 +256,17 @@ function buildRegistration() {
 }
 
 // Bills-form wording, shared by buildBills() and patchBillsForm()
+// Subject length: about two lines on an agenda or a bill's title line.
+// The form refuses longer answers; agenda_builder.gs truncates older
+// bills to the same length.
+var SUBJECT_MAX_CHARS = 100;
+var SUBJECT_HELP = 'At most ' + SUBJECT_MAX_CHARS + ' characters, no period at the end.';
+function subjectValidation_() {
+  return FormApp.createTextValidation()
+    .setHelpText('Keep the subject to ' + SUBJECT_MAX_CHARS + ' characters or fewer.')
+    .requireTextLengthLessThanOrEqualTo(SUBJECT_MAX_CHARS)
+    .build();
+}
 var DIGEST_HELP = 'A plain-text description of existing law and what ' +
   'your bill changes.';
 var UPDATED_FLAGS_HELP = 'Leave blank to keep the current flags. ' +
@@ -299,7 +310,8 @@ function buildBills() {
     .setRequired(true);
   f.addTextItem()
     .setTitle('Updated short subject')
-    .setHelpText('Leave blank to keep the current subject.');
+    .setHelpText('Leave blank to keep the current subject. ' + SUBJECT_HELP)
+    .setValidation(subjectValidation_());
   f.addParagraphTextItem()
     .setTitle('Updated digest')
     .setHelpText('Leave blank to keep the current digest.');
@@ -319,6 +331,8 @@ function buildBills() {
   var newSection = f.addPageBreakItem().setTitle('New bill details');
   f.addTextItem()
     .setTitle('Short subject for the bill tables — a few concise words (e.g. Clean Air Near Schools Act)')
+    .setHelpText(SUBJECT_HELP)
+    .setValidation(subjectValidation_())
     .setRequired(true);
   f.addParagraphTextItem()
     .setTitle('Digest')
@@ -378,6 +392,15 @@ function patchBillsForm() {
 
   var digest = find('Digest');
   if (digest) digest.asParagraphTextItem().setTitle('Digest').setHelpText(DIGEST_HELP);
+
+  // Subject length limit (SUBJECT_MAX_CHARS), on both the new-bill and
+  // the amendment question; a too-long answer is refused by the form
+  var subj = find('Short subject');
+  if (subj) subj.asTextItem().setHelpText(SUBJECT_HELP).setValidation(subjectValidation_());
+  var upSubj = find('Updated short subject');
+  if (upSubj) upSubj.asTextItem()
+    .setHelpText('Leave blank to keep the current subject. ' + SUBJECT_HELP)
+    .setValidation(subjectValidation_());
 
   find('Flags').asCheckboxItem()
     .setChoiceValues(FLAG_CHOICES)

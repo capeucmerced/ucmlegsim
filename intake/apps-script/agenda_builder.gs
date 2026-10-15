@@ -220,6 +220,9 @@ function itemLine(value) {
     subject = updated || base || subject;
   }
   if (author === null) return String(value) + '\t\t[not found among filed bills — check the number]';
+  // Bills filed before the form enforced SUBJECT_MAX_CHARS (forms_builder.gs)
+  // can carry a paragraph-length subject; keep agenda lines to two lines
+  if (subject.length > SUBJECT_MAX_CHARS) subject = subject.slice(0, SUBJECT_MAX_CHARS - 1).replace(/\s+\S*$/, '') + '…';
   return 'SB ' + no + '\t' + author + '\t' + subject;
 }
 
