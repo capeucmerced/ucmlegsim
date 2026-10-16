@@ -22,10 +22,15 @@ permissions:
   pages: write
   id-token: write
 
-# If several triggers fire at once, keep only the newest build.
+# One build at a time, and a running build is never cancelled. Triggers
+# that arrive while it runs collapse into ONE queued build (GitHub keeps
+# only the newest pending run in a concurrency group), which starts when
+# the current one finishes and picks up everything filed meanwhile. So in
+# a deadline rush every filing appears within about two build lengths,
+# instead of each new submission restarting the build from scratch.
 concurrency:
   group: pages-build
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   build-and-deploy:
