@@ -13,15 +13,18 @@
  *   {{ITEMS}}  — replaced by a four-column table of bills (number, bill,
  *                author, subject) in that paragraph's font
  * Agendas carry only the meeting DATE — no time or room, by the
- * instructor's call: chairs handle those in class. Any "Time:" / "Room:"
- * line that finds its way into the template is dropped at assembly
- * (stripTimeRoom_), and fixAgendaTemplate() removes it from the template
- * itself.
+ * instructor's call: chairs handle those in class. repairAgendaBody_()
+ * runs on every agenda's working copy: it drops time/room lines, keeps
+ * the date when it shares a line with them, puts a date line back if
+ * the template has none, and keeps the heading, table and footer out of
+ * the REVISED notice's red.
+ *
+ * Bill lines: the number after "SB" is the bill ("3. SB 68 …" is SB 68).
  *
  * Admin one-clicks:
- *   previewAgendaTemplate()  logs the template's paragraphs and flags
- *                            the ones fixAgendaTemplate() would remove
- *   fixAgendaTemplate()      removes the flagged time/room lines
+ *   previewAgendaTemplate()  logs the template's paragraphs and what
+ *                            fixAgendaTemplate() would do to each
+ *   fixAgendaTemplate()      applies the same repair to the template
  *   rebuildAgendas()         regenerates every filed agenda from its
  *                            sheet row (current template, current
  *                            membership), keeping the revision trail;
@@ -195,9 +198,22 @@ function rebuildAgendas() {
   if (built > 0) requestSiteRebuild();
 }
 
+/**
+ * The bill number on one typed agenda line. The number after "SB" wins,
+ * so a pasted numbered list ("3. SB 68 McGuire Rural Broadband …") files
+ * SB 68, not SB 3. A line with no "SB" falls back to its first number
+ * ("68" or "#68").
+ */
+function agendaBillNumber_(line) {
+  var s = String(line || '');
+  var m = s.match(/\bS\.?\s*B\.?\s*[-#]?\s*(\d+)/i);
+  if (m) return parseInt(m[1], 10);
+  return billNumberFrom(s);
+}
+
 /** A typed line ("SB-12", "sb 12", …) -> the agenda row's bill, author and subject. */
 function itemParts(value) {
-  var no = billNumberFrom(value);
+  var no = agendaBillNumber_(value);
   var bills = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Bills');
   var vals = bills.getDataRange().getValues();
   var head = vals[0];
@@ -261,10 +277,12 @@ function insertItemsTable_(body, rows) {
     for (var k = 0; k < row.getNumCells(); k++) {
       var cell = row.getCell(k);
       cell.setPaddingTop(2).setPaddingBottom(2).setPaddingLeft(0).setPaddingRight(6);
+      // Explicit color and weight: a new table otherwise inherits the
+      // paragraph above it (in the template, the red REVISED notice's style)
       var t = cell.editAsText();
       if (family) t.setFontFamily(family);
       if (size)   t.setFontSize(size);
-      if (k === 1) t.setBold(true);
+      t.setForegroundColor(AGENDA_INK).setItalic(false).setBold(k === 1);
     }
   }
   if (anchor) body.removeChild(anchor);
@@ -289,51 +307,137 @@ function latestAssignments(code) {
   return out;
 }
 
-// --- Time / room lines: never on an agenda ---------------------------------
+// --- Template repair: date kept, time/room dropped, plain colors -----------
+//
+// Agendas carry the meeting DATE and nothing about time or room. The
+// template has drifted twice: a hand-added time/room line, and the date
+// sharing a line with it (so the first cleanup took the date with it).
+// repairAgendaBody_() fixes all of that on whatever body it is given — the
+// working copy of every agenda (so a bad template can never reach a PDF)
+// and, through fixAgendaTemplate(), the template itself.
 
-/** True for a template paragraph that announces a time, room or location. */
-function isTimeRoomLine_(text) {
-  var t = String(text || '').trim();
-  if (!t) return false;
-  if (/\{\{\s*(TIME|ROOM|LOCATION|PLACE)\s*\}\}/i.test(t)) return true;
-  if (/^(time|room|location|place|where|when)\s*[:\-–—]/i.test(t)) return true;
-  if (/\b\d{1,2}:\d{2}\s*(a\.?m\.?|p\.?m\.?)\b/i.test(t) && !/\{\{/.test(t)) return true;
-  return /\bCOB2?\b|\bROOM\s+\d/i.test(t);
+var AGENDA_INK  = '#1c1c1c';   // body text: the bill table
+var AGENDA_NAVY = '#17345a';   // the AGENDA heading, as in the letterhead
+var AGENDA_GREY = '#555555';   // the "heard in file order" footer
+
+var DATE_TOKEN_RE = /\{\{\s*DATE\s*\}\}/i;
+
+/** True when a line mentions a time, room or location in any form. */
+function hasTimeRoom_(text) {
+  var t = String(text || '');
+  return /\{\{\s*(TIME|ROOM|LOCATION|PLACE)\s*\}\}/i.test(t) ||
+         /(^|\s)(time|room|location|place|where|when)\s*[:\-–—]/i.test(t) ||
+         /\b\d{1,2}:\d{2}\s*(a\.?m\.?|p\.?m\.?)?/i.test(t) ||
+         /\b\d{1,2}\s*(a\.?m\.?|p\.?m\.?)(\s|$|[.,;·])/i.test(t) ||
+         /\bCOB\s*2?\b|\bROOM\s+\d/i.test(t);
 }
 
-/** Drops time/room paragraphs from a document body (used on the working copy). */
-function stripTimeRoom_(body) {
-  var removed = 0;
-  var n = body.getNumChildren();
-  for (var i = n - 1; i >= 0; i--) {
-    var child = body.getChild(i);
-    if (child.getType() !== DocumentApp.ElementType.PARAGRAPH) continue;
-    if (!isTimeRoomLine_(child.asParagraph().getText())) continue;
-    if (body.getNumChildren() > 1) { body.removeChild(child); removed++; }
+/** A placeholder this script fills (anything but time/room). */
+function hasKeptPlaceholder_(text) {
+  return /\{\{\s*(COMMITTEE|CHAIR|VICE|MEMBERS|DATE|REVISED|ITEMS)\s*\}\}/i.test(String(text || ''));
+}
+
+/** What repairAgendaBody_ does with one paragraph: keep / date-only / remove. */
+function timeRoomAction_(text) {
+  if (!hasTimeRoom_(text)) return 'keep';
+  if (DATE_TOKEN_RE.test(text)) return 'date-only';
+  if (hasKeptPlaceholder_(text)) return 'keep';   // never drop the committee, items, …
+  return 'remove';
+}
+
+function paragraphsOf_(body) {
+  var out = [];
+  for (var i = 0; i < body.getNumChildren(); i++) {
+    var c = body.getChild(i);
+    if (c.getType() === DocumentApp.ElementType.PARAGRAPH) out.push(c.asParagraph());
   }
-  return removed;
+  return out;
 }
 
-/** Logs every paragraph of the agenda template, marking the ones a fix would remove. */
+function findParagraph_(body, test) {
+  var ps = paragraphsOf_(body);
+  for (var i = 0; i < ps.length; i++) if (test(ps[i].getText())) return ps[i];
+  return null;
+}
+
+/**
+ * Repairs an agenda body in place and returns a list of what changed.
+ *  1. A line that is only time/room is removed.
+ *  2. A line that holds the date AND a time/room keeps just {{DATE}}
+ *     (the token keeps its own formatting).
+ *  3. If no {{DATE}} is left anywhere, a centered, bold date line goes
+ *     back in above the REVISED notice (or above AGENDA).
+ *  4. The AGENDA heading prints navy and the footer grey, never red.
+ */
+function repairAgendaBody_(body) {
+  var log = [];
+
+  // 1 + 2 — walk bottom-up so removals don't shift what's left to visit
+  var ps = paragraphsOf_(body);
+  for (var i = ps.length - 1; i >= 0; i--) {
+    var p = ps[i];
+    var t = p.getText();
+    var act = timeRoomAction_(t);
+    if (act === 'remove' && body.getNumChildren() > 1) {
+      body.removeChild(p);
+      log.push('removed time/room line ' + JSON.stringify(t));
+    } else if (act === 'date-only') {
+      var m = t.match(DATE_TOKEN_RE);
+      var start = m.index, end = m.index + m[0].length;   // keep [start, end)
+      var text = p.editAsText();
+      if (end < t.length) text.deleteText(end, t.length - 1);
+      if (start > 0) text.deleteText(0, start - 1);
+      log.push('kept only the date from ' + JSON.stringify(t));
+    }
+  }
+
+  // 3 — the date line, if it is gone
+  if (!body.findText('{{DATE}}')) {
+    var before = findParagraph_(body, function (x) { return /\{\{\s*REVISED\s*\}\}/i.test(x); }) ||
+                 findParagraph_(body, function (x) { return /^\s*AGENDA\s*$/i.test(x); });
+    var at = before ? body.getChildIndex(before) : 0;
+    var dateP = body.insertParagraph(at, '{{DATE}}');
+    dateP.setAlignment(DocumentApp.HorizontalAlignment.CENTER).setSpacingAfter(8);
+    var family = before ? before.editAsText().getFontFamily(0) : null;
+    var dt = dateP.editAsText();
+    if (family) dt.setFontFamily(family);
+    dt.setFontSize(11).setBold(true).setItalic(false).setForegroundColor(AGENDA_INK);
+    log.push('restored the {{DATE}} line');
+  }
+
+  // 4 — colors below the red REVISED notice
+  var heading = findParagraph_(body, function (x) { return /^\s*AGENDA\s*$/i.test(x); });
+  if (heading) heading.editAsText().setForegroundColor(AGENDA_NAVY).setBold(true);
+  var footer = findParagraph_(body, function (x) { return /^\s*Bills will be heard/i.test(x); });
+  if (footer) footer.editAsText().setForegroundColor(AGENDA_GREY).setBold(false).setItalic(true);
+  var items = findParagraph_(body, function (x) { return /\{\{\s*ITEMS\s*\}\}/i.test(x); });
+  if (items) items.editAsText().setForegroundColor(AGENDA_INK).setBold(false);
+
+  return log;
+}
+
+/** Logs every paragraph of the agenda template and what a fix would do to it. */
 function previewAgendaTemplate() {
   var body = DocumentApp.openById(deployProp('AGENDA_TEMPLATE_DOC_ID', AGENDA_TEMPLATE_DOC_ID)).getBody();
+  var label = { keep: '          ', 'date-only': 'DATE ONLY ', remove: 'REMOVE    ' };
   var lines = [];
   for (var i = 0; i < body.getNumChildren(); i++) {
     var child = body.getChild(i);
     if (child.getType() !== DocumentApp.ElementType.PARAGRAPH) { lines.push(i + ': [' + child.getType() + ']'); continue; }
     var t = child.asParagraph().getText();
-    lines.push(i + ': ' + (isTimeRoomLine_(t) ? 'REMOVE  ' : '        ') + JSON.stringify(t));
+    lines.push(i + ': ' + label[timeRoomAction_(t)] + JSON.stringify(t));
   }
+  if (!body.findText('{{DATE}}')) lines.push('(no {{DATE}} line: fixAgendaTemplate will put one back)');
   Logger.log(lines.join('\n'));
 }
 
-/** Removes the time/room lines from the agenda template itself. Preview first. */
+/** Repairs the agenda template itself (see repairAgendaBody_). Preview first. */
 function fixAgendaTemplate() {
   var doc = DocumentApp.openById(deployProp('AGENDA_TEMPLATE_DOC_ID', AGENDA_TEMPLATE_DOC_ID));
-  var removed = stripTimeRoom_(doc.getBody());
+  var log = repairAgendaBody_(doc.getBody());
   doc.saveAndClose();
-  Logger.log('Removed ' + removed + ' time/room line(s) from the agenda template. ' +
-             'Run rebuildAgendas() to regenerate the filed agendas.');
+  Logger.log((log.length ? log.join('\n') : 'Template already clean.') +
+             '\nRun rebuildAgendas() to regenerate the filed agendas.');
 }
 
 function assembleAgendaPdf(spec) {
@@ -343,10 +447,10 @@ function assembleAgendaPdf(spec) {
   var doc = DocumentApp.openById(working.getId());
   var body = doc.getBody();
 
-  // Belt and braces: whatever the template says, no agenda prints a
-  // time or room (stripped before the items go in, so only template
-  // lines can match)
-  stripTimeRoom_(body);
+  // Belt and braces: whatever state the template is in, every agenda
+  // gets its date line, no time or room, and plain colors (done before
+  // the items go in, so only template lines are touched)
+  repairAgendaBody_(body);
 
   body.replaceText('{{COMMITTEE}}', spec.committeeName);
   body.replaceText('{{CHAIR}}', spec.chair);
