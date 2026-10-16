@@ -711,11 +711,31 @@ function syncVoteBillList() {
 
 /** Admin, run once (safe to rerun): bill dropdowns, date-only entry with
  *  a calendar, and edit warnings on the headers and tally columns. */
+/**
+ * Every student votes in the votes workbook, so it must open for anyone
+ * with the link, as an editor, with no sign-in. Google creates every file
+ * as "Restricted", which shows students a request-access screen. This
+ * sets the link sharing (the script runs as the owning account) and is
+ * part of setupVoteSheets(); run it alone to fix sharing at any time.
+ */
+function openVoteWorkbookToEveryone() {
+  var votesId = deployProp('VOTES_WORKBOOK_ID', '');
+  if (!votesId) throw new Error('VOTES_WORKBOOK_ID is not set in Script Properties.');
+  var file = DriveApp.getFileById(votesId);
+  file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.EDIT);
+  var msg = 'Votes workbook "' + file.getName() + '": anyone with the link can edit.';
+  Logger.log(msg);
+  return msg;
+}
+
 function setupVoteSheets() {
   var count = syncVoteBillList();
   var v = voteTabs_();
   var listRange = v.ss.getSheetByName(VOTE_BILL_LIST_TAB).getRange('A1:A');
   var log = ['Bill list: ' + count + ' bills.'];
+  // Link sharing first: a workbook nobody can open needs no dropdowns
+  try { log.push(openVoteWorkbookToEveryone()); }
+  catch (err) { log.push('SHARING FAILED: ' + err.message + ' — set it by hand: Share → General access → Anyone with the link → Editor.'); }
 
   v.tabs.forEach(function (sheet) {
     var head = sheet.getRange(1, 1, 1, Math.max(sheet.getLastColumn(), 1)).getValues()[0];

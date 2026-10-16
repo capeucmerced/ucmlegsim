@@ -131,7 +131,11 @@ live in the Sep 2026 beta — the scripts carry those fixes):
    validation at it. Publish the five vote tabs to the web (votes hold no
    emails — the one kind of tab that publishing rule allows) and put the
    new CSV links + edit link into `VOTE_SHEET_URLS` / `VOTE_ENTRY_URL` in
-   `scripts/shared.R`.
+   `scripts/shared.R`. Every student votes in this workbook, so it must be
+   open to anyone with the link as an editor: `setupVoteSheets()` (intake
+   project) sets that sharing each time it runs, and `openToEveryone()`
+   (the workbook's own project) does it alone. Google creates files as
+   Restricted, which shows students a request-access screen.
 8. **Test with a dummy account**: register, file a bill (check the PDF
    receipt's red/blue amendment marks), file a letter, report spending,
    post to the wire, submit an agenda, submit assignments (watch the

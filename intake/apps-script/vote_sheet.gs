@@ -15,7 +15,19 @@
  * intake workbook with IMPORTRANGE + FILTER. Set up once by hand; it stays
  * current by itself. Tally columns should use ARRAYFORMULA in the header
  * row so they extend to new rows without copying formulas down.
+ *
+ * openToEveryone(): one click that makes this workbook open to anyone
+ * with the link as an editor (Google creates files "Restricted", which
+ * shows students a request-access screen instead of the sheet). The
+ * intake project's setupVoteSheets() does the same from its side.
  */
+
+function openToEveryone() {
+  var file = DriveApp.getFileById(SpreadsheetApp.getActiveSpreadsheet().getId());
+  file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.EDIT);
+  Logger.log('"' + file.getName() + '": anyone with the link can edit. ' +
+             'Test it in an incognito window: the sheet should open with no sign-in.');
+}
 
 function onEdit(e) {
   if (!e || !e.range) return;

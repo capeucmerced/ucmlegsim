@@ -392,7 +392,11 @@ rebuild. `previewAgendaTemplate` / `fixAgendaTemplate` tidy the template
 itself.
 
 **During class votes:** nothing. The vote sheet's own script stamps
-dates; the site reads the published vote tabs on each build.
+dates; the site reads the published vote tabs on each build. If a
+student gets a "request access" screen on the vote workbook, its link
+sharing has slipped back to Restricted: run `openVoteWorkbookToEveryone`
+in the intake project's Apps Script editor (or `openToEveryone` in the
+workbook's own), which sets Anyone with the link → Editor.
 
 ---
 
