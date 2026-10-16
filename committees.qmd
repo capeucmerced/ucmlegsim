@@ -129,7 +129,10 @@ for (code in names(COMMITTEE_NAMES)) {
   cat("### Docket\n\n")
   if (nrow(docket) > 0) {
     docket_tbl <- docket |>
-      mutate(Bill = sprintf("[%s](%s/%s.html)", bill_measure, BILL_PAGES_DIR, url_slug)) |>
+      left_join(senators |> select(name_join, District), by = "name_join") |>
+      mutate(Bill = sprintf("[%s](%s/%s.html)", bill_measure, BILL_PAGES_DIR, url_slug),
+             name = ifelse(is.na(District), name,
+                           sprintf("[%s](%s)", name, senator_url(District)))) |>
       select(Bill, Subject = title, Author = name, Fiscal = appropriations)
     cat(kable(docket_tbl, format = "pipe"), sep = "\n")
     cat("\n\n")

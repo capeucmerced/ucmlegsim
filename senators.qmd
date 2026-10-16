@@ -45,7 +45,9 @@ if (any(has_profile)) {
 }
 
 cols <- list(
-  District = colDef(width = 90),   # numeric: sorts 1, 2, … 40
+  # numeric: sorts 1, 2, … 40; links to the Districts map zoomed to it
+  District = colDef(width = 90,
+    cell = link_cell("", sprintf("map.html?district=%s", senators$District))),
   display_name = colDef(
     name = "Name",
     cell = link_cell("", sprintf("%s/district_%s.html", SENATOR_PAGES_DIR, senators$District))
@@ -54,6 +56,12 @@ cols <- list(
   Fundraising = colDef(width = 150, html = TRUE,
     cell = function(value) progress_bar_html(value))
 )
+if (leadership_has_data) {
+  # Leadership roles link to the Leadership section of the Committees page
+  cols$Leadership <- colDef(cell = function(value) {
+    if (is.na(value) || value == "") "" else htmltools::tags$a(href = leadership_url(), value)
+  })
+}
 if (any(has_profile)) {
   cols$Profile <- colDef(
     sortable = FALSE, width = 110,

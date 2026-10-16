@@ -808,6 +808,7 @@ ol.leaderboard {
     letter-spacing: 0.1em;
     text-transform: uppercase;
     color: rgba($navy, 0.6);
+    a { color: $navy; text-decoration: none; &:hover { text-decoration: underline; } }
   }
 
   .story-headline {
@@ -869,6 +870,8 @@ ol.leaderboard {
     letter-spacing: 0.08em;
     text-transform: uppercase;
     color: $navy;
+    text-decoration: none;
+    &:hover { text-decoration: underline; }
   }
 }
 

@@ -55,10 +55,14 @@ for (i in seq_len(nrow(bills))) {
     if (nrow(vrows) == 0) next
     member_cols <- intersect(ns$s_names_period, names(vdf))
     display <- ns$s_names[match(member_cols, ns$s_names_period)]
+    # Each name links to that senator's page; lists sort by name
+    linked  <- html_link(display,
+                         senator_url(senators$District[match(member_cols, senators$name_period)], rel = "../"))
+    names_of <- function(keep) paste(linked[keep][order(display[keep])], collapse = ", ")
     for (j in seq_len(nrow(vrows))) {
       v <- as.character(unlist(vrows[j, member_cols]))
-      grp <- function(val) paste(sort(display[!is.na(v) & v == val]), collapse = ", ")
-      absent <- paste(sort(display[is.na(v) | v == ""]), collapse = ", ")
+      grp <- function(val) names_of(!is.na(v) & v == val)
+      absent <- names_of(is.na(v) | v == "")
       parts <- c()
       if (grp("Aye") != "")     parts <- c(parts, paste0("<b>Aye:</b> ", grp("Aye")))
       if (grp("No") != "")      parts <- c(parts, paste0("<b>No:</b> ", grp("No")))
@@ -98,13 +102,15 @@ for (i in seq_len(nrow(bills))) {
     # shown next to each org's name.
     support <- bill_letters |> filter(position %in% c("Support", "Support If Amended"))
     oppose  <- bill_letters |> filter(position %in% c("Oppose", "Oppose Unless Amended"))
+    # Organization name -> its page; the position -> the letter itself
+    letter_line <- function(d) sprintf("[%s](%s) — [%s](../%s/%s)  ",
+                                       d$Lobby, lobby_url(d$org_code, rel = "../"),
+                                       d$position, LETTERS_DIR, d$filename)
     if (nrow(support) > 0) {
-      letter_lines <- c(letter_lines, "### Support Letters", "",
-                        sprintf("[%s — %s](../%s/%s)  ", support$Lobby, support$position, LETTERS_DIR, support$filename), "")
+      letter_lines <- c(letter_lines, "### Support Letters", "", letter_line(support), "")
     }
     if (nrow(oppose) > 0) {
-      letter_lines <- c(letter_lines, "### Opposition Letters", "",
-                        sprintf("[%s — %s](../%s/%s)  ", oppose$Lobby, oppose$position, LETTERS_DIR, oppose$filename), "")
+      letter_lines <- c(letter_lines, "### Opposition Letters", "", letter_line(oppose), "")
     }
   } else {
     letter_lines <- "No lobbyist letters available for this bill."
@@ -195,7 +201,12 @@ for (i in seq_len(nrow(bills))) {
     "",
     sprintf("**Author:** [%s](%s)", b$name, author_page),
     "",
-    sprintf("**Committee:** %s", b$committee),
+    {
+      # Committee -> its tab on the Committees page ("Unassigned" stays plain)
+      cu <- committee_url(committee_code_from_name(b$committee), rel = "../")
+      if (is.na(cu)) sprintf("**Committee:** %s", b$committee)
+      else sprintf("**Committee:** [%s](%s)", b$committee, cu)
+    },
     "",
     sprintf("**Appropriations:** %s", b$appropriations),
     "",

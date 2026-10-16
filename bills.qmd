@@ -48,10 +48,14 @@ if (nrow(latest_votes) > 0) {
 tbl <- bills |>
   arrange(bill_number) |>
   select(bill_number, title, name, status, committee, appropriations,
-         Vote, Result, url_slug)
+         Vote, Result, url_slug, District)
+
+# Author -> senator page; Committee -> that committee's tab
+author_urls    <- senator_url(tbl$District)
+committee_urls <- committee_url(vapply(tbl$committee, committee_code_from_name, character(1)))
 
 legsim_table(
-  tbl |> select(-url_slug),
+  tbl |> select(-url_slug, -District),
   page_size = 10,
   columns = list(
     # Numeric underneath (so sorting is 1, 2, … 76), "SB-n" link on top
@@ -60,7 +64,7 @@ legsim_table(
       cell = link_cell("SB-", file.path(BILL_PAGES_DIR, paste0(tbl$url_slug, ".html")))
     ),
     title = colDef(name = "Subject", minWidth = 160),
-    name = colDef(name = "Author"),
+    name = colDef(name = "Author", cell = link_cell("", author_urls)),
     status = colDef(
       name = "Status", minWidth = 140,
       # Status dot: green = passed, red = dead, gold = moving
@@ -71,7 +75,7 @@ legsim_table(
         htmltools::tagList(htmltools::span(class = paste("status-dot", cls)), " ", value)
       }
     ),
-    committee = colDef(name = "Committee"),
+    committee = colDef(name = "Committee", cell = link_cell("", committee_urls)),
     appropriations = colDef(name = "Fiscal", width = 70),
     Vote = colDef(name = "Latest Vote (A-N-Ab-Abs)", minWidth = 120),
     Result = colDef(name = "Result", width = 85)

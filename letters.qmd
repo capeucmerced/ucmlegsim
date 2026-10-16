@@ -38,11 +38,13 @@ library(reactable)
 if (n_all == 0) {
   htmltools::p(class = "muted", "No position letters filed yet.")
 } else {
+  senators <- load_senators()
   tbl <- letters |>
-    left_join(bills |> select(bill_number, title, url_slug, name), by = "bill_number") |>
+    left_join(bills |> select(bill_number, title, url_slug, name, name_join), by = "bill_number") |>
+    left_join(senators |> select(name_join, District), by = "name_join") |>
     arrange_letters() |>
     transmute(Filed = filed, Lobby, org_code, Position = position,
-              bill_number, url_slug, Subject = title, Author = name, filename) |>
+              bill_number, url_slug, Subject = title, Author = name, District, filename) |>
     as.data.frame()
 
   legsim_table(
@@ -64,7 +66,8 @@ if (n_all == 0) {
                                                           file.path(BILL_PAGES_DIR, paste0(tbl$url_slug, ".html"))))),
       url_slug = colDef(show = FALSE),
       Subject = colDef(minWidth = 180),
-      Author = colDef(minWidth = 120),
+      Author = colDef(minWidth = 120, cell = link_cell("", senator_url(tbl$District))),
+      District = colDef(show = FALSE),
       filename = colDef(name = "Letter", sortable = FALSE, width = 100,
                         cell = function(value) htmltools::tags$a(href = file.path(LETTERS_DIR, value), "View letter"))
     )

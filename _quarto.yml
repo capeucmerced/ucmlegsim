@@ -90,3 +90,5 @@ format:
     # (./js/feed.js at the top level, ../js/feed.js in senator-pages/…).
     include-after-body:
       - text: '<script src="/js/feed.js"></script>'
+      # Opens the tab named in a "#tab-…" link (e.g. a committee's tab)
+      - text: '<script src="/js/tabs.js"></script>'

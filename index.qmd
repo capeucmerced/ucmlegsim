@@ -78,7 +78,8 @@ if (nrow(all_vote_rows) > 0) {
   action_items <- sprintf(
     '<a href="%s/%s.html"><b>%s</b></a> %s · %s · %s · <span style="white-space:nowrap">%s</span>',
     BILL_PAGES_DIR, recent$url_slug, recent$Bill, esc(recent$title),
-    COMMITTEE_NAMES[recent$source], recent$Vote, format(recent$Date, "%b %d")
+    html_link(unname(COMMITTEE_NAMES[recent$source]), committee_url(recent$source)),
+    recent$Vote, format(recent$Date, "%b %d")
   )
 }
 action_card <- card("Floor & Committee Action", li(action_items), "votes.html", "All votes →")
@@ -117,8 +118,10 @@ if (nrow(letters) > 0) {
     }
     "#17345a"
   }
+  # The org chip links to the organization's page
   letter_items <- sprintf(
-    '<span class="booktab" style="--org-color:%s;display:inline-block;padding:0.05rem 0.45rem">%s</span> %s on <a href="%s/%s.html">SB-%d</a>',
+    '<a class="booktab" href="%s" title="%s" style="--org-color:%s;display:inline-block;padding:0.05rem 0.45rem">%s</a> %s on <a href="%s/%s.html">SB-%d</a>',
+    lobby_url(desk$org_code), esc(desk$Lobby),
     vapply(desk$org_code, color_of, character(1)),
     desk$org_code, desk$position, BILL_PAGES_DIR, desk$url_slug, desk$bill_number
   )
@@ -134,8 +137,8 @@ if (nrow(contribs) > 0) {
     arrange(desc(Date)) |>
     head(6)
   money_items <- sprintf(
-    '<b>%s</b> → <a href="%s/district_%d.html">%s (%s-%d)</a> · %s · %s',
-    mw$Lobby_Code, SENATOR_PAGES_DIR, mw$Recipient.District,
+    '<a href="%s"><b>%s</b></a> → <a href="%s/district_%d.html">%s (%s-%d)</a> · %s · %s',
+    lobby_url(mw$Lobby_Code), mw$Lobby_Code, SENATOR_PAGES_DIR, mw$Recipient.District,
     esc(mw$Last.Name), mw$Party, mw$Recipient.District,
     scales::dollar(mw$Contribution), format(mw$Date, "%b %d")
   )

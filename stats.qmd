@@ -40,8 +40,10 @@ if (nrow(contribs) > 0) {
   total   <- sum(contribs$Contribution, na.rm = TRUE)
   biggest <- contribs |> filter(!is.na(Contribution)) |> slice_max(Contribution, n = 1, with_ties = FALSE)
   big_who <- senators |> filter(District == biggest$Recipient.District)
-  big_txt <- sprintf("%s → %s, %s", biggest$Lobby_Code,
-                     if (nrow(big_who) > 0) big_who$Name else biggest$Recipient.Name,
+  big_txt <- sprintf("%s → %s, %s",
+                     html_link(biggest$Lobby_Code, lobby_url(biggest$Lobby_Code)),
+                     if (nrow(big_who) > 0) sen_link(big_who$Name, big_who$District)
+                     else htmltools::htmlEscape(biggest$Recipient.Name),
                      format(biggest$Date, "%b %d"))
 
   cat(sprintf('
@@ -76,7 +78,8 @@ if (nrow(contribs) > 0) {
     filter(rank <= 5)
   lb("Biggest Spenders",
      top_spent$rank,
-     ifelse(is.na(top_spent$Lobby), top_spent$Lobby_Code, top_spent$Lobby),
+     html_link(ifelse(is.na(top_spent$Lobby), top_spent$Lobby_Code, top_spent$Lobby),
+               lobby_url(top_spent$Lobby_Code)),
      scales::dollar(top_spent$total))
 
   cat('</div>')

@@ -150,6 +150,45 @@ COMMITTEE_NAMES <- c(
   floor = "Floor"
 )
 
+# --- Page URLs ----------------------------------------------------------------
+# One place for "link to this senator / org / outlet / committee". rel is
+# the path back to the site root: "" from a top-level page, "../" from a
+# generated page. Each returns NA when there is nothing to link to, which
+# link_cell() and the callers render as plain text.
+
+senator_url <- function(district, rel = "") {
+  ifelse(is.na(district), NA_character_,
+         sprintf("%s%s/district_%s.html", rel, SENATOR_PAGES_DIR, district))
+}
+
+lobby_url <- function(code, rel = "") {
+  ifelse(is.na(code) | code == "", NA_character_,
+         sprintf("%s%s/%s.html", rel, LOBBY_PAGES_DIR, toupper(code)))
+}
+
+outlet_url <- function(outlet, rel = "") {
+  ifelse(is.na(outlet) | outlet == "", NA_character_,
+         sprintf("%s%s/%s.html", rel, JOURNALIST_PAGES_DIR, outlet_slug(outlet)))
+}
+
+# Committee tabs: committees.html#tab-agriculture-and-natural-resources
+# opens that tab (js/tabs.js turns "#tab-<label>" into a click on the tab
+# whose label slugifies the same way). Takes a committee CODE ("anr").
+tab_slug <- function(label) {
+  gsub("^-+|-+$", "", gsub("[^a-z0-9]+", "-", tolower(label)))
+}
+committee_url <- function(code, rel = "") {
+  nm <- unname(COMMITTEE_NAMES[code])
+  ifelse(is.na(nm), NA_character_, sprintf("%scommittees.html#tab-%s", rel, tab_slug(nm)))
+}
+leadership_url <- function(rel = "") paste0(rel, "committees.html#leadership")
+
+# HTML link, or the escaped text alone when there is no URL
+html_link <- function(text, url) {
+  t <- htmltools::htmlEscape(text)
+  ifelse(is.na(url), t, sprintf('<a href="%s">%s</a>', url, t))
+}
+
 # --- Small helpers ----------------------------------------------------------
 
 # The house interactive table. Direct reactable (not gt's interactive
@@ -987,7 +1026,10 @@ story_card_html <- function(st, lead = FALSE, show_outlet = FALSE, rel = "") {
   pdf  <- paste0(rel, st$pdf)
   when <- format(as.POSIXct(st$time, tz = "America/Los_Angeles"), "%B %d, %Y")
   when <- sub(" 0", " ", when, fixed = TRUE)
-  kicker <- if (show_outlet) paste(esc(st$outlet), "\u00b7", when) else when
+  # On the News page the outlet name links to the outlet's own page
+  kicker <- if (show_outlet) {
+    paste(sprintf('<a href="%s">%s</a>', outlet_url(st$outlet, rel), esc(st$outlet)), "\u00b7", when)
+  } else when
 
   use_image <- !is.na(st$image)
   if (use_image) {

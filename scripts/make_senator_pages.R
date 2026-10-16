@@ -58,6 +58,8 @@ for (i in seq_len(nrow(senators))) {
     committee_bits <- vapply(codes, function(code) {
       nm <- unname(COMMITTEE_NAMES[code])
       if (is.na(nm)) nm <- toupper(code)
+      # Each committee links to its own tab on the Committees page
+      nm <- html_link(nm, committee_url(code, rel = "../"))
       if (!is.na(s$Chair) && code == s$Chair) paste("Chair,", nm)
       else if (!is.na(s$Vice.Chair) && code == s$Vice.Chair) paste("Vice Chair,", nm)
       else nm
@@ -90,7 +92,8 @@ for (i in seq_len(nrow(senators))) {
     # highlighting this district
     sprintf('<div class="dossier-meta"><span class="party-chip %s">%s</span> <a href="../map.html?district=%s">District %s</a>%s</div>',
             tolower(s$Party), party_name, district, district,
-            if (leadership != "") sprintf(' &middot; <b>%s</b>', leadership) else ""),
+            if (leadership != "") sprintf(' &middot; <b><a href="%s">%s</a></b>',
+                                          leadership_url(rel = "../"), leadership) else ""),
     '<dl class="dossier-facts">',
     sprintf('<dt>Committees</dt><dd>%s</dd>', committees_html),
     sprintf('<dt>Bills</dt><dd>%s</dd>', bills_html),
@@ -122,6 +125,11 @@ for (i in seq_len(nrow(senators))) {
         Committee = unname(COMMITTEE_NAMES[Committee]),
         Bill = suppressWarnings(as.integer(sub("SB-", "", Bill)))
       ) |>
+      # Each bill number links to its page (hidden url column)
+      left_join(bills |> transmute(Bill = as.integer(bill_number),
+                                   bill_url = sprintf("../%s/%s.html", BILL_PAGES_DIR, url_slug)) |>
+                  distinct(Bill, .keep_all = TRUE),
+                by = "Bill") |>
       arrange(desc(Date)) |>
       rename("Vote" = all_of(s$name_period),
              "Party Vote" = all_of(party_choice_col),
@@ -266,9 +274,12 @@ for (i in seq_len(nrow(senators))) {
     "    defaultColDef = colDef(na = ''),",
     "    columns = list(",
     "      Date = colDef(format = colFormat(date = TRUE, locales = 'en-US'), width = 100),",
-    "      Bill = colDef(width = 90, cell = function(value) {",
-    "        if (is.na(value)) '' else paste0('SB-', value)",
+    "      Bill = colDef(width = 90, cell = function(value, index) {",
+    "        if (is.na(value)) return('')",
+    "        url <- votes_including_s$bill_url[index]",
+    "        if (is.na(url)) paste0('SB-', value) else htmltools::tags$a(href = url, paste0('SB-', value))",
     "      }),",
+    "      bill_url = colDef(show = FALSE),",
     "      Vote = colDef(width = 90),",
     "      `Party Vote` = colDef(width = 110),",
     "      `Voted With Party?` = colDef(width = 130)",
