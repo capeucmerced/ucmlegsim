@@ -49,16 +49,34 @@ var BANNER_HOURS = 48;       // how long a new edition is announced
     return "";
   }
 
+  // Path from this page back to the site root ("./" or "../"), which
+  // Quarto writes into every page
+  function siteRoot() {
+    var m = document.querySelector('meta[name="quarto:offset"]');
+    return m ? m.getAttribute("content") : "./";
+  }
+
+  // An outlet's page: journalist-pages/<slug>.html. The slug rule MUST
+  // match outlet_slug() in scripts/shared.R.
+  function outletPage(outlet) {
+    var slug = String(outlet).toLowerCase().trim()
+      .replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "");
+    return slug ? siteRoot() + "journalist-pages/" + slug + ".html" : "";
+  }
+
   // Build each post with textContent (never innerHTML) so student-written
-  // text can't inject markup into the page.
-  function renderPost(post) {
+  // text can't inject markup into the page. linkOutlet: false on an
+  // outlet's own page, where the link would point back to itself.
+  function renderPost(post, linkOutlet) {
     var item = document.createElement("article");
     item.className = "wire-post";
 
     var meta = document.createElement("div");
     meta.className = "wire-meta";
-    var outlet = document.createElement("span");
+    var page = linkOutlet && post.outlet ? outletPage(post.outlet) : "";
+    var outlet = document.createElement(page ? "a" : "span");
     outlet.className = "wire-outlet";
+    if (page) outlet.href = page;
     outlet.textContent = post.outlet || post.name;
     var byline = document.createElement("span");
     byline.className = "wire-byline";
@@ -120,7 +138,7 @@ var BANNER_HOURS = 48;       // how long a new edition is announced
       container.appendChild(empty);
       return;
     }
-    shown.forEach(function (p) { container.appendChild(renderPost(p)); });
+    shown.forEach(function (p) { container.appendChild(renderPost(p, !only)); });
   }
 
   var CACHE_KEY = "wire-cache-v1";
@@ -162,10 +180,25 @@ var BANNER_HOURS = 48;       // how long a new edition is announced
   // room. A reader who closes it isn't shown that edition again.
   var DISMISS_KEY = "edition-banner-dismissed";
 
+  // The class publishes ONE shared newspaper a few times a semester, so
+  // the banner names the issue, not the outlet or the full edition title:
+  // "Issue 2 of the simulation newspaper is out. Read it →". The number
+  // is the "Issue N" in the edition's name when there is one, otherwise
+  // its place among the editions filed so far.
+  function issueNumber(edition, published) {
+    var m = /\bissue\s*(?:no\.?\s*)?(\d+)/i.exec(String(edition.edition || ""));
+    if (m) return parseInt(m[1], 10);
+    if (/^\s*\d+\s*$/.test(String(edition.edition || ""))) return parseInt(edition.edition, 10);
+    var n = 0;
+    published.forEach(function (e) { if (e.time <= edition.time) n++; });
+    return n;
+  }
+
   function showEditionBanner(editions) {
     var newest = null;
-    (editions || []).forEach(function (e) {
-      if (safeUrl(e.link) && (!newest || e.time > newest.time)) newest = e;
+    var published = (editions || []).filter(function (e) { return safeUrl(e.link); });
+    published.forEach(function (e) {
+      if (!newest || e.time > newest.time) newest = e;
     });
     if (!newest) return;
     if (Date.now() - new Date(newest.time).getTime() > BANNER_HOURS * 3600000) return;
@@ -176,11 +209,9 @@ var BANNER_HOURS = 48;       // how long a new edition is announced
 
     var bar = document.createElement("div");
     bar.className = "edition-banner";
-    var name = /^\d+$/.test(String(newest.edition).trim())
-      ? "Edition " + String(newest.edition).trim()
-      : (newest.edition || "A new edition");
     var lead = document.createElement("span");
-    lead.textContent = (newest.outlet ? newest.outlet + ": " : "") + name + " is out. ";
+    lead.textContent = "Issue " + issueNumber(newest, published) +
+                       " of the simulation newspaper is out. ";
     var a = document.createElement("a");
     a.href = safeUrl(newest.link);
     a.target = "_blank";
