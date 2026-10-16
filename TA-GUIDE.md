@@ -284,10 +284,13 @@ What you need to know:
 Honestly, the system mostly runs itself. Your recurring work:
 
 **Watch the builds (weekly, 30 seconds).** Repository → Actions. Green
-checks: fine. A grey octagon (cancelled) followed by a newer run is
-normal — when submissions stack up, only the newest build runs; it
-contains everything the cancelled one would have. A **red X** means a
-build failed and the site is frozen at its last good state — see §8.
+checks: fine. A yellow dot (queued) behind a running build is normal —
+a build is never interrupted, and submissions that arrive while it
+runs collapse into one queued build that picks them all up. An
+occasional grey octagon (cancelled) is also normal: it is a queued
+build that a newer one replaced, and the newer one contains everything.
+A **red X** means a build failed and the site is frozen at its last
+good state — see §8.
 
 **Hook up new registrations.** Students who register late append
 themselves to the Roster tab (email + name, nothing else). You fill in
