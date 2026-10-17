@@ -26,7 +26,7 @@ common ones.
 ### I don't think I have anything to do.
 
 There is always something moving. In rough priority order: check whether
-either of your bills is on an upcoming agenda ([Committees](committees.qmd));
+either of your bills is on an upcoming agenda ([Leadership & Committees](committees.qmd));
 read the bills coming before *your* committee and decide your questions and
 your vote; check your bill's letters — if a lobby filed "Oppose Unless
 Amended," talk to them about what amendment would flip them; and talk to the
@@ -50,7 +50,7 @@ the votes, an amendment before the hearing may be cheaper than a loss in it.
 ::: {.callout-note collapse="true"}
 ### I don't think I have anything to do.
 
-Read the [dockets](committees.qmd) — every bill awaiting a hearing is a bill
+Read the [Bills page](bills.qmd) — every bill still in committee is a bill
 you could be shaping. File positions on bills that touch your organization's
 interests ([file a letter](lobby.qmd)); meet the authors of bills you want
 amended; check which senators are up for contributions you haven't made yet;

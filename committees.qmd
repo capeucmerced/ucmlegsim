@@ -1,5 +1,5 @@
 ---
-title: "Committees"
+title: "Leadership & Committees"
 format:
   html:
     page-layout: full
@@ -19,13 +19,9 @@ ns       <- senator_name_sets(senators)
 votes    <- load_all_votes(ns)
 bills    <- load_bills() |> bill_statuses(votes)
 
-# Bills' committee names -> codes for docket matching (vapply so an
-# empty bill list — the day after a fixture reset — stays typed)
-bills$committee_code <- vapply(bills$committee, committee_code_from_name, character(1))
-
 # One tab per committee, plus the Floor. Each tab shows the membership,
-# the latest agenda, the docket (bills awaiting action there), and the
-# most recent votes taken.
+# every agenda filed for it, and the most recent votes taken. (Which
+# bills sit in which committee is the Bills page's Committee column.)
 sync_intake_agendas()
 agenda_files <- list.files(AGENDAS_DIR, pattern = "\\.pdf$")
 
@@ -98,46 +94,19 @@ for (code in names(COMMITTEE_NAMES)) {
     }
   }
 
-  # --- Latest agenda -------------------------------------------------------
-  mine <- sort(agenda_files[startsWith(agenda_files, paste0(code, "_"))], decreasing = TRUE)
-  # Filenames sort by name, not date; parse dates to find the real latest
+  # --- Agendas: every one filed for this body, newest first ----------------
+  mine <- agenda_files[startsWith(agenda_files, paste0(code, "_"))]
+  mine <- mine[!grepl("_prev", mine)]        # superseded revisions stay in Drive only
+  cat("### Agendas\n\n")
   if (length(mine) > 0) {
+    # Filenames sort by name, not date; parse the date to order them
     dates <- as.Date(gsub("^[a-z]+_(\\d+)_(\\d+)_(\\d+)\\.pdf$", "20\\3-\\1-\\2", mine))
-    mine <- mine[order(dates, decreasing = TRUE)]
-    cat(sprintf("**Latest agenda:** [%s](%s/%s)\n\n",
-                format(max(dates, na.rm = TRUE), "%B %d, %Y"), AGENDAS_DIR, mine[1]))
-    if (length(mine) > 1) {
-      cat('<details><summary>Earlier agendas</summary>\n\n')
-      cat(sprintf("- [%s](%s/%s)\n",
-                  format(sort(dates, decreasing = TRUE)[-1], "%B %d, %Y"),
-                  AGENDAS_DIR, mine[-1]), sep = "")
-      cat("\n</details>\n\n")
-    }
+    ord <- order(dates, decreasing = TRUE)
+    cat(sprintf("- [%s](%s/%s)\n", format(dates[ord], "%A, %B %d, %Y"),
+                AGENDAS_DIR, mine[ord]), sep = "")
+    cat("\n")
   } else {
     cat("*No agendas filed yet.*\n\n")
-  }
-
-  # --- Docket: bills awaiting action here ---------------------------------
-  docket <- if (code == "floor") {
-    bills |> filter(status == "To Floor")
-  } else if (code == "app") {
-    bills |> filter(status == "To Appropriations")
-  } else {
-    bills |> filter(committee_code %in% code, status == "In Committee")
-  }
-
-  cat("### Docket\n\n")
-  if (nrow(docket) > 0) {
-    docket_tbl <- docket |>
-      left_join(senators |> select(name_join, District), by = "name_join") |>
-      mutate(Bill = sprintf("[%s](%s/%s.html)", bill_measure, BILL_PAGES_DIR, url_slug),
-             name = ifelse(is.na(District), name,
-                           sprintf("[%s](%s)", name, senator_url(District)))) |>
-      select(Bill, Subject = title, Author = name, Fiscal = appropriations)
-    cat(kable(docket_tbl, format = "pipe"), sep = "\n")
-    cat("\n\n")
-  } else {
-    cat("*Nothing currently awaiting action.*\n\n")
   }
 
   # --- Recent votes --------------------------------------------------------

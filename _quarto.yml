@@ -44,7 +44,7 @@ website:
         href: index.qmd
       - text: Bills
         href: bills.qmd
-      - text: Committees
+      - text: Leadership & Committees
         href: committees.qmd
       - text: Votes
         href: votes.qmd
