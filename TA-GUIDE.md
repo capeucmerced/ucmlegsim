@@ -392,7 +392,18 @@ rebuild. `previewAgendaTemplate` / `fixAgendaTemplate` tidy the template
 itself.
 
 **During class votes:** nothing. The vote sheet's own script stamps
-dates; the site reads the published vote tabs on each build. If a
+dates; the site reads the published vote tabs on each build.
+
+**How the vote tabs' senator columns behave.** Each assignments
+submission re-syncs them, with one rule: a column that holds votes is
+history and is never rewritten, moved onto other data, or deleted. A tab
+with no votes yet is laid out fresh in district order. On a tab with
+votes, a new member gets a new column after the current members; a
+member who leaves keeps their column and its votes, greyed out and
+parked at the far right (the name stays in the header so the site still
+counts those votes); an empty, unneeded column is deleted. After editing
+the Assignments tab by hand, run `resyncVoteSheets` in the intake
+project's Apps Script editor — its log says what changed on each tab. If a
 student gets a "request access" screen on the vote workbook, its link
 sharing has slipped back to Restricted: run `openVoteWorkbookToEveryone`
 in the intake project's Apps Script editor (or `openToEveryone` in the

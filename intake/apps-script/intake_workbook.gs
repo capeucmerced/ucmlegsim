@@ -422,12 +422,27 @@ var VOTE_TAB_WORDS = {
   app:   ['app', 'appropriations'],
   floor: ['floor']
 };
+/**
+ * Keeps each vote tab's senator columns (everything after 'Result') in
+ * step with the current assignments — floor gets every senator. Headers
+ * are "First Last", exactly what the site's vote parser expects.
+ *
+ * The rule that protects recorded votes: a column that holds votes is
+ * HISTORY and is never rewritten, moved onto other data, or deleted.
+ *   - A tab with no votes yet is laid out fresh, in district order, and
+ *     the columns beyond the members are cleared of any formatting.
+ *   - A tab with votes keeps every column where it is. A new member gets
+ *     a new column after the current members. A former member's column
+ *     stays with its votes, greyed out and parked at the far right (the
+ *     header keeps the name so the site still counts those votes). A
+ *     column that is empty and no longer needed is deleted — that is what
+ *     removes the blank, senator-formatted columns.
+ * Runs on every assignments submission; resyncVoteSheets() runs it by
+ * hand (after editing the Assignments tab directly) and logs the result.
+ */
+var FORMER_NOTE = 'LegSim: former member — votes kept as history';
+var FORMER_GREY = '#e6e6e6';
 
-/** Rewrite each vote tab's senator header columns (everything after the
- *  'Result' column) from the NEWEST assignments row — floor gets every
- *  senator. Headers are "First Last", exactly what the site's vote
- *  parser expects. Data rows are never touched; if a tab already holds
- *  votes, the returned notes say to eyeball the alignment. */
 function syncVoteSheetColumns() {
   var votesId = deployProp('VOTES_WORKBOOK_ID', '');
   if (!votesId) return 'NOTE: VOTES_WORKBOOK_ID is not set in Script ' +
@@ -485,32 +500,127 @@ function syncVoteSheetColumns() {
     });
     if (!code || !(code in districtsFor)) return;
 
-    var head = sheet.getRange(1, 1, 1, Math.max(sheet.getLastColumn(), 1)).getValues()[0];
-    var resultCol = head.indexOf('Result') + 1;
-    if (resultCol === 0) {
-      notes += 'SKIPPED tab "' + sheet.getName() + '": no Result column found.\n';
-      return;
-    }
-
-    var names = districtsFor[code].map(function (d) {
+    var wanted = districtsFor[code].map(function (d) {
       return nameByDistrict[d] || ('SD-' + d + ' (not on roster)');
     });
-
-    // Clear old senator headers, write the new set. Data rows untouched.
-    if (sheet.getLastColumn() > resultCol) {
-      sheet.getRange(1, resultCol + 1, 1, sheet.getLastColumn() - resultCol).clearContent();
+    try {
+      notes += syncOneVoteTab_(sheet, wanted) + '\n';
+    } catch (err) {
+      notes += 'FAILED tab "' + sheet.getName() + '": ' + err.message + '\n';
     }
-    if (names.length > 0) {
-      sheet.getRange(1, resultCol + 1, 1, names.length).setValues([names])
-        .setFontWeight('bold');
-    }
-    writeVoteTallies_(sheet);   // tally formulas follow the new columns
-    notes += 'Tab "' + sheet.getName() + '": ' + names.length + ' senator column(s) written.' +
-             (sheet.getLastRow() > 1
-               ? ' CAUTION: this tab already holds vote rows — check they still align.'
-               : '') + '\n';
   });
   return notes || 'NOTE: no vote tabs matched — check the votes workbook tab names.\n';
+}
+
+/** One-click: sync every vote tab now and show what happened. */
+function resyncVoteSheets() {
+  Logger.log(syncVoteSheetColumns());
+}
+
+/** The sync for one tab; returns a one-line report. */
+function syncOneVoteTab_(sheet, wanted) {
+  var tab = 'Tab "' + sheet.getName() + '": ';
+  var head = sheet.getRange(1, 1, 1, Math.max(sheet.getLastColumn(), 1)).getValues()[0];
+  var resultCol = head.indexOf('Result') + 1;
+  if (resultCol === 0) return tab + 'SKIPPED — no Result column found.';
+  var billCol = head.indexOf('Bill') + 1;
+  var rows = sheet.getMaxRows() - 1;
+
+  var hasData = function (col) {   // any value in the data rows of a column
+    if (rows < 1) return false;
+    return sheet.getRange(2, col, rows, 1).getValues().some(function (v) {
+      return String(v[0]).trim() !== '';
+    });
+  };
+  var headerAt = function (col) { return String(sheet.getRange(1, col).getValue()).trim(); };
+
+  // --- No votes yet: lay out fresh, in district order ----------------------
+  if (!(billCol > 0 && hasData(billCol))) {
+    var lastCol = sheet.getLastColumn();
+    if (lastCol > resultCol) {
+      sheet.getRange(1, resultCol + 1, sheet.getMaxRows(), lastCol - resultCol)
+        .clearContent().clearFormat().clearDataValidations().clearNote();
+    }
+    if (wanted.length > 0) {
+      var short = resultCol + wanted.length - sheet.getMaxColumns();
+      if (short > 0) sheet.insertColumnsAfter(sheet.getMaxColumns(), short);
+      sheet.getRange(1, resultCol + 1, 1, wanted.length).setValues([wanted]).setFontWeight('bold');
+    }
+    writeVoteTallies_(sheet);
+    return tab + 'no votes yet — ' + wanted.length + ' senator column(s) laid out in district order.';
+  }
+
+  // --- Votes exist: existing columns are history --------------------------
+  var did = [];
+  // Right to left, so a deletion never shifts a column still to be visited
+  for (var c = sheet.getMaxColumns(); c > resultCol; c--) {
+    var name = headerAt(c);
+    var note = sheet.getRange(1, c).getNote();
+    if (wanted.indexOf(name) !== -1) {
+      if (note === FORMER_NOTE) {              // came back: un-grey
+        sheet.getRange(1, c, sheet.getMaxRows(), 1).setBackground(null);
+        sheet.getRange(1, c).setNote('').setFontStyle('normal');
+        did.push(name + ' rejoined');
+      }
+      continue;
+    }
+    if (!hasData(c)) {                         // empty and not needed: delete
+      sheet.deleteColumn(c);
+      did.push(name ? 'deleted the empty column of ' + name : 'deleted a blank column');
+      continue;
+    }
+    if (name === '') {                         // votes under no name: leave, warn
+      did.push('WARNING: column ' + c + ' holds votes but no senator name');
+      continue;
+    }
+    if (note !== FORMER_NOTE) {                // former member with votes
+      sheet.getRange(1, c, sheet.getMaxRows(), 1).setBackground(FORMER_GREY);
+      sheet.getRange(1, c).setNote(FORMER_NOTE).setFontStyle('italic');
+      did.push(name + ' left — column kept and greyed');
+    }
+  }
+
+  // Newcomers: one new column each, after the current members (i.e. just
+  // before the first former-member column, or at the end)
+  var present = {};
+  for (var k = resultCol + 1; k <= sheet.getMaxColumns(); k++) present[headerAt(k)] = true;
+  wanted.forEach(function (name) {
+    if (present[name]) return;
+    var firstFormer = 0;
+    for (var f = resultCol + 1; f <= sheet.getMaxColumns(); f++) {
+      if (sheet.getRange(1, f).getNote() === FORMER_NOTE) { firstFormer = f; break; }
+    }
+    var at;
+    if (firstFormer) { sheet.insertColumnBefore(firstFormer); at = firstFormer; }
+    else { sheet.insertColumnAfter(sheet.getMaxColumns()); at = sheet.getMaxColumns(); }
+    var col = sheet.getRange(1, at, sheet.getMaxRows(), 1);
+    col.clearContent().clearFormat().clearDataValidations().clearNote();
+    sheet.getRange(1, at).setValue(name).setFontWeight('bold');
+    present[name] = true;
+    did.push(name + ' added');
+  });
+
+  // Park former members at the far right, keeping their order
+  var guard = 0;
+  while (guard++ < 60) {
+    var moved = false;
+    var maxCol = sheet.getMaxColumns();
+    for (var p = resultCol + 1; p <= maxCol; p++) {
+      if (sheet.getRange(1, p).getNote() !== FORMER_NOTE) continue;
+      var activeToRight = false;
+      for (var q = p + 1; q <= maxCol; q++) {
+        if (headerAt(q) !== '' && sheet.getRange(1, q).getNote() !== FORMER_NOTE) { activeToRight = true; break; }
+      }
+      if (!activeToRight) continue;
+      sheet.moveColumns(sheet.getRange(1, p, 1, 1), maxCol + 1);
+      moved = true;
+      break;
+    }
+    if (!moved) break;
+  }
+
+  writeVoteTallies_(sheet);   // tally formulas follow the new columns
+  return tab + (did.length ? did.join('; ') : 'already in step') + '.';
 }
 
 /** Referrals need no filing — the gateway reads the rows directly. The

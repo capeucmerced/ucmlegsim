@@ -177,8 +177,14 @@ One row per submission. Submissions may be partial: each question's newest NON-B
 | Pro Tem / Majority Leader / Majority Whip / Minority Leader / Minority Whip / Minority Deputy Whip | dropdowns of senators (the three whips were added Oct 2026 by `patchAssignmentsForm()`) |
 
 Served by `?view=assignments` (the merged state) as district numbers only. On submit, the
-votes workbook's senator columns are rewritten to match (floor = every
-senator; data rows never touched) and the submitter gets a receipt.
+votes workbook's senator columns are synced to match (floor = every
+senator) and the submitter gets a receipt. The sync never disturbs
+recorded votes: a tab with no votes is laid out fresh in district order;
+on a tab with votes, existing columns stay put, newcomers get a column
+after the current members, a departed member's column is kept with its
+votes (greyed, moved to the far right, header unchanged so the site
+still counts them), and empty unneeded columns are deleted.
+`resyncVoteSheets()` runs the sync by hand and logs the result.
 Any senator account may submit — leadership is *defined by* this form,
 so it can't gate on leadership; the receipt keeps changes visible.
 
