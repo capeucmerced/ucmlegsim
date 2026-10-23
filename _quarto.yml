@@ -9,9 +9,12 @@ project:
     - "senator-pages/"
     - "lobby-pages/"
     - "journalist-pages/"
-  # These run before every render and (re)generate the per-bill, per-senator,
-  # per-lobby, and per-outlet pages from the data in files/ and the vote sheets.
+  # These run before every render. The snapshot step fetches every live data
+  # source ONCE so the whole build bakes the same data (see that script's
+  # header); the make_*.R scripts then (re)generate the per-bill, per-senator,
+  # per-lobby, and per-outlet pages from the data in files/ and the snapshot.
   pre-render:
+    - Rscript scripts/build_data_snapshot.R
     - Rscript scripts/make_bill_pages.R
     - Rscript scripts/make_senator_pages.R
     - Rscript scripts/make_lobby_pages.R

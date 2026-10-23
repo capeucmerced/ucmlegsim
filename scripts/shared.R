@@ -76,20 +76,29 @@ INTAKE_API_URL <- "https://script.google.com/macros/s/AKfycbwcPcwt8LTJri6lBrbarY
 INTAKE_LIVE <- c("spending", "letters", "bills", "profiles", "editions",
                  "agendas", "assignments", "referrals", "forms", "stories")
 
-# One gateway fetch, hardened for a full site build. Two problems this
-# solves, both discovered when a build baked INCONSISTENT pages:
-#   1. Every rendered page is its own R session, so a build was hitting
-#      the gateway ~100 times in minutes and Apps Script starts answering
-#      bursts with an HTML interstitial instead of JSON. A short DISK
-#      cache (under .quarto/, gitignored) means the whole build fetches
-#      each view once and every page bakes the same data.
-#   2. A single flaky response no longer silently becomes "no data":
-#      non-JSON answers are retried before giving up.
+# One data snapshot per BUILD. Every rendered page is its own R session,
+# so without a shared cache a build hits the gateway ~100 times in minutes
+# (Apps Script starts answering bursts with an HTML interstitial instead
+# of JSON) — and, worse, pages rendered half an hour apart in one build
+# bake DIFFERENT data: the senator pages (generated at minute 0) and the
+# Senators table (rendered near the end) used to disagree about
+# fundraising whenever filings landed mid-build or a late re-fetch flaked.
+#
+# The rule now: scripts/build_data_snapshot.R (the first pre-render step)
+# wipes these caches and fetches everything ONCE; the TTL below only has
+# to outlast a build (~45 min worst case), so every session of the build
+# reads the same snapshot from disk (.quarto/, gitignored). Freshness
+# comes from the wipe at the start of the NEXT build, not from the TTL.
+BUILD_CACHE_TTL  <- 2 * 60 * 60   # seconds; must comfortably exceed one build
+INTAKE_CACHE_DIR <- file.path(".quarto", "intake-cache")
+SHEET_CACHE_DIR  <- file.path(".quarto", "sheet-cache")
+
+# Fetch one gateway view (with retries — a single flaky response must not
+# silently become "no data"), through the per-build snapshot cache.
 read_intake_json <- function(view) {
-  cache_dir  <- file.path(".quarto", "intake-cache")
-  cache_file <- file.path(cache_dir, paste0(view, ".json"))
+  cache_file <- file.path(INTAKE_CACHE_DIR, paste0(view, ".json"))
   if (file.exists(cache_file) &&
-      difftime(Sys.time(), file.mtime(cache_file), units = "secs") < 300) {
+      difftime(Sys.time(), file.mtime(cache_file), units = "secs") < BUILD_CACHE_TTL) {
     return(jsonlite::fromJSON(cache_file))
   }
 
@@ -105,7 +114,7 @@ read_intake_json <- function(view) {
     if (!is.na(txt) && startsWith(trimws(txt), "{")) {
       j <- tryCatch(jsonlite::fromJSON(txt), error = function(e) NULL)
       if (!is.null(j)) {
-        if (!dir.exists(cache_dir)) dir.create(cache_dir, recursive = TRUE)
+        if (!dir.exists(INTAKE_CACHE_DIR)) dir.create(INTAKE_CACHE_DIR, recursive = TRUE)
         writeLines(txt, cache_file, useBytes = TRUE)
         return(j)
       }
@@ -234,9 +243,32 @@ LEGSIM_DATE <- reactable::colFormat(date = TRUE, locales = "en-US")
 # Read a published Google Sheet without letting one bad fetch kill the whole
 # site build. On any error this returns an empty data frame, which every
 # downstream table treats as "no data yet".
+#
+# Successful reads land in the per-build snapshot cache (see the note above
+# read_intake_json): the vote sheets change all class long, and pages
+# rendered at minute 0 and minute 25 of one build must still agree on them.
+# Failures are never cached — a later session retries the network.
+
+# Cache filename for a sheet URL: its last 60 alphanumerics, which always
+# include the gid, so every published tab gets a distinct file.
+sheet_cache_file <- function(url) {
+  key <- gsub("[^A-Za-z0-9]", "", url)
+  key <- substr(key, max(1, nchar(key) - 59), nchar(key))
+  file.path(SHEET_CACHE_DIR, paste0(key, ".csv"))
+}
+
 read_sheet_safe <- function(url) {
-  tryCatch(
-    read.csv(url),
+  cf <- sheet_cache_file(url)
+  if (file.exists(cf) &&
+      difftime(Sys.time(), file.mtime(cf), units = "secs") < BUILD_CACHE_TTL) {
+    return(read.csv(cf))
+  }
+  tryCatch({
+    d <- read.csv(url)
+    if (!dir.exists(SHEET_CACHE_DIR)) dir.create(SHEET_CACHE_DIR, recursive = TRUE)
+    write.csv(d, cf, row.names = FALSE)
+    d
+  },
     error = function(e) {
       message("WARNING: could not read sheet (", conditionMessage(e), ") — continuing with no data: ", url)
       data.frame()
@@ -539,12 +571,22 @@ load_intake_editions <- function() {
 #                       (Aye + No + Abstain; absences don't count against)
 #   Dem_choice/Rep_choice  the party's plurality position on the vote
 # and parses Date into a real date (accepts 10/17/25 or 10/17/2025).
+#
+# Two completeness rules, both for the moment a build catches a sheet
+# mid-class:
+#   - a row where NOBODY has voted yet is a roll call being SET UP (the
+#     chair types Bill/Date before voting opens), not a vote — it is
+#     dropped until at least one vote lands, instead of publishing
+#     "Failed, 0-0-0-40" for an hour;
+#   - a blank Result is "not recorded (yet)", never a result: it becomes
+#     NA so nothing downstream (the bill tracker above all) can read an
+#     empty cell as a failure.
 clean_votes <- function(dat, ns) {
   if (is.null(dat) || nrow(dat) == 0) return(NULL)
 
   pct <- function(yes, no, abstain) round(yes / (yes + no + abstain) * 100)
 
-  dat |>
+  out <- dat |>
     mutate(across(any_of(ns$s_names_period), as.character)) |>
     filter(!is.na(Bill) & Bill != "") |>
     rowwise() |>
@@ -589,6 +631,14 @@ clean_votes <- function(dat, ns) {
       )
     ) |>
     ungroup()
+
+  # Blank Result -> NA (chairs fill Result in after announcing the outcome)
+  if (!"Result" %in% names(out)) out$Result <- NA_character_
+  out$Result <- ifelse(trimws(as.character(out$Result)) == "",
+                       NA_character_, as.character(out$Result))
+
+  # Drop set-up rows: Bill/Date entered but no votes cast yet
+  out |> filter(yes + no + abstain > 0)
 }
 
 # Fetch and clean all five vote tabs at once. Returns a named list

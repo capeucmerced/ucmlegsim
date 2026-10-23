@@ -566,6 +566,18 @@ resubmit.
 **Submissions land but no rebuild follows:** the token (§4). Check
 Executions for a 401/403 on the rebuild call.
 
+**The build fails at "build_data_snapshot" with "Could not snapshot
+these data sources":** by design. The first build step fetches every
+data source once (so all pages agree), and it *stops the build* rather
+than publish pages with missing data — the live site keeps serving the
+last good build. The error names what it couldn't reach: an intake
+view means the gateway (check the Wire fix above and Apps Script
+Executions); a vote sheet means the published-CSV links in
+`scripts/shared.R` (did the votes workbook get re-published or moved?).
+Transient Google hiccups fix themselves on the next hourly run.
+Rendering locally with no internet: `LEGSIM_OFFLINE=1 quarto render`
+reuses the last snapshot instead of fetching.
+
 **The Wire is empty / "connects when the session begins":** the
 gateway. Check `FEED_URL` in `js/feed.js` is the current `/exec` URL.
 If someone redeployed the web app as a *new deployment*, the URL
