@@ -28,11 +28,38 @@ senators <- load_senators() |>
 profile_files <- sprintf("%s_%s_profile.pdf", senators$name_link, senators$District)
 has_profile   <- file.exists(file.path(SEN_PROFILE_DIR, profile_files))
 
-leadership_has_data <- "Leadership" %in% names(senators) &&
-  any(!is.na(senators$Leadership) & senators$Leadership != "")
+# The Leadership column carries floor leadership AND committee chairships,
+# in the senator pages' own style ("Chair, Appropriations"). Plain text goes
+# in the column (so sorting and the search box see real words); the linked
+# version is drawn by the cell renderer below.
+role_text <- character(nrow(senators))
+role_html <- character(nrow(senators))
+for (i in seq_len(nrow(senators))) {
+  s <- senators[i, ]
+  txt <- character(0); html <- character(0)
+  if (!is.na(s$Leadership) && s$Leadership != "") {
+    txt  <- s$Leadership
+    html <- sprintf('<a href="%s">%s</a>', leadership_url(),
+                    htmltools::htmlEscape(s$Leadership))
+  }
+  for (role in c("Chair", "Vice Chair")) {
+    code <- if (role == "Chair") s$Chair else s$Vice.Chair
+    if (!is.na(code) && code != "") {
+      nm <- unname(COMMITTEE_NAMES[code])
+      if (is.na(nm)) nm <- toupper(code)
+      txt  <- c(txt, paste0(role, ", ", nm))
+      # Chairships link to that committee's tab, floor roles to #leadership
+      html <- c(html, sprintf('<a href="%s">%s, %s</a>', committee_url(code),
+                              role, htmltools::htmlEscape(nm)))
+    }
+  }
+  role_text[i] <- paste(txt, collapse = " · ")
+  role_html[i] <- paste(html, collapse = " &middot; ")
+}
+leadership_has_data <- any(role_text != "")
 
 tbl <- senators |> select(District, display_name, Party)
-if (leadership_has_data) tbl$Leadership <- senators$Leadership
+if (leadership_has_data) tbl$Leadership <- role_text
 
 # Fundraising: each senator's progress toward their goal, as a bar that
 # fills as contributions arrive (campaign finance; see shared.R)
@@ -57,10 +84,8 @@ cols <- list(
     cell = function(value) progress_bar_html(value))
 )
 if (leadership_has_data) {
-  # Leadership roles link to the Leadership section of the Committees page
-  cols$Leadership <- colDef(cell = function(value) {
-    if (is.na(value) || value == "") "" else htmltools::tags$a(href = leadership_url(), value)
-  })
+  cols$Leadership <- colDef(html = TRUE,
+                            cell = function(value, index) role_html[index])
 }
 if (any(has_profile)) {
   cols$Profile <- colDef(
