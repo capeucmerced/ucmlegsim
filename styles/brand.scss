@@ -924,6 +924,28 @@ details.rollcall {
   b { color: $navy; }
 }
 
+// --- Folded tables (Session Stats: the fundraising tables start closed) ------
+// Same look as the roll-call blocks; click the summary line to open.
+details.table-fold {
+  border-left: 2px solid $gold;
+  background: $card;
+  padding: 0.45rem 0.9rem 0.5rem;
+  margin: 0.7rem 0;
+
+  summary {
+    cursor: pointer;
+    font-size: 0.74rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: $navy;
+
+    &:hover { color: $gold-text; }
+  }
+
+  &[open] summary { margin-bottom: 0.5rem; }
+}
+
 // --- Bill progress tracker (the stepper on bill pages) -----------------------
 $track-pass: #2e6b46;
 $track-fail: #a33131;
