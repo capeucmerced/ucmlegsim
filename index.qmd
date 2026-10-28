@@ -118,12 +118,16 @@ if (nrow(letters) > 0) {
     }
     "#17345a"
   }
-  # The org chip links to the organization's page
+  # The org chip links to the organization's page; the filing date follows
+  # (letters from the form carry one, last year's fixture files don't)
+  filed_on <- ifelse(is.na(desk$filed), "",
+                     sprintf(' · <span style="white-space:nowrap">%s</span>', format(desk$filed, "%b %d")))
   letter_items <- sprintf(
-    '<a class="booktab" href="%s" title="%s" style="--org-color:%s;display:inline-block;padding:0.05rem 0.45rem">%s</a> %s on <a href="%s/%s.html">SB-%d</a>',
+    '<a class="booktab" href="%s" title="%s" style="--org-color:%s;display:inline-block;padding:0.05rem 0.45rem">%s</a> %s on <a href="%s/%s.html">SB-%d</a>%s',
     lobby_url(desk$org_code), esc(desk$Lobby),
     vapply(desk$org_code, color_of, character(1)),
-    desk$org_code, desk$position, BILL_PAGES_DIR, desk$url_slug, desk$bill_number
+    desk$org_code, desk$position, BILL_PAGES_DIR, desk$url_slug, desk$bill_number,
+    filed_on
   )
 }
 letters_card <- card("Letters Desk", li(letter_items), "letters.html", "All letters →")
@@ -143,27 +147,14 @@ if (nrow(contribs) > 0) {
     scales::dollar(mw$Contribution), format(mw$Date, "%b %d")
   )
 }
-money_card <- card("Money Watch", li(money_items), "lobby.html", "All spending →")
+# "All spending" lands on the Money section of Session Stats
+money_card <- card("Money Watch", li(money_items), "stats.html#the-money", "All spending →")
 
-# --- The Papers: current newspaper edition ---------------------------------
-papers_html <- '<p class="wire-empty">No editions published yet.</p>'
-newspaper <- load_intake_editions()
-if (nrow(newspaper) > 0 && all(c("Edition", "Link") %in% names(newspaper))) {
-  current <- newspaper |> filter(!is.na(Link) & Link != "") |> tail(1)
-  if (nrow(current) == 1) {
-    # The sheet's Edition column is often just a number — label it as one
-    ed <- esc(current$Edition)
-    if (grepl("^[0-9]+$", ed)) ed <- paste("Edition", ed)
-    papers_html <- sprintf(
-      '<p>Current edition: <a href="%s" target="_blank" rel="noopener"><b>%s</b></a></p>',
-      current$Link, ed
-    )
-  }
-}
-papers_card <- card("The Papers", papers_html, "news.html", "The newsroom →")
-
+# No newspaper card: a new edition is announced by the banner under the
+# navbar (js/feed.js) for a week, and the News page lists every edition.
+# Five cards = two full rows, with The Wire spanning both.
 cat('<div class="monitor-grid">',
-    wire_card, action_card, meetings_card, letters_card, money_card, papers_card,
+    wire_card, action_card, meetings_card, letters_card, money_card,
     '</div>')
 ```
 

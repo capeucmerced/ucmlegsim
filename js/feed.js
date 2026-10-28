@@ -24,7 +24,8 @@
 // scripts/shared.R; changes once a year at turnover).
 var FEED_URL = "https://script.google.com/macros/s/AKfycbwcPcwt8LTJri6lBrbarYTzzxuMyDPSR5Ek1nNXrsAzLSDEinia3oXBgt9PEshfqEjoSw/exec";
 var REFRESH_SECONDS = 60;    // gentle background refresh while the page is open
-var BANNER_HOURS = 48;       // how long a new edition is announced
+var BANNER_DAYS = 7;         // how long a new edition is announced (the front
+                             // page has no newspaper card; this banner is it)
 
 (function () {
   "use strict";
@@ -174,7 +175,7 @@ var BANNER_HOURS = 48;       // how long a new edition is announced
   }
 
   // --- New-edition banner ---------------------------------------------------
-  // For BANNER_HOURS after an edition is filed, every page shows a strip
+  // For BANNER_DAYS after an edition is filed, every page shows a strip
   // under the navbar linking to it. It lives inside the fixed header, and
   // Quarto watches the header's size, so page content moves down to make
   // room. A reader who closes it isn't shown that edition again.
@@ -201,7 +202,7 @@ var BANNER_HOURS = 48;       // how long a new edition is announced
       if (!newest || e.time > newest.time) newest = e;
     });
     if (!newest) return;
-    if (Date.now() - new Date(newest.time).getTime() > BANNER_HOURS * 3600000) return;
+    if (Date.now() - new Date(newest.time).getTime() > BANNER_DAYS * 24 * 3600000) return;
     try { if (localStorage.getItem(DISMISS_KEY) === newest.time) return; } catch (e) {}
 
     var header = document.querySelector("header.fixed-top") || document.body;
