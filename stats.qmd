@@ -120,31 +120,25 @@ if (length(votes) > 0) {
 
 ## The Money
 
-Every senator has a fundraising goal set by their district's electoral
-circumstances; every lobbying organization has one PAC budget for the
-session and may give at most `r scales::dollar(CONTRIBUTION_LIMIT)` to any
-one senator.
-
 ```{r money}
 #| results: asis
-goal_total <- sum(fin$Goal, na.rm = TRUE)
-pac_total  <- sum(load_budgets()$Budget, na.rm = TRUE)
-pct_of     <- function(a, b) ifelse(is.na(b) | b == 0, NA, round(100 * a / b))
-raised_pct <- pct_of(sum(fin$Raised), goal_total)
-pac_pct    <- pct_of(pac_total, goal_total)
+# The headline: how much of the lobby corps' money is out the door, and how
+# many senators have reached their goal
+spent     <- sum(contribs$Contribution, na.rm = TRUE)
+pac_total <- sum(load_budgets()$Budget, na.rm = TRUE)
+spent_pct <- if (is.na(pac_total) || pac_total == 0) NA else round(100 * spent / pac_total)
+with_goal <- !is.na(fin$Goal) & fin$Goal > 0
+goals_met <- sum(with_goal & fin$Raised >= fin$Goal)
 
 cat(sprintf('
 <div class="stat-strip">
-  <div class="stat"><span class="stat-label">Total Contributed</span><span class="stat-value">%s</span><span class="stat-sub">%s</span></div>
-  <div class="stat"><span class="stat-label">All Goals Combined</span><span class="stat-value">%s</span></div>
-  <div class="stat"><span class="stat-label">PAC Money Available</span><span class="stat-value">%s</span><span class="stat-sub">%s</span></div>
+  <div class="stat"><span class="stat-label">Total Spent</span><span class="stat-value">%s</span><span class="stat-sub">%s</span></div>
+  <div class="stat"><span class="stat-label">Goals Met</span><span class="stat-value">%d</span><span class="stat-sub">of %d senators at their fundraising goal</span></div>
 </div>',
-  scales::dollar(sum(contribs$Contribution, na.rm = TRUE)),
-  paste0("across ", nrow(contribs), " contributions",
-         ifelse(is.na(raised_pct), "", paste0(" &middot; ", raised_pct, "% of all goals"))),
-  scales::dollar(goal_total),
-  scales::dollar(pac_total),
-  ifelse(is.na(pac_pct), "", paste0(pac_pct, "% of what senators need"))))
+  scales::dollar(spent),
+  paste0(ifelse(is.na(spent_pct), "", paste0(spent_pct, "% ")),
+         "of ", scales::dollar(pac_total), " available"),
+  goals_met, sum(with_goal)))
 
 if (nrow(contribs) > 0) {
   cat('<div class="lb-cols">')
@@ -217,13 +211,18 @@ if (nrow(contribs) > 0) {
 goal_tbl <- fin |>
   arrange(desc(Pct), District) |>
   transmute(Senator = Name, District, Party, Race, Goal, Raised, Progress = Pct)
+# Column widths are tuned to fit the article column with no horizontal
+# scroll (same for the PAC table below). Dollars are formatted in R: the
+# column stays numeric (sorts by value) but shows "$90,000", not "$90,000.00"
+# as reactable's own currency format insists on.
+dollars <- function(value) scales::dollar(value)
 legsim_table(goal_tbl, page_size = 40, searchable = FALSE, columns = list(
   Senator  = colDef(cell = link_cell("", sprintf("%s/district_%s.html", SENATOR_PAGES_DIR, goal_tbl$District))),
-  District = colDef(width = 80),
-  Party    = colDef(width = 65),
-  Goal     = colDef(width = 100, format = colFormat(currency = "USD", separators = TRUE, digits = 0)),
-  Raised   = colDef(width = 100, format = colFormat(currency = "USD", separators = TRUE, digits = 0)),
-  Progress = colDef(width = 150, html = TRUE, cell = function(value) progress_bar_html(value))
+  District = colDef(width = 70),
+  Party    = colDef(width = 60),
+  Goal     = colDef(width = 100, cell = dollars),
+  Raised   = colDef(width = 100, cell = dollars),
+  Progress = colDef(width = 130, html = TRUE, cell = function(value) progress_bar_html(value))
 ))
 ```
 
@@ -237,13 +236,13 @@ bal <- org_finance(contribs) |>
   arrange(desc(Remaining)) |>
   transmute(Organization = Lobby, Code, Tier, Budget, Spent, Remaining, Used = Pct)
 legsim_table(bal, page_size = 20, searchable = FALSE, columns = list(
-  Organization = colDef(cell = link_cell("", sprintf("%s/%s.html", LOBBY_PAGES_DIR, bal$Code)), minWidth = 220),
-  Code      = colDef(width = 70),
-  Tier      = colDef(width = 80),
-  Budget    = colDef(width = 100, format = colFormat(currency = "USD", separators = TRUE, digits = 0)),
-  Spent     = colDef(width = 100, format = colFormat(currency = "USD", separators = TRUE, digits = 0)),
-  Remaining = colDef(width = 105, format = colFormat(currency = "USD", separators = TRUE, digits = 0)),
-  Used      = colDef(width = 130, html = TRUE, cell = function(value) progress_bar_html(value))
+  Organization = colDef(cell = link_cell("", sprintf("%s/%s.html", LOBBY_PAGES_DIR, bal$Code)), minWidth = 200),
+  Code      = colDef(show = FALSE),   # the name already links to the org
+  Tier      = colDef(width = 70),
+  Budget    = colDef(width = 105, cell = dollars),
+  Spent     = colDef(width = 100, cell = dollars),
+  Remaining = colDef(width = 115, cell = dollars),
+  Used      = colDef(width = 125, html = TRUE, cell = function(value) progress_bar_html(value))
 ))
 ```
 

@@ -467,8 +467,9 @@ when a lobbyist files a contribution). (1) Each org's tier is the
 Spending Power column of `lobbyist_list.csv` (High/Medium/Low — this also
 puts the badge on its tile), and each tier's PAC budget is
 `TIER_BUDGETS`. (2) The per-senator limit is `CONTRIBUTION_LIMIT`. (3)
-Each senator's goal is the Goal column of `senator_list.csv` (with a Race
-label for the page). Change a number in both files, then in the Apps
+Each senator's goal is the Goal column of `senator_list.csv`, with a Race
+label shown beside it (2026 used "Not up in 2026" = $50k, "Safe" = $90k,
+"Close race" = $150k). Change a number in both files, then in the Apps
 Script editor run `setupBudgets()` (rewrites the Budgets ledger) and
 `patchSpendingForm()` (re-states the rules on the form). A contribution
 that breaks a rule is refused whole and the lobbyist is emailed why;
