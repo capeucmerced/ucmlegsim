@@ -11,7 +11,8 @@ execute:
   message: false
 ---
 
-This is a map of each state Senate district. Feel free to click on any district to go to the senator's webpage.
+Each district is colored by its senator's party. Hover for the senator and
+how their fundraising is going; click to open their page.
 
 ```{r}
 library(leaflet)
@@ -21,10 +22,36 @@ source("scripts/shared.R")
 
 districts <- st_read("files/other/ca_senate_districts.geojson", quiet = TRUE)
 
+# Party colors match $party-dem / $party-rep in styles/brand.scss
+PARTY_FILL <- c(D = "#1560a8", R = "#c22e2e")
+VACANT_FILL <- "#9aa3ad"
+
 senators <- load_senators() |>
   mutate(display_name = paste(Last.Name, First.Name, sep = ", "))
+fin <- senator_finance(senators) |> select(District, Raised, Goal, Pct)
+# Only what the map shows — the roster's own Goal column would collide
+# with fin's on the join
+roster <- senators |> select(District, display_name, Party)
 
-districts <- left_join(districts, senators, by = c("district" = "District"))
+districts <- districts |>
+  left_join(roster, by = c("district" = "District")) |>
+  left_join(fin,    by = c("district" = "District")) |>
+  mutate(
+    fill = ifelse(is.na(Party), VACANT_FILL, unname(PARTY_FILL[Party])),
+    # The hover card: name (party) · district, then the fundraising bar
+    money_line = ifelse(
+      is.na(Goal),
+      '<span class="muted">No fundraising goal set</span>',
+      progress_bar_html(Pct, sprintf("%s of %s &middot; %s%%",
+                                      scales::dollar(Raised), scales::dollar(Goal), round(Pct)))
+    ),
+    tip = ifelse(
+      is.na(Party),
+      sprintf('<div class="map-tip"><b>District %s</b> &middot; vacant</div>', district),
+      sprintf('<div class="map-tip"><b>%s</b> (%s) &middot; District %s<div class="map-tip-money">%s</div></div>',
+              htmltools::htmlEscape(display_name), Party, district, money_line)
+    )
+  )
 
 # Esri's gray canvas needs no API key (Carto's tiles now watermark
 # keyless use) and suits the muted paper palette. Its matching
@@ -43,22 +70,28 @@ map <- leaflet(districts) |>
     weight = 1,
     opacity = 1,
     color = "#17345a",
-    fillOpacity = 0.6,
+    fillColor = ~fill,
+    fillOpacity = 0.5,
     dashArray = "1",
     layerId = ~district,
     highlight = highlightOptions(
       weight = 4,
       color = "#d4a821",
       dashArray = "",
-      fillOpacity = 0.7,
+      fillOpacity = 0.65,
       bringToFront = TRUE
     ),
-    label = ~paste("District", district, display_name),
+    label = lapply(districts$tip, htmltools::HTML),
     labelOptions = labelOptions(
-      style = list("font-weight" = "normal", padding = "3px 8px"),
+      style = list("font-weight" = "normal", padding = "6px 10px"),
       textsize = "13px",
       direction = "auto"
     )
+  ) |>
+  addLegend(
+    position = "bottomright",
+    colors = unname(PARTY_FILL), labels = c("Democrat", "Republican"),
+    opacity = 0.6
   ) |>
   setView(lng = -120, lat = 36.5, zoom = 5)
 
@@ -73,7 +106,7 @@ map |>
     function(el, x) {
       var map = this;
       var want = new URLSearchParams(window.location.search).get('district');
-      var picked = { weight: 4, color: '#d4a821', dashArray: '', fillOpacity: 0.7 };
+      var picked = { weight: 4, color: '#d4a821', dashArray: '', fillOpacity: 0.65 };
       this.eachLayer(function(layer) {
         if (layer.options && layer.options.layerId) {
           layer.on('click', function() {

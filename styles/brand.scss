@@ -636,13 +636,23 @@ ol.leaderboard {
   .monitor-grid { grid-template-columns: repeat(3, 1fr); }
 }
 
+// The Wire spans two rows at $wire-height; a regular card is exactly half
+// of that minus the row gap, so the rows never stretch past the cards and
+// open a hole between the two rows. Cards are flex columns so the
+// "All … →" link sits at the bottom whatever the list length.
+// (grid gap 0.8rem; 2 × 22rem + 0.8rem = 44.8rem — keep the three in step)
+$wire-height:  44.8rem;
+$card-height:  22rem;
+
 .monitor-card {
   background: $card;
   border: 1px solid rgba($navy, 0.2);
   border-top: 3px solid $navy;
   border-radius: 2px;
   padding: 0 0.85rem 0.6rem;
-  max-height: 21.5rem;
+  display: flex;
+  flex-direction: column;
+  max-height: $card-height;
   overflow-y: auto;
   scrollbar-width: thin;
   scrollbar-color: rgba($navy, 0.3) transparent;
@@ -670,7 +680,9 @@ ol.leaderboard {
 
   .card-more {
     display: inline-block;
-    margin-top: 0.4rem;
+    align-self: flex-start;
+    margin-top: auto;        // bottom of the card (flex column)
+    padding-top: 0.4rem;
     font-size: 0.78rem;
     font-weight: 700;
     letter-spacing: 0.06em;
@@ -686,7 +698,7 @@ ol.leaderboard {
 // tighter type than the feed gets on the Newsroom page.
 .monitor-card.monitor-tall {
   grid-row: span 2;
-  max-height: 44.8rem;
+  max-height: $wire-height;
 }
 
 .monitor-card {
@@ -760,6 +772,11 @@ ol.leaderboard {
   }
 }
 .stat-strip + .goal-bar { margin: 0.4rem 0 1rem; }
+
+// District map hover card (map.qmd): name line, then the fundraising bar.
+// Leaflet sizes tooltips to their content, so give the bar room to read.
+.map-tip { min-width: 15rem; }
+.map-tip-money { margin-top: 0.35rem; }
 
 // --- Stories (journalists' pieces: outlet pages and the News page) -----------
 // A front page: the newest story leads with a wide image frame and a
