@@ -476,8 +476,9 @@ that breaks a rule is refused whole and the lobbyist is emailed why;
 refused rows sit in the Spending tab with a `void` Status.
 
 **Student guides (the "guide (PDF)" links in the Filing Cabinet).**
-Three two-page how-tos live in `files/guides/` (filing a bill;
-committee assignments + referrals; committee agendas). Their sources
+Four short how-tos live in `files/guides/` (filing a bill; committee
+assignments + referrals; committee agendas; recording votes, for
+committee secretaries — linked from the Votes page). Their sources
 are the HTML files in `guides/`; edit one there and re-print it to PDF
 (the one-line Edge command is in `guides/README.md`). The link beside
 each form is the `guides =` argument of that drawer in `forms.qmd`.

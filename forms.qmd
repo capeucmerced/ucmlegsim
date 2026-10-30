@@ -73,5 +73,9 @@ if (is.null(urls)) {
     `Agenda APP`   = "files/guides/committee-agendas.pdf",
     `Agenda Floor` = "files/guides/committee-agendas.pdf"
   ))
+  # Not a form, but the one other place students enter official records:
+  # the shared vote sheet, with the secretaries' how-to beside it
+  cat(sprintf('\n<h3 class="drawer role-leadership">Committee &amp; floor secretaries</h3>\n\n- [Record a roll call &mdash; the vote entry sheet](%s) <a class="form-guide" href="files/guides/recording-votes.pdf" target="_blank" rel="noopener">guide (PDF)</a>\n',
+              VOTE_ENTRY_URL))
 }
 ```

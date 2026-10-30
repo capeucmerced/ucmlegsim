@@ -240,6 +240,16 @@ legsim_table <- function(data, columns = list(), searchable = TRUE,
 # format = LEGSIM_DATE — sorts chronologically, displays like 12/5/25.
 LEGSIM_DATE <- reactable::colFormat(date = TRUE, locales = "en-US")
 
+# The build time as students read it: Pacific time, "Oct 30, 4:03 PM PDT".
+# The site builds on GitHub's servers, which run on UTC — a bare
+# format(Sys.time()) stamped pages seven hours ahead of California.
+build_stamp <- function(when = Sys.time()) {
+  tz <- "America/Los_Angeles"
+  paste0(format(when, "%b %d, ", tz = tz),
+         sub("^0", "", format(when, "%I:%M %p", tz = tz)),
+         " ", format(when, "%Z", tz = tz))
+}
+
 # Read a published Google Sheet without letting one bad fetch kill the whole
 # site build. On any error this returns an empty data frame, which every
 # downstream table treats as "no data yet".

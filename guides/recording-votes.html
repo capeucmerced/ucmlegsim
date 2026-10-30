@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Recording votes</title>
+<link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+<style>
+  @page { size: Letter; margin: 0.6in 0.65in; }
+  :root { --navy: #17345a; --gold: #d4a821; --paper: #f9f7f1; --muted: #5b6573; --rule: #d9d4c7; --red: #c00000; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body { font-family: "Atkinson Hyperlegible", Arial, sans-serif; color: #1c1c1c; font-size: 10.6pt; line-height: 1.42; }
+  h1, h2, h3 { font-family: "EB Garamond", Georgia, serif; color: var(--navy); margin: 0; }
+  h1 { font-size: 24pt; font-weight: 600; letter-spacing: .01em; }
+  p { margin: 0 0 7pt; }
+  .kicker { font-size: 8pt; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: var(--gold); margin-bottom: 3pt; }
+  .lede { font-size: 11pt; color: #2b3540; }
+
+  /* --- Diagram: one roll call as it looks in the sheet ------------------ */
+  .sheet-wrap { position: relative; padding-top: 24pt; margin-top: 4pt; }
+  .sheet { border-collapse: collapse; width: 100%; table-layout: fixed; font-size: 8.3pt; background: #fff; border: 1px solid #c3c3c3; }
+  .sheet th, .sheet td { border: 1px solid #d7d7d7; padding: 3pt 4pt; height: 18pt; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; vertical-align: middle; }
+  .sheet th { background: #f3f3f3; font-weight: 400; color: #555; text-align: center; height: 14pt; font-size: 7.6pt; }
+  /* column letters of the automatic columns (A Date, C Ayes, D Present) are shaded;
+     the header row is boxed in red */
+  .sheet th.auto { background: var(--gold); color: var(--navy); font-weight: 700; }
+  .sheet tr.head td { font-weight: 700; background: #fafafa; border-top: 2px solid var(--red); border-bottom: 2px solid var(--red); }
+  .sheet tr.head td:first-of-type { border-left: 2px solid var(--red); }
+  .sheet tr.head td:last-of-type { border-right: 2px solid var(--red); }
+  .sheet td.auto { color: #444; }
+  .sheet td.pick::after { content: " \25BE"; color: #777; font-size: 7pt; }
+  .sheet td.c { text-align: center; }
+  .sheet td.ph { color: #888; }
+  .badge { position: absolute; width: 15pt; height: 15pt; border-radius: 50%; background: var(--navy); color: #fff; font-size: 8.5pt; font-weight: 700; display: flex; align-items: center; justify-content: center; top: 4pt; }
+  .head-label { position: absolute; right: 0; top: 6pt; color: var(--red); font-size: 7.6pt; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
+  .head-label::before { content: ""; display: inline-block; width: 9pt; height: 9pt; border: 2px solid var(--red); vertical-align: -1px; margin-right: 4pt; }
+
+  .tabs-wrap { position: relative; border: 1.5px dashed var(--navy); border-radius: 3pt; margin-top: 16pt; padding: 3pt; }
+  .tabs-label { position: absolute; left: 10pt; top: -8pt; background: #fff; color: var(--navy); font-size: 7.6pt; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; padding: 0 5pt; }
+  .tabs { display: flex; align-items: center; gap: 0; border-top: 1px solid #c3c3c3; background: #f8f9fa; padding: 3pt 6pt; font-size: 7.8pt; color: #333; }
+  .tabs .plus { color: #555; margin-right: 8pt; font-size: 10pt; }
+  .tabs .tab { padding: 3pt 9pt; border-right: 1px solid #ddd; }
+  .tabs .tab.on { background: #fff; color: var(--navy); font-weight: 700; border-bottom: 2px solid var(--navy); }
+  .cap { font-size: 9pt; color: var(--muted); margin: 6pt 0 0; }
+  .cap .sw { display: inline-block; width: 9pt; height: 9pt; border-radius: 2pt; vertical-align: -1px; margin-right: 3pt; }
+  .cap .sw.f { background: var(--gold); }
+  .cap .sw.a { background: #fff; border: 1px solid #b7b7b7; }
+
+  /* --- Steps ---------------------------------------------------------- */
+  ol.steps { margin: 14pt 0 0; padding-left: 0; counter-reset: s; list-style: none; }
+  ol.steps li { counter-increment: s; position: relative; padding-left: 26pt; margin-bottom: 7pt; }
+  ol.steps li::before { content: counter(s); position: absolute; left: 0; top: 1pt; width: 17pt; height: 17pt; border-radius: 50%; background: var(--navy); color: #fff; font-weight: 700; font-size: 9.5pt; display: flex; align-items: center; justify-content: center; }
+  ol.steps b { color: var(--navy); }
+  .two { display: grid; grid-template-columns: 1.15fr 1fr; gap: 16pt; align-items: start; }
+  .box { background: var(--paper); border-left: 3px solid var(--red); padding: 7pt 10pt; margin-top: 14pt; }
+  .box p:last-child { margin-bottom: 0; }
+  ul.tight { margin: 2pt 0 0; padding-left: 16pt; }
+  ul.tight li { margin-bottom: 3pt; }
+  code { font-family: Consolas, Menlo, monospace; font-size: 9pt; background: #f1efe8; padding: 0 3pt; border-radius: 2pt; }
+</style>
+</head>
+<body>
+
+<div class="kicker">UC Merced California Legislative Simulation</div>
+<h1>Recording votes</h1>
+<p class="lede">The committee secretary keeps the roll in the shared <b>vote entry sheet</b>: one row per roll call, one column per member. The sheet does the counting, the chair announces from it, and the website updates itself. The numbered badges below match the steps.</p>
+
+<div class="sheet-wrap">
+  <span class="badge" style="left: 17.8%;">2</span>
+  <span class="badge" style="left: 44.4%;">4</span>
+  <span class="badge" style="left: 54.2%;">3</span>
+  <span class="head-label">Header row &mdash; do not edit</span>
+  <table class="sheet">
+    <colgroup>
+      <col style="width:4.2%"><col style="width:10%"><col style="width:11%"><col style="width:7.2%"><col style="width:9.2%"><col style="width:9.6%">
+      <col><col><col><col><col>
+    </colgroup>
+    <tr><th></th><th class="auto">A</th><th>B</th><th class="auto">C</th><th class="auto">D</th><th>E</th><th>F</th><th>G</th><th>H</th><th>I</th><th>J</th></tr>
+    <tr class="head"><th>1</th><td>Date</td><td>Bill</td><td class="c">Ayes</td><td class="c">Present</td><td>Result</td><td>McGuire</td><td>Cabaldon</td><td>Ashby</td><td>Grove</td><td>Limon</td></tr>
+    <tr><th>2</th><td>11/3/26</td><td class="pick">SB-79</td><td class="auto c">3</td><td class="auto c">5</td><td class="pick">Pass</td><td class="pick">Aye</td><td class="pick">Aye</td><td class="pick">No</td><td class="pick">Aye</td><td class="pick">Abstain</td></tr>
+    <tr><th>3</th><td>11/3/26</td><td class="pick">SB-11</td><td class="auto c">4</td><td class="auto c">4</td><td class="pick">Pass</td><td class="pick">Aye</td><td class="pick">Aye</td><td></td><td class="pick">Aye</td><td class="pick">Aye</td></tr>
+    <tr><th>4</th><td></td><td class="ph">pick a bill&hellip;</td><td class="auto c"></td><td class="auto c"></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+  </table>
+  <div class="tabs-wrap">
+    <span class="tabs-label">Switch committees here &mdash; your committee's tab, at the bottom of the spreadsheet</span>
+    <div class="tabs"><span class="plus">+ &equiv;</span><span class="tab">Local Government and Labor</span><span class="tab">Business, Law, and Health</span><span class="tab">Agriculture and Natural Resources</span><span class="tab on">Appropriations</span><span class="tab">Floor</span></div>
+  </div>
+  <p class="cap"><span class="sw f"></span>column fills in automatically &nbsp;&nbsp;&nbsp; <span class="sw a"></span>select from dropdown</p>
+</div>
+
+<div class="two">
+<ol class="steps">
+  <li><b>Open the sheet and click your committee's tab.</b> The link is on the website's <i>Votes</i> page; no sign-in needed. Keep the agenda open too (<i>Leadership &amp; Committees</i> &rarr; your committee &rarr; <i>Latest agenda</i>) so the bills go in file order. The Floor tab works the same way for the Secretary of the Senate.</li>
+  <li><b>Pick the bill</b> from the Bill dropdown in the first empty row. The date fills itself &mdash; change it only for a vote from another day. A bill that isn't in the list hasn't been filed: tell the chair.</li>
+  <li><b>Call the roll</b> in column order: Aye, No, or Abstain from each member's dropdown. Absent means leave it blank (row 3, column H). A member who isn't on your tab hasn't registered &mdash; tell the instructor.</li>
+  <li><b>Pick Pass or Fail</b> in Result once the last vote is in. <b>Pass</b> needs more Ayes than half of Present &mdash; 3 of 5 in row 2. (Floor only: a bill whose digest says <i>Vote: 2/3rds</i> needs two-thirds.)</li>
+  <li><b>Keep the roll tidy.</b> Next bill, next row. If a vote you set up doesn't happen, <b>delete its row</b> &mdash; a half-filled row is a wrong record. A bill voted on again later gets a new row; the newest one counts. The website picks everything up on its own within about an hour.</li>
+</ol>
+<div class="box">
+  <p><b>Don'ts</b></p>
+  <ul class="tight">
+    <li><b>Never type a vote.</b> A typed <code>Aye</code> with a stray space once went uncounted. If a cell has no dropdown, stop and tell the instructor. Wrong pick? Just pick again.</li>
+    <li>Don't touch the <b>header row</b> or the <b>Ayes</b> and <b>Present</b> columns &mdash; they warn you if you click in; choose Cancel.</li>
+    <li>Don't pick Pass or Fail before the roll call is finished &mdash; and don't leave it blank afterwards, or the website shows the bill as still undecided.</li>
+    <li>Don't record in another committee's tab &mdash; the mistake we see most.</li>
+  </ul>
+</div>
+</div>
+
+</body>
+</html>
