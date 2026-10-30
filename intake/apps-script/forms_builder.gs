@@ -276,7 +276,8 @@ var UPDATED_FLAGS_HELP = 'Leave blank to keep the current flags. ' +
   'Appropriations/fiscal. To end up with no flags at all (a majority-vote ' +
   'bill with no other flags), check the None choice.';
 var FLAGS_HELP = 'Check all that apply. Leave 2/3rds vote unchecked for ' +
-  'a bill that passes by majority vote.';
+  'a bill that passes by majority vote. The two-thirds threshold applies ' +
+  'only on the Senate floor; committees decide every bill by majority.';
 var TEXT_PAGE_TITLE = 'File the legal text';
 var TEXT_PAGE_HELP = 'This page files the legal text of your bill: the ' +
   'sections that change the law, written in your Draft A or Draft B doc. ' +

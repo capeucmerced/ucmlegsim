@@ -153,7 +153,9 @@ var NO_TOPIC2_CHOICE = 'None — remove the secondary topic';
 
 // The bill's flags, printed as a real bill's digest line ("Vote: 2/3rds.
 // Appropriations/fiscal: yes. Local program: no."). 2/3rds is rare, so
-// it's a checkbox: unchecked means a majority-vote bill. The site treats
+// it's a checkbox: unchecked means a majority-vote bill. The threshold
+// matters on the FLOOR only — committees decide by majority of those
+// present whatever the flag says. The site treats
 // any flag containing "Appropriation" as fiscal (routes it through the
 // Appropriations/Rules Committee), so keep that word in the label.
 var FLAG_CHOICES = ['Appropriations/fiscal', 'Local program', '2/3rds vote'];
@@ -734,8 +736,9 @@ function handleRegistrationSubmit(e) {
 // --- Vote tallies -------------------------------------------------------------
 // Each vote tab gets "Ayes" and "Present" columns just LEFT of "Result"
 // (the column sync clears everything right of Result, so tallies must
-// sit left of it). A bill passes with a majority of those present, or
-// two-thirds of those present for 2/3rds-vote bills; Present counts
+// sit left of it). A bill passes with a majority of those present; on
+// the FLOOR tab only, a 2/3rds-vote bill needs two-thirds of those
+// present (committees always decide by majority). Present counts
 // Aye + No + Abstain (a blank cell means absent). Every row of the tab
 // carries the count formulas in advance, so rows chairs add later are
 // counted with no copying down. The site reads senator columns by name,

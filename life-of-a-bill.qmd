@@ -324,7 +324,7 @@ const CONTENT = {
       short: "The first real test",
       chip: "Fiscal bills must clear committee by {fiscal}",
       real: "The committee holds a hearing: the author presents, and citizens, experts, and lobbyists testify. Then the committee acts — pass, pass as amended, amend and re-refer, or hold the bill, where it dies.",
-      sim: "Your bill faces one of the three policy committees. Hearings run the same way: authors present, lobbyists testify, members question and then vote. Public comment is open to anyone not on the committee or defending the bill: step up as an invented “10-second” citizen or group with an interest in the bill. But the chair controls the agenda — a bill that never gets a hearing dies just as dead. Fiscal bills must clear their policy committee by {fiscal}.",
+      sim: "Your bill faces one of the three policy committees. Hearings run the same way: authors present, lobbyists testify, members question and then vote — a majority of the members present passes the bill. Public comment is open to anyone not on the committee or defending the bill: step up as an invented “10-second” citizen or group with an interest in the bill. But the chair controls the agenda — a bill that never gets a hearing dies just as dead. Fiscal bills must clear their policy committee by {fiscal}.",
       roles: {
         Senators: [
           "Count the votes for and against your bill before the hearing, not during it.",
@@ -395,7 +395,7 @@ const CONTENT = {
       title: "Third reading & the vote",
       short: "The finish line",
       real: "The bill gets a final analysis, the floor debates, and the chamber votes — spending, urgency, and tax bills need a two-thirds supermajority. In real life, passing here only sends the bill on to the other chamber.",
-      sim: "This is the finish line. The author presents the bill, the floor debates, and the roll is called. Bills that pass on the floor are adopted law in the simulation — there is no Assembly and no Governor.",
+      sim: "This is the finish line. The author presents the bill, the floor debates, and the roll is called. A majority of senators present passes a bill — except one marked “Vote: 2/3rds”, which needs two-thirds; that threshold applies only here, never in committee. Bills that pass on the floor are adopted law in the simulation — there is no Assembly and no Governor.",
       roles: {
         Senators: [
           "Give floor speeches your constituents would cheer — they count toward your record.",
