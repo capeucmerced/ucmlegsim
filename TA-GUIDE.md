@@ -587,7 +587,9 @@ now tolerates it, and so do the formulas once you rerun
 every tab; touches no vote). "Column N" is what a Table names a blank
 header cell; `resyncVoteSheets()` deletes the empty ones. A senator
 missing from a vote tab altogether is not on the Roster as a senator
-(they have not registered yet) — resync after they do.
+(they have not registered yet) — resync after they do. A tab whose vote
+cells have no Aye/No/Abstain dropdown: run `setupVoteSheets()` — it (and
+every column sync) puts the dropdown on every senator column.
 
 **The Wire is empty / "connects when the session begins":** the
 gateway. Check `FEED_URL` in `js/feed.js` is the current `/exec` URL.

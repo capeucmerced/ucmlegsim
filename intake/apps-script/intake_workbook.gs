@@ -517,6 +517,35 @@ function resyncVoteSheets() {
   Logger.log(syncVoteSheetColumns());
 }
 
+/**
+ * The Aye / No / Abstain dropdown on every senator column (each named
+ * column right of Result), all data rows. Anything else typed is refused,
+ * which is what keeps a stray "Aye " out of the sheet. Nothing else sets
+ * these dropdowns: the column sync CLEARS validation when it lays a tab
+ * out or adds a column, so it calls this afterwards, and setupVoteSheets()
+ * calls it for existing tabs. Safe to rerun.
+ */
+var VOTE_CHOICES = ['Aye', 'No', 'Abstain'];
+function applyVoteDropdowns_(sheet) {
+  var head = sheet.getRange(1, 1, 1, Math.max(sheet.getLastColumn(), 1)).getValues()[0];
+  var resultCol = head.indexOf('Result') + 1;
+  var rows = sheet.getMaxRows() - 1;
+  if (resultCol === 0 || rows < 1) return 0;
+  var rule = SpreadsheetApp.newDataValidation()
+    .requireValueInList(VOTE_CHOICES, true)
+    .setAllowInvalid(false)
+    .setHelpText('Pick Aye, No, or Abstain. Leave blank for absent.')
+    .build();
+  var n = 0;
+  for (var c = resultCol + 1; c <= sheet.getMaxColumns(); c++) {
+    var name = String(sheet.getRange(1, c).getValue()).trim();
+    if (name === '' || /^Column \d+$/.test(name)) continue;   // blank / Table auto-name
+    sheet.getRange(2, c, rows, 1).setDataValidation(rule);
+    n++;
+  }
+  return n;
+}
+
 /** The sync for one tab; returns a one-line report. */
 function syncOneVoteTab_(sheet, wanted) {
   var tab = 'Tab "' + sheet.getName() + '": ';
@@ -553,6 +582,7 @@ function syncOneVoteTab_(sheet, wanted) {
       if (short > 0) sheet.insertColumnsAfter(sheet.getMaxColumns(), short);
       sheet.getRange(1, resultCol + 1, 1, wanted.length).setValues([wanted]).setFontWeight('bold');
     }
+    applyVoteDropdowns_(sheet);   // the clear above removed the dropdowns
     writeVoteTallies_(sheet);
     return tab + 'no votes yet — ' + wanted.length + ' senator column(s) laid out in district order.';
   }
@@ -626,6 +656,7 @@ function syncOneVoteTab_(sheet, wanted) {
     if (!moved) break;
   }
 
+  applyVoteDropdowns_(sheet); // new columns arrive without a dropdown
   writeVoteTallies_(sheet);   // tally formulas follow the new columns
   return tab + (did.length ? did.join('; ') : 'already in step') + '.';
 }
@@ -887,6 +918,8 @@ function setupVoteSheets() {
       // form whatever the calendar picker writes.
       dates.setNumberFormat('M/d/yy');
     });
+
+    attempt('vote dropdowns', function () { applyVoteDropdowns_(sheet); });
 
     // Warning-only protection: anyone can still edit after confirming.
     // Scripts are never stopped by it (the column sync keeps working).
