@@ -581,13 +581,28 @@ load_intake_editions <- function() {
 #   - a blank Result is "not recorded (yet)", never a result: it becomes
 #     NA so nothing downstream (the bill tracker above all) can read an
 #     empty cell as a failure.
+#
+# Vote cells are normalized first (see normalize_vote): a stray space or
+# odd capitalization in a sheet cell must never make a vote vanish.
+
+# "Aye " / "aye" / "ABSTAIN" -> "Aye" / "Aye" / "Abstain". Anything that is
+# not one of the three tokens after trimming is passed through unchanged
+# (it then counts as neither a vote nor an absence, which is the honest
+# reading of a cell nobody can interpret).
+normalize_vote <- function(x) {
+  x <- trimws(as.character(x))
+  key <- tolower(x)
+  fixed <- c(aye = "Aye", no = "No", abstain = "Abstain")
+  ifelse(!is.na(key) & key %in% names(fixed), unname(fixed[key]), x)
+}
+
 clean_votes <- function(dat, ns) {
   if (is.null(dat) || nrow(dat) == 0) return(NULL)
 
   pct <- function(yes, no, abstain) round(yes / (yes + no + abstain) * 100)
 
   out <- dat |>
-    mutate(across(any_of(ns$s_names_period), as.character)) |>
+    mutate(across(any_of(ns$s_names_period), normalize_vote)) |>
     filter(!is.na(Bill) & Bill != "") |>
     rowwise() |>
     mutate(

@@ -541,8 +541,15 @@ function syncOneVoteTab_(sheet, wanted) {
       sheet.getRange(1, resultCol + 1, sheet.getMaxRows(), lastCol - resultCol)
         .clearContent().clearFormat().clearDataValidations().clearNote();
     }
+    // Surplus columns are DELETED, not just cleared: these tabs are Google
+    // Sheets Tables, and a Table names a blank header cell "Column 13" by
+    // itself — which then looks like a senator to everything downstream.
+    var needed = resultCol + wanted.length;
+    if (sheet.getMaxColumns() > needed) {
+      sheet.deleteColumns(needed + 1, sheet.getMaxColumns() - needed);
+    }
     if (wanted.length > 0) {
-      var short = resultCol + wanted.length - sheet.getMaxColumns();
+      var short = needed - sheet.getMaxColumns();
       if (short > 0) sheet.insertColumnsAfter(sheet.getMaxColumns(), short);
       sheet.getRange(1, resultCol + 1, 1, wanted.length).setValues([wanted]).setFontWeight('bold');
     }
@@ -727,7 +734,9 @@ function writeVoteTallies_(sheet) {
   var firstSen = resultCol + 1;
   var lastSen = resultCol;                       // last non-empty header
   for (var c = head.length; c > resultCol; c--) {
-    if (String(head[c - 1]).trim() !== '') { lastSen = c; break; }
+    var h = String(head[c - 1]).trim();
+    // a Table's auto-name for a blank header ("Column 13") is not a senator
+    if (h !== '' && !/^Column \d+$/.test(h)) { lastSen = c; break; }
   }
 
   // The vote tabs are Google Sheets Tables, which forbid formulas in the
@@ -744,9 +753,13 @@ function writeVoteTallies_(sheet) {
     var body = sheet.getRange(2, col, rows, 1);
     if (lastSen < firstSen) { body.clearContent(); return; }   // no senators yet
     var span = 'RC' + firstSen + ':RC' + lastSen;
+    // TRIM so a stray space still counts ("Aye " dropped votes on the
+    // Appropriations tab — COUNTIF is exact about spaces). Sheets compares
+    // text case-insensitively, so "aye" counts as well.
+    var is = function (token) { return '(TRIM(' + span + ')="' + token + '")'; };
     var count = label === 'Ayes'
-      ? 'COUNTIF(' + span + ',"Aye")'
-      : 'COUNTIF(' + span + ',"Aye")+COUNTIF(' + span + ',"No")+COUNTIF(' + span + ',"Abstain")';
+      ? 'SUMPRODUCT(' + is('Aye') + ')'
+      : 'SUMPRODUCT(' + is('Aye') + '+' + is('No') + '+' + is('Abstain') + ')';
     body.setFormulaR1C1('=IF(LEN(RC' + billCol + ')=0,"",' + count + ')');
   });
   return '';

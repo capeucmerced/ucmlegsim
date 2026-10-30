@@ -579,6 +579,16 @@ Transient Google hiccups fix themselves on the next hourly run.
 Rendering locally with no internet: `LEGSIM_OFFLINE=1 quarto render`
 reuses the last snapshot instead of fetching.
 
+**Vote tallies don't add up, or a vote tab grows "Column 13"-style
+headers:** two Google Sheets *Table* quirks. A vote typed with a stray
+space ("Aye ") was invisible to the old exact-match formulas — the site
+now tolerates it, and so do the formulas once you rerun
+`addVoteTallies()` in the Apps Script editor (rewrites Ayes/Present on
+every tab; touches no vote). "Column N" is what a Table names a blank
+header cell; `resyncVoteSheets()` deletes the empty ones. A senator
+missing from a vote tab altogether is not on the Roster as a senator
+(they have not registered yet) — resync after they do.
+
 **The Wire is empty / "connects when the session begins":** the
 gateway. Check `FEED_URL` in `js/feed.js` is the current `/exec` URL.
 If someone redeployed the web app as a *new deployment*, the URL
