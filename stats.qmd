@@ -51,6 +51,47 @@ cat(sprintf('
 </div>', nrow(bills), n_passed, n_failed, n_moving))
 ```
 
+```{r workload}
+#| results: asis
+cat('<div class="lb-label">Working Through the Docket</div>')
+```
+
+```{r workload-table}
+# Each body's docket: how many bills it has been handed, how many it has
+# decided either way, and the share decided. A bill is "assigned" to a
+# policy committee by referral; to Appropriations once it is fiscal AND
+# has cleared its policy committee; to the Floor once it has cleared
+# every committee in its path. Same pass/fail reading as the tracker.
+passed  <- function(x) !is.na(x) & grepl("pass", x, ignore.case = TRUE)
+decided <- function(x) !is.na(x)
+tally   <- function(code, docket, result) {
+  data.frame(code = code, Assigned = nrow(docket),
+             Passed = sum(passed(result)), Failed = sum(decided(result) & !passed(result)))
+}
+b <- bills |> mutate(code = vapply(committee, committee_code_from_name, character(1)))
+workload <- bind_rows(
+  lapply(c("lgl", "anr", "blh"), function(cd) {
+    d <- b |> filter(!is.na(code), code == cd); tally(cd, d, d$policy_result)
+  }),
+  { d <- b |> filter(appropriations == "Yes", passed(policy_result)); tally("app", d, d$app_result) },
+  { d <- b |> filter(passed(policy_result), appropriations == "No" | passed(app_result)); tally("floor", d, d$floor_result) }
+) |>
+  mutate(Body     = unname(COMMITTEE_NAMES[code]),
+         Awaiting = Assigned - Passed - Failed,
+         Decided  = ifelse(Assigned > 0, 100 * (Passed + Failed) / Assigned, NA))
+
+legsim_table(workload |> select(Body, Assigned, Passed, Failed, Awaiting, Decided),
+             searchable = FALSE, page_size = 5, columns = list(
+  Body     = colDef(name = "Committee", minWidth = 200, cell = link_cell("", committee_url(workload$code))),
+  Assigned = colDef(width = 105),
+  Passed   = colDef(width = 90),
+  Failed   = colDef(width = 90),
+  Awaiting = colDef(width = 105),
+  Decided  = colDef(name = "Worked through", width = 150, html = TRUE,
+                    cell = function(value) if (is.na(value)) "&mdash;" else progress_bar_html(value))
+))
+```
+
 ## The Votes
 
 ```{r party-unity}
