@@ -481,9 +481,10 @@ senators' ledgers, in Money Watch, and in the Stats folds; a bad one is
 voided the same way as a contribution.
 
 **Student guides (the "guide (PDF)" links in the Filing Cabinet).**
-Four short how-tos live in `files/guides/` (filing a bill; committee
+Five short how-tos live in `files/guides/` (filing a bill; committee
 assignments + referrals; committee agendas; recording votes, for
-committee secretaries — linked from the Votes page). Their sources
+committee secretaries — linked from the Votes page; transferring
+campaign funds). Their sources
 are the HTML files in `guides/`; edit one there and re-print it to PDF
 (the one-line Edge command is in `guides/README.md`). The link beside
 each form is the `guides =` argument of that drawer in `forms.qmd`.
