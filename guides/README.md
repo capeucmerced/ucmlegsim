@@ -9,7 +9,8 @@ PDF with Edge in headless mode and replace the PDF:
 (Any browser's "Print to PDF" on the HTML file gives the same result.)
 Guides so far: filing-a-bill (senators), committee-assignments (leadership:
 assignments + referrals), committee-agendas (chairs), recording-votes
-(committee and floor secretaries). The Filing Cabinet (forms.qmd) links
+(committee and floor secretaries), transferring-funds (senators). The
+Filing Cabinet (forms.qmd) links
 each form's guide beside it via the drawer() guides argument; the votes
 guide, which belongs to a sheet rather than a form, is linked from the
 Votes page (votes.qmd) and from a Secretaries line in forms.qmd.

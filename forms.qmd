@@ -47,7 +47,8 @@ if (is.null(urls)) {
   drawer("Senators", "role-senator", c(
     Bills     = "File or amend a bill",
     Transfers = "Transfer campaign funds to another senator"
-  ), guides = c(Bills = "files/guides/filing-a-bill.pdf"))
+  ), guides = c(Bills     = "files/guides/filing-a-bill.pdf",
+                Transfers = "files/guides/transferring-funds.pdf"))
   drawer("Lobbyists", "role-lobbyist", c(
     Letters  = "File a position letter",
     Spending = "Report a contribution"

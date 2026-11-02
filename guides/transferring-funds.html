@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Transferring campaign funds</title>
+<link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+<style>
+  @page { size: Letter; margin: 0.6in 0.65in; }
+  :root { --navy: #17345a; --gold: #d4a821; --paper: #f9f7f1; --muted: #5b6573; --rule: #d9d4c7; --red: #c00000; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body { font-family: "Atkinson Hyperlegible", Arial, sans-serif; color: #1c1c1c; font-size: 10.6pt; line-height: 1.42; }
+  h1 { font-family: "EB Garamond", Georgia, serif; color: var(--navy); margin: 0; font-size: 24pt; font-weight: 600; letter-spacing: .01em; }
+  p { margin: 0 0 7pt; }
+  .kicker { font-size: 8pt; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: var(--gold); margin-bottom: 3pt; }
+  .lede { font-size: 11pt; color: #2b3540; }
+
+  /* badge: an inline marker that sits before a label, never over anything */
+  .b { display: inline-flex; align-items: center; justify-content: center; width: 15pt; height: 15pt; border-radius: 50%; background: var(--navy); color: #fff; font-size: 8.5pt; font-weight: 700; margin-right: 5pt; vertical-align: -3pt; }
+
+  /* --- Diagram: the form, and the senator page afterwards -------------- */
+  .diagram { display: grid; grid-template-columns: 0.9fr 1.1fr; gap: 16pt; align-items: start; margin-top: 12pt; }
+  .pane { background: #fff; border: 1px solid var(--rule); box-shadow: 0 1px 0 var(--rule); padding: 10pt 12pt 11pt; }
+  .pane-title { font-size: 7.6pt; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); margin-bottom: 8pt; }
+
+  .q { margin: 0 0 10pt; }
+  .q .label { font-size: 9pt; font-weight: 700; color: #222; margin-bottom: 3pt; }
+  .q .field { border: 1px solid #b9b9b9; border-radius: 3pt; padding: 4pt 7pt; font-size: 9pt; display: flex; justify-content: space-between; margin-left: 20pt; }
+  .q .field .chev { color: #777; }
+  .q .help { font-size: 7.8pt; color: var(--muted); margin: 2pt 0 0 20pt; }
+  .submit { display: inline-block; background: var(--navy); color: #fff; font-size: 8.5pt; font-weight: 700; padding: 3pt 10pt; border-radius: 3pt; margin-left: 20pt; }
+
+  .label-row { font-size: 7.4pt; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); margin-bottom: 3pt; }
+  .stat { margin: 0 0 10pt 20pt; }
+  .stat .v { font-family: "EB Garamond", Georgia, serif; font-size: 16pt; font-weight: 600; color: var(--navy); line-height: 1.1; }
+  .stat .s { font-size: 8pt; color: var(--muted); }
+  .bar { position: relative; height: 10pt; background: rgba(23,52,90,0.1); border-radius: 3pt; margin: 3pt 0 2pt; overflow: hidden; }
+  .bar span { position: absolute; left: 0; top: 0; bottom: 0; background: var(--gold); }
+  .bar b { position: relative; display: block; text-align: center; font-size: 7pt; line-height: 10pt; }
+
+  table.ledger { border-collapse: collapse; width: calc(100% - 20pt); margin-left: 20pt; font-size: 8pt; }
+  .ledger th { text-align: left; font-size: 7pt; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); border-bottom: 1px solid var(--rule); padding: 2pt 4pt; }
+  .ledger td { padding: 3pt 4pt; border-bottom: 1px solid #eee; white-space: nowrap; }
+  .ledger td.neg { color: #a33131; }
+  .ledger td.r, .ledger th.r { text-align: right; }
+  .ledger tr.hl td { background: rgba(212,168,33,0.16); }
+
+  /* --- Steps ---------------------------------------------------------- */
+  ol.steps { margin: 14pt 0 0; padding-left: 0; counter-reset: s; list-style: none; }
+  ol.steps li { counter-increment: s; position: relative; padding-left: 26pt; margin-bottom: 8pt; }
+  ol.steps li::before { content: counter(s); position: absolute; left: 0; top: 1pt; width: 17pt; height: 17pt; border-radius: 50%; background: var(--navy); color: #fff; font-weight: 700; font-size: 9.5pt; display: flex; align-items: center; justify-content: center; }
+  ol.steps b { color: var(--navy); }
+  .two { display: grid; grid-template-columns: 1.15fr 1fr; gap: 16pt; align-items: start; }
+  .box { background: var(--paper); border-left: 3px solid var(--red); padding: 7pt 10pt; margin-top: 14pt; }
+  .box p { margin-bottom: 3pt; }
+  ul.tight { margin: 0; padding-left: 16pt; }
+  ul.tight li { margin-bottom: 4pt; }
+</style>
+</head>
+<body>
+
+<div class="kicker">UC Merced California Legislative Simulation</div>
+<h1>Transferring campaign funds</h1>
+<p class="lede">You can move money from your campaign coffer to another senator's, up to what your coffer holds. Your fundraising goal is judged on your balance at the end of the session, so what you give away counts against you.</p>
+
+<div class="diagram">
+  <div class="pane">
+    <div class="pane-title">The form</div>
+    <div class="q">
+      <div class="label"><span class="b">2</span>Who receives the transfer?</div>
+      <div class="field"><span>SD-4 &middot; Alvarado-Gil, Marie (R)</span><span class="chev">&#9662;</span></div>
+    </div>
+    <div class="q">
+      <div class="label"><span class="b">3</span>Amount (dollars)</div>
+      <div class="field"><span>5000</span></div>
+      <div class="help">up to your balance</div>
+    </div>
+    <span class="submit">Submit</span>
+  </div>
+
+  <div class="pane">
+    <div class="pane-title">Your senator page afterwards</div>
+    <div class="label-row"><span class="b">1</span>Fundraising</div>
+    <div class="stat">
+      <div class="v">$59,500</div>
+      <div class="s">of $150,000 goal &middot; Close race</div>
+      <div class="bar"><span style="width: 40%"></span><b>40% of goal</b></div>
+      <div class="s">$54,500 from lobbies &middot; +$10,000 from other senators &middot; &minus;$5,000 transferred out</div>
+    </div>
+    <div class="label-row"><span class="b">4</span>Ledger</div>
+    <table class="ledger">
+      <tr><th>Date</th><th>Type</th><th>From / To</th><th class="r">Amount</th><th class="r">Balance</th></tr>
+      <tr class="hl"><td>10/30</td><td>Transfer out</td><td>Alvarado-Gil (R-4)</td><td class="neg r">&minus;$5,000</td><td class="r">$59,500</td></tr>
+      <tr><td>10/28</td><td>Transfer in</td><td>McGuire (D-2)</td><td class="r">$10,000</td><td class="r">$64,500</td></tr>
+      <tr><td>10/24</td><td>Lobby gift</td><td>Chevron / WSPA</td><td class="r">$15,000</td><td class="r">$54,500</td></tr>
+    </table>
+  </div>
+</div>
+
+<div class="two">
+<ol class="steps">
+  <li><b>Check your balance</b> &mdash; the Fundraising number on your senator page. That is the most you can send.</li>
+  <li><b>Open the form</b> from the Filing Cabinet (<i>Senators</i> &rarr; <i>Transfer campaign funds</i>) and pick the recipient. Senators are listed by district.</li>
+  <li><b>Enter the amount</b> and submit. More than your balance is refused in full, with an email saying why.</li>
+  <li><b>Watch your email.</b> You get a receipt with your new balance; the recipient gets a notice. The site shows the transfer within about an hour.</li>
+</ol>
+<div class="box">
+  <p><b>Know before you send</b></p>
+  <ul class="tight">
+    <li>There is no undo. Only the recipient can send money back; a mistaken transfer can be voided by the instructor.</li>
+    <li>Your goal is judged on your balance at the end of the session, not on what you once raised.</li>
+    <li>Transfers are public: both senators' ledgers, the front page, and the Stats page show them.</li>
+  </ul>
+</div>
+</div>
+
+</body>
+</html>
