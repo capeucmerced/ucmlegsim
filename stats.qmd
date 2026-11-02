@@ -16,15 +16,21 @@ library(plotly)
 library(reactable)
 source("scripts/shared.R")
 
-senators <- load_senators()
-ns       <- senator_name_sets(senators)
-votes    <- load_all_votes(ns)
-bills    <- load_bills() |> bill_statuses(votes)
-contribs <- load_all_contributions()
-fin      <- senator_finance(senators, contribs)
+senators  <- load_senators()
+ns        <- senator_name_sets(senators)
+votes     <- load_all_votes(ns)
+bills     <- load_bills() |> bill_statuses(votes)
+contribs  <- load_all_contributions()
+transfers <- load_intake_transfers()
+fin       <- senator_finance(senators, contribs, transfers)
 
 sen_link <- function(name, district) {
   sprintf('<a href="%s/district_%s.html">%s</a>', SENATOR_PAGES_DIR, district, name)
+}
+# "Name (D-16)", linked — how senators are named in money lists
+sen_tag <- function(district) {
+  s <- senators[match(district, senators$District), ]
+  sprintf("%s (%s-%d)", sen_link(s$Name, district), s$Party, as.integer(district))
 }
 lb <- function(label, ranks, names, amounts) {
   cat('<div class="lb-block"><div class="lb-label">', label, '</div><ol class="leaderboard">',
@@ -32,6 +38,7 @@ lb <- function(label, ranks, names, amounts) {
                     ranks, names, amounts), collapse = ""),
       '</ol></div>', sep = "")
 }
+dollars <- function(value) scales::dollar(value)
 ```
 
 ## The Bills
@@ -90,6 +97,58 @@ legsim_table(workload |> select(Body, Assigned, Passed, Failed, Awaiting, Decide
   Decided  = colDef(name = "Worked through", width = 150, html = TRUE,
                     cell = function(value) if (is.na(value)) "&mdash;" else progress_bar_html(value))
 ))
+```
+
+```{r topics}
+#| results: asis
+cat('<div class="lb-label">Bills by Subject</div>')
+```
+
+```{r topics-chart}
+#| fig-height: 4.6
+# Every subject tag a bill carries (primary or secondary) counts once for
+# that bill; each bar stacks where those bills stand right now.
+topic_cols <- intersect(c("topic", "topic2"), names(bills))
+tagged <- if (length(topic_cols) > 0) {
+  bills |>
+    select(bill_measure, status, all_of(topic_cols)) |>
+    pivot_longer(all_of(topic_cols), values_to = "tag") |>
+    filter(!is.na(tag), tag != "") |>
+    mutate(stage = case_when(
+      status == "Passed Senate" ~ "Passed the Senate",
+      grepl("^Failed", status)  ~ "Failed",
+      status == "To Floor"      ~ "Reached the floor",
+      TRUE                      ~ "In committee")) |>
+    distinct(bill_measure, tag, stage) |>
+    count(tag, stage, name = "n")
+} else data.frame()
+
+if (nrow(tagged) == 0) {
+  htmltools::p(class = "muted", "No bills carry subject tags yet.")
+} else {
+  stages     <- c("In committee", "Reached the floor", "Passed the Senate", "Failed")
+  stage_fill <- c("In committee" = "#17345a", "Reached the floor" = "#d4a821",
+                  "Passed the Senate" = "#2e6b46", "Failed" = "#a33131")
+  tag_order  <- tagged |> group_by(tag) |> summarize(total = sum(n), .groups = "drop") |>
+    arrange(total) |> pull(tag)
+  p <- plot_ly()
+  for (st in stages) {
+    d <- tagged |> filter(stage == st)
+    if (nrow(d) == 0) next
+    p <- add_bars(p, data = d, y = ~tag, x = ~n, name = st, orientation = "h",
+                  marker = list(color = unname(stage_fill[st])),
+                  hovertemplate = paste0("%{y}: %{x} ", tolower(st), "<extra></extra>"))
+  }
+  p |>
+    layout(barmode = "stack",
+           xaxis = list(title = "Bills", tickformat = ",d", gridcolor = "rgba(23,52,90,0.08)"),
+           yaxis = list(title = "", categoryorder = "array", categoryarray = tag_order),
+           legend = list(orientation = "h", y = -0.16),
+           plot_bgcolor = "rgba(0,0,0,0)", paper_bgcolor = "rgba(0,0,0,0)",
+           font = list(family = "Atkinson Hyperlegible"),
+           margin = list(t = 10, b = 60, l = 160, r = 20)) |>
+    config(displayModeBar = FALSE)
+}
 ```
 
 ## The Votes
@@ -163,13 +222,14 @@ if (length(votes) > 0) {
 
 ```{r money}
 #| results: asis
-# The headline: how much of the lobby corps' money is out the door, and how
-# many senators have reached their goal
+# The headline: how much of the lobby corps' money is out the door, and
+# how many senators hold their goal right now. Transfers between senators
+# move money around but never change the total spent.
 spent     <- sum(contribs$Contribution, na.rm = TRUE)
 pac_total <- sum(load_budgets()$Budget, na.rm = TRUE)
 spent_pct <- if (is.na(pac_total) || pac_total == 0) NA else round(100 * spent / pac_total)
 with_goal <- !is.na(fin$Goal) & fin$Goal > 0
-goals_met <- sum(with_goal & fin$Raised >= fin$Goal)
+goals_met <- sum(with_goal & fin$Balance >= fin$Goal)
 
 cat(sprintf('
 <div class="stat-strip">
@@ -184,20 +244,16 @@ cat(sprintf('
 if (nrow(contribs) > 0) {
   cat('<div class="lb-cols">')
 
-  # Senators who received the most
-  top_received <- contribs |>
-    filter(!is.na(Recipient.District)) |>
-    group_by(Recipient.District) |>
-    summarize(total = sum(Contribution, na.rm = TRUE)) |>
-    left_join(senators |> select(District, Name, Party), by = c("Recipient.District" = "District")) |>
-    arrange(desc(total)) |>
-    mutate(rank = dense_rank(desc(total))) |>
+  # Senators holding the most right now (lobby money plus transfers)
+  top_chest <- fin |>
+    filter(Balance > 0) |>
+    arrange(desc(Balance)) |>
+    mutate(rank = dense_rank(desc(Balance))) |>
     filter(rank <= 5)
-  lb("Most Money Received",
-     top_received$rank,
-     sprintf("%s (%s-%d)", sen_link(top_received$Name, top_received$Recipient.District),
-             top_received$Party, top_received$Recipient.District),
-     scales::dollar(top_received$total))
+  lb("Largest War Chests",
+     top_chest$rank,
+     sen_tag(top_chest$District),
+     scales::dollar(top_chest$Balance))
 
   # Lobbies that spent the most
   top_spent <- contribs |>
@@ -213,6 +269,29 @@ if (nrow(contribs) > 0) {
      scales::dollar(top_spent$total))
 
   cat('</div>')
+
+  # Money moving between senators
+  if (nrow(transfers) > 0) {
+    cat('<div class="lb-cols">')
+    givers <- transfers |>
+      group_by(District = From.District) |>
+      summarize(total = sum(Amount), .groups = "drop") |>
+      arrange(desc(total)) |>
+      mutate(rank = dense_rank(desc(total))) |>
+      filter(rank <= 5)
+    lb("Biggest Givers — Transfers to Other Senators",
+       givers$rank, sen_tag(givers$District), scales::dollar(givers$total))
+    takers <- transfers |>
+      group_by(District = To.District) |>
+      summarize(total = sum(Amount), .groups = "drop") |>
+      arrange(desc(total)) |>
+      mutate(rank = dense_rank(desc(total))) |>
+      filter(rank <= 5)
+    lb("Most Received from Other Senators",
+       takers$rank, sen_tag(takers$District), scales::dollar(takers$total))
+    cat('</div>')
+  }
+
   cat('<div class="lb-label">Money Over Time</div>')
 } else {
   cat('<p>No contributions have been reported yet.</p>')
@@ -249,21 +328,28 @@ if (nrow(contribs) > 0) {
 <summary>Senators: progress toward goal</summary>
 
 ```{r goals-table}
+# Column widths are tuned to fit the article column with no horizontal
+# scroll (same for the tables below). Dollars are formatted in R: the
+# column stays numeric (sorts by value) but shows "$90,000", not
+# "$90,000.00" as reactable's own currency format insists on.
 goal_tbl <- fin |>
   arrange(desc(Pct), District) |>
-  transmute(Senator = Name, District, Party, Race, Goal, Raised, Progress = Pct)
-# Column widths are tuned to fit the article column with no horizontal
-# scroll (same for the PAC table below). Dollars are formatted in R: the
-# column stays numeric (sorts by value) but shows "$90,000", not "$90,000.00"
-# as reactable's own currency format insists on.
-dollars <- function(value) scales::dollar(value)
+  transmute(Senator = Name, District, Race, Goal, Lobbies = Raised,
+            Transfers = TransfersIn - TransfersOut, Balance, Progress = Pct)
+# net transfers carry their sign; nothing moved shows as a dash
+signed <- function(value) {
+  if (is.na(value) || value == 0) "—"
+  else paste0(ifelse(value < 0, "−", "+"), scales::dollar(abs(value)))
+}
 legsim_table(goal_tbl, page_size = 40, searchable = FALSE, columns = list(
-  Senator  = colDef(cell = link_cell("", sprintf("%s/district_%s.html", SENATOR_PAGES_DIR, goal_tbl$District))),
-  District = colDef(width = 70),
-  Party    = colDef(width = 60),
-  Goal     = colDef(width = 100, cell = dollars),
-  Raised   = colDef(width = 100, cell = dollars),
-  Progress = colDef(width = 130, html = TRUE, cell = function(value) progress_bar_html(value))
+  Senator   = colDef(minWidth = 140, cell = link_cell("", sprintf("%s/district_%s.html", SENATOR_PAGES_DIR, goal_tbl$District))),
+  District  = colDef(name = "SD", width = 50),
+  Race      = colDef(width = 95),
+  Goal      = colDef(width = 90, cell = dollars),
+  Lobbies   = colDef(width = 90, cell = dollars),
+  Transfers = colDef(width = 95, cell = signed),
+  Balance   = colDef(width = 90, cell = dollars),
+  Progress  = colDef(width = 100, html = TRUE, cell = function(value) progress_bar_html(value))
 ))
 ```
 
@@ -285,6 +371,27 @@ legsim_table(bal, page_size = 20, searchable = FALSE, columns = list(
   Remaining = colDef(width = 115, cell = dollars),
   Used      = colDef(width = 125, html = TRUE, cell = function(value) progress_bar_html(value))
 ))
+```
+
+</details>
+
+<details class="table-fold">
+<summary>Transfers between senators</summary>
+
+```{r transfers-table}
+if (nrow(transfers) > 0) {
+  tr_tbl <- transfers |>
+    arrange(desc(Date)) |>
+    transmute(Date, From = From.District, To = To.District, Amount)
+  legsim_table(tr_tbl, page_size = 20, searchable = FALSE, columns = list(
+    Date   = colDef(width = 110, format = LEGSIM_DATE),
+    From   = colDef(html = TRUE, cell = function(value) sen_tag(value)),
+    To     = colDef(html = TRUE, cell = function(value) sen_tag(value)),
+    Amount = colDef(width = 110, cell = dollars)
+  ))
+} else {
+  htmltools::p(class = "muted", "No transfers between senators yet.")
+}
 ```
 
 </details>

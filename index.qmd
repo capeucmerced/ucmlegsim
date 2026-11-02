@@ -133,20 +133,34 @@ if (nrow(letters) > 0) {
 letters_card <- card("Letters Desk", li(letter_items), "letters.html", "All letters →")
 
 # --- Money Watch: latest contributions -------------------------------------
-money_items <- character(0)
-if (nrow(contribs) > 0) {
-  mw <- contribs |>
-    filter(!is.na(Recipient.District)) |>
-    left_join(senators |> select(District, Last.Name, Party), by = c("Recipient.District" = "District")) |>
-    arrange(desc(Date)) |>
-    head(6)
-  money_items <- sprintf(
-    '<a href="%s"><b>%s</b></a> → <a href="%s/district_%d.html">%s (%s-%d)</a> · %s · %s',
-    lobby_url(mw$Lobby_Code), mw$Lobby_Code, SENATOR_PAGES_DIR, mw$Recipient.District,
-    esc(mw$Last.Name), mw$Party, mw$Recipient.District,
-    scales::dollar(mw$Contribution), format(mw$Date, "%b %d")
-  )
+# Lobby gifts and senator-to-senator transfers in one list, newest first.
+# Both parties of a transfer read like a recipient does: "Last (D-16)",
+# linked to the senator's page.
+sen_tag <- function(district) {
+  s <- senators[match(district, senators$District), ]
+  sprintf('<a href="%s/district_%d.html">%s (%s-%d)</a>',
+          SENATOR_PAGES_DIR, district, esc(s$Last.Name), s$Party, district)
 }
+money_rows <- data.frame()
+if (nrow(contribs) > 0) {
+  money_rows <- contribs |>
+    filter(!is.na(Recipient.District)) |>
+    transmute(Date, item = sprintf(
+      '<a href="%s"><b>%s</b></a> → %s · %s · %s',
+      lobby_url(Lobby_Code), Lobby_Code, sen_tag(Recipient.District),
+      scales::dollar(Contribution), format(Date, "%b %d")))
+}
+transfers <- load_intake_transfers()
+if (nrow(transfers) > 0) {
+  money_rows <- bind_rows(money_rows, transfers |>
+    transmute(Date, item = sprintf(
+      '%s → %s · %s · %s · <span class="muted">transfer</span>',
+      sen_tag(From.District), sen_tag(To.District),
+      scales::dollar(Amount), format(Date, "%b %d"))))
+}
+money_items <- if (nrow(money_rows) > 0) {
+  (money_rows |> arrange(desc(Date)) |> head(6))$item
+} else character(0)
 # "All spending" lands on the Money section of Session Stats
 money_card <- card("Money Watch", li(money_items), "stats.html#the-money", "All spending →")
 

@@ -41,6 +41,7 @@ function doGet(e) {
   }
 
   var json = view === 'spending'    ? buildSpendingJson()
+           : view === 'transfers'   ? buildTransfersJson()
            : view === 'letters'     ? buildLettersJson()
            : view === 'bills'       ? buildBillsJson()
            : view === 'profiles'    ? buildProfilesJson()
@@ -413,6 +414,37 @@ function buildSpendingJson() {
     }
   }
   return JSON.stringify({ contributions: out });
+}
+
+/** ?view=transfers — senator-to-senator transfers: time, from, to (both
+ *  districts), amount. Voided (refused) rows are left out. Districts
+ *  only: no names or emails leave Google. */
+function buildTransfersJson() {
+  var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Transfers');
+  var out = [];
+  if (sheet && sheet.getLastRow() > 1) {
+    var rows = sheet.getDataRange().getValues(), head = rows[0];
+    var cTime  = colStartingWith(head, 'Timestamp');
+    var cMail  = colStartingWith(head, 'Email Address');
+    var cRecip = colStartingWith(head, 'Who receives');
+    var cAmt   = colStartingWith(head, 'Amount');
+    var cStat  = head.indexOf('Status');
+    var districtByEmail = senatorDistrictMap_();   // transfers.gs
+    for (var j = 1; j < rows.length; j++) {
+      var r = rows[j];
+      if (cStat >= 0 && r[cStat]) continue;
+      var from = districtByEmail[String(r[cMail]).toLowerCase().trim()];
+      var dm = String(r[cRecip] || '').match(/^SD-(\d+)/);
+      if (!from || !dm) continue;
+      out.push({
+        time:   new Date(r[cTime]).toISOString(),
+        from:   parseInt(from, 10),
+        to:     parseInt(dm[1], 10),
+        amount: Number(r[cAmt])
+      });
+    }
+  }
+  return JSON.stringify({ transfers: out });
 }
 
 /** Column lookup by prefix — response columns carry full question titles. */

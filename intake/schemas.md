@@ -151,6 +151,26 @@ legal amount. Accepted contributions get a receipt with the org's
 remaining balance. Each senator's fundraising goal is the Goal column of
 `senator_list.csv`.
 
+## Tab: Transfers  (form: "Transfer Campaign Funds")
+
+| Column | Question |
+| --- | --- |
+| Timestamp / Email Address | automatic — the sender is the signed-in senator |
+| Recipient | "Who receives the transfer?" (dropdown: `SD-16 · Torres, Maria (D)` format, synced from Roster by `syncRosterDropdowns()`) |
+| Amount | "Amount (dollars)" (number, 100 or more) |
+| — Status | script column: a refused transfer is marked `void: refused — …` and ignored everywhere |
+
+Rules (`transfers.gs`; the site mirrors them in `scripts/shared.R`): a
+senator may transfer up to what their coffer holds — lobby contributions
+received + transfers received − transfers sent, non-void rows only. A
+transfer over that, or to the sender themself, is refused whole (row
+voided, sender emailed why). An accepted transfer emails the sender a
+receipt with the new balance and the recipient a notice. Money moves
+between coffers; the lobby-side totals never change. A senator's
+fundraising goal is judged on their **balance** at the end of the
+session. Gateway: `?view=transfers` → `{transfers: [{time, from, to,
+amount}]}`, districts only.
+
 ## Tabs: Agenda LGL / ANR / BLH / APP / Floor  (five forms, one per body)
 
 | Column | Question |

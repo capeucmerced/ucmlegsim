@@ -67,6 +67,7 @@ function buildAllForms() {
   results.push(buildLetters());
   results.push(buildProfiles());
   results.push(buildSpending());
+  results.push(buildTransfers());
   ['LGL', 'ANR', 'BLH', 'APP', 'Floor'].forEach(function (body) {
     results.push(buildAgenda(body));
   });
@@ -168,6 +169,7 @@ function renameResponseTabs() {
     'Report a Contribution': 'Spending',
     'Committee Assignments & Leadership': 'Assignments',
     'Refer Bills to Committee': 'Referrals',
+    'Transfer Campaign Funds': 'Transfers',
     'Post to the Wire': 'Posts',
     'Publish a Newspaper Edition': 'Editions'
   };
@@ -228,6 +230,14 @@ function syncRosterDropdowns() {
   if (sid) {
     FormApp.openById(sid).getItems(FormApp.ItemType.LIST).forEach(function (it) {
       if (it.getTitle().indexOf('Who received') === 0) it.asListItem().setChoiceValues(labels);
+    });
+  }
+
+  // Transfers: the one recipient dropdown, same labels
+  var tid = deployProp('FORM_ID_Transfers', '');
+  if (tid) {
+    FormApp.openById(tid).getItems(FormApp.ItemType.LIST).forEach(function (it) {
+      if (it.getTitle().indexOf('Who receives') === 0) it.asListItem().setChoiceValues(labels);
     });
   }
 
@@ -454,6 +464,23 @@ function buildSpending() {
     .setHelpText('A number between 100 and ' + CONTRIBUTION_LIMIT + ', digits only.')
     .build());
   return finish(f, 'Spending');
+}
+
+function buildTransfers() {
+  var f = newForm('Transfer Campaign Funds', 'Transfers');
+  f.setDescription('UC Merced California Legislative Simulation. Move money from ' +
+    'your campaign coffer to another senator\'s. You can transfer up to what your ' +
+    'coffer holds (lobby contributions received plus transfers received, less ' +
+    'transfers sent); anything over that is refused in full and you are emailed ' +
+    'why. Your fundraising goal is judged on your balance at the end of the session.');
+  f.addListItem().setTitle('Who receives the transfer?')
+    .setChoiceValues([PLACEHOLDER]).setRequired(true);
+  var amt = f.addTextItem().setTitle('Amount (dollars)').setRequired(true);
+  amt.setValidation(FormApp.createTextValidation()
+    .requireNumberGreaterThanOrEqualTo(100)   // the balance check is in transfers.gs
+    .setHelpText('A number, 100 or more, digits only.')
+    .build());
+  return finish(f, 'Transfers');
 }
 
 function buildAgenda(body) {

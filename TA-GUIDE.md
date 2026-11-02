@@ -473,7 +473,12 @@ label shown beside it (2026 used "Not up in 2026" = $50k, "Safe" = $90k,
 Script editor run `setupBudgets()` (rewrites the Budgets ledger) and
 `patchSpendingForm()` (re-states the rules on the form). A contribution
 that breaks a rule is refused whole and the lobbyist is emailed why;
-refused rows sit in the Spending tab with a `void` Status.
+refused rows sit in the Spending tab with a `void` Status. Senators can
+also transfer money to one another (the "Transfer campaign funds" form;
+`transfers.gs`): the only limit is the sender's balance, and a goal is
+judged on the balance at the end of the session. Transfers show in both
+senators' ledgers, in Money Watch, and in the Stats folds; a bad one is
+voided the same way as a contribution.
 
 **Student guides (the "guide (PDF)" links in the Filing Cabinet).**
 Four short how-tos live in `files/guides/` (filing a bill; committee

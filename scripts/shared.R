@@ -74,7 +74,8 @@ INTAKE_API_URL <- "https://script.google.com/macros/s/AKfycbwcPcwt8LTJri6lBrbarY
 # Which intake streams are live (their loaders merge rows in; the 2025
 # fixture files stay alongside until the semester-start data reset)
 INTAKE_LIVE <- c("spending", "letters", "bills", "profiles", "editions",
-                 "agendas", "assignments", "referrals", "forms", "stories")
+                 "agendas", "assignments", "referrals", "forms", "stories",
+                 "transfers")
 
 # One data snapshot per BUILD. Every rendered page is its own R session,
 # so without a shared cache a build hits the gateway ~100 times in minutes
@@ -146,6 +147,29 @@ load_intake_contributions <- function() {
     filter(!is.na(Contribution)) |>
     left_join(lobbys |> select(Code, Lobby), by = c("Lobby_Code" = "Code")) |>
     mutate(Lobby = ifelse(is.na(Lobby), Lobby_Code, Lobby))
+}
+
+# Senator-to-senator transfers filed through the Transfer form, from the
+# gateway's transfers view: one row per transfer, both parties as
+# districts. Money moves between coffers; the lobby-side totals never
+# change. Always returns the typed frame, so day one needs no special case.
+load_intake_transfers <- function() {
+  if (!"transfers" %in% INTAKE_LIVE) return(empty_transfers())
+  j <- read_intake_json("transfers")
+  if (is.null(j) || length(j$transfers) == 0) return(empty_transfers())
+  as.data.frame(j$transfers) |>
+    transmute(
+      Date          = as.Date(substr(time, 1, 10)),
+      From.District = suppressWarnings(as.integer(from)),
+      To.District   = suppressWarnings(as.integer(to)),
+      Amount        = suppressWarnings(as.numeric(amount))
+    ) |>
+    filter(!is.na(From.District), !is.na(To.District), !is.na(Amount))
+}
+
+empty_transfers <- function() {
+  data.frame(Date = as.Date(character()), From.District = integer(),
+             To.District = integer(), Amount = numeric())
 }
 
 # --- Names --------------------------------------------------------------
@@ -445,7 +469,7 @@ empty_bills <- function() {
     First.Name = character(), Last.Name = character(),
     lobbyist = character(), committee = character(),
     appropriations = character(), digest = character(),
-    topic = character(), name = character(), name_join = character(),
+    topic = character(), topic2 = character(), name = character(), name_join = character(),
     bill_measure = character(), url_slug = character()
   )
 }
@@ -469,6 +493,7 @@ load_intake_bills <- function() {
       appropriations = ifelse(grepl("Appropriation", as.character(flags)), "Yes", "No"),
       digest       = as.character(digest),
       topic        = as.character(topic),
+      topic2       = as.character(topic2),
       name         = trimws(gsub("\\s+", " ", paste(First.Name, Last.Name))),
       name_join    = tolower(gsub(" ", "", paste0(First.Name, Last.Name))),
       bill_measure = paste0("SB-", bill_number),
@@ -1152,6 +1177,10 @@ stories_html <- function(stories, rel = "", show_outlet = FALSE, limit = NA) {
 # has a fundraising goal (the Goal column of senator_list.csv). The intake
 # script (intake/apps-script/finance.gs) enforces the rules at submission
 # with the SAME numbers — change them in both places together.
+# Senators may also transfer money they hold to one another (the Transfer
+# form; intake/apps-script/transfers.gs refuses anything over the sender's
+# balance). Transfers move money between coffers and never change the
+# lobby-side totals; a goal is judged on the BALANCE at session's end.
 # ---------------------------------------------------------------------------
 
 CONTRIBUTION_LIMIT <- 15000   # classroom number; must match finance.gs
@@ -1179,19 +1208,72 @@ org_finance <- function(contribs = load_all_contributions()) {
            Pct = ifelse(is.na(Budget) | Budget == 0, NA, pmin(100, 100 * Spent / Budget)))
 }
 
-# Each senator's goal, what they have raised, and progress
-senator_finance <- function(senators = load_senators(), contribs = load_all_contributions()) {
+# Each senator's goal and where they stand. Raised = lobby money received;
+# TransfersIn / TransfersOut = money moved between senators; Balance =
+# Raised + TransfersIn - TransfersOut is what the goal is judged on, so
+# Pct (every progress bar on the site) uses Balance.
+senator_finance <- function(senators = load_senators(), contribs = load_all_contributions(),
+                            transfers = load_intake_transfers()) {
   raised <- if (nrow(contribs) > 0) {
     contribs |> filter(!is.na(Recipient.District)) |>
       group_by(District = as.integer(Recipient.District)) |>
       summarize(Raised = sum(Contribution, na.rm = TRUE), Donors = n_distinct(Lobby_Code), .groups = "drop")
   } else data.frame(District = integer(), Raised = numeric(), Donors = integer())
+  t_in  <- transfers |> group_by(District = To.District) |>
+    summarize(TransfersIn = sum(Amount), .groups = "drop")
+  t_out <- transfers |> group_by(District = From.District) |>
+    summarize(TransfersOut = sum(Amount), .groups = "drop")
   senators |>
     select(District, Name, Last.Name, Party, any_of(c("Goal", "Race"))) |>
     left_join(raised, by = "District") |>
+    left_join(t_in,   by = "District") |>
+    left_join(t_out,  by = "District") |>
     mutate(Raised = coalesce(Raised, 0), Donors = coalesce(Donors, 0L),
+           TransfersIn  = coalesce(TransfersIn, 0),
+           TransfersOut = coalesce(TransfersOut, 0),
+           Balance = Raised + TransfersIn - TransfersOut,
            Goal = if ("Goal" %in% names(senators)) as.numeric(Goal) else NA_real_,
-           Pct = ifelse(is.na(Goal) | Goal == 0, NA, 100 * Raised / Goal))
+           Pct = ifelse(is.na(Goal) | Goal == 0, NA, 100 * Balance / Goal))
+}
+
+# "Last (D-16)" for a district, as the site names transfer parties
+senator_tag <- function(district, senators) {
+  if (length(district) == 0) return(character(0))
+  s <- senators[match(district, senators$District), ]
+  as.character(ifelse(is.na(s$Last.Name), paste("District", district),
+         sprintf("%s (%s-%d)", s$Last.Name, s$Party, as.integer(district))))
+}
+
+# One senator's money as a bank statement: every lobby gift and every
+# transfer in or out, newest first, with the running balance after each.
+# Columns: Date, Type (Lobby gift / Transfer in / Transfer out), Who,
+# Link (the other party's page, relative to `rel`), Amount (signed —
+# transfers out are negative), Balance.
+senator_ledger <- function(district, senators, contribs = load_all_contributions(),
+                           transfers = load_intake_transfers(), rel = "../") {
+  d <- as.integer(district)
+  gifts <- if (nrow(contribs) > 0) {
+    contribs |>
+      filter(!is.na(Recipient.District), as.integer(Recipient.District) == d) |>
+      transmute(Date, Type = "Lobby gift", Who = Lobby,
+                Link = as.character(lobby_url(Lobby_Code, rel)), Amount = Contribution)
+  } else data.frame()
+  ins <- transfers |> filter(To.District == d) |>
+    transmute(Date, Type = "Transfer in", Who = senator_tag(From.District, senators),
+              Link = as.character(senator_url(From.District, rel)), Amount = Amount)
+  outs <- transfers |> filter(From.District == d) |>
+    transmute(Date, Type = "Transfer out", Who = senator_tag(To.District, senators),
+              Link = as.character(senator_url(To.District, rel)), Amount = -Amount)
+  rows <- bind_rows(gifts, ins, outs)
+  if (nrow(rows) == 0) {
+    return(data.frame(Date = as.Date(character()), Type = character(), Who = character(),
+                      Link = character(), Amount = numeric(), Balance = numeric()))
+  }
+  rows |>
+    arrange(Date) |>
+    mutate(Balance = cumsum(Amount)) |>
+    arrange(desc(Date), desc(row_number())) |>
+    as.data.frame()
 }
 
 # A thin progress bar as HTML (for tables and stat blocks). pct may exceed

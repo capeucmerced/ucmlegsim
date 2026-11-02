@@ -45,7 +45,8 @@ if (is.null(urls)) {
     ROLECHECK    = "Check my role"
   ))
   drawer("Senators", "role-senator", c(
-    Bills = "File or amend a bill"
+    Bills     = "File or amend a bill",
+    Transfers = "Transfer campaign funds to another senator"
   ), guides = c(Bills = "files/guides/filing-a-bill.pdf"))
   drawer("Lobbyists", "role-lobbyist", c(
     Letters  = "File a position letter",

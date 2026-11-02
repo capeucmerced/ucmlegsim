@@ -29,18 +29,13 @@ ns       <- senator_name_sets(senators)
 votes    <- load_all_votes(ns)
 bills    <- bill_statuses(load_bills(), votes)   # adds each bill's status
 
-# Contributions across all lobbies, plus each district's total-received rank
+# Money: lobby contributions, transfers between senators, and each
+# senator's standing. Balance = lobby money + transfers in − transfers out
+# is what the goal is judged on, so bars and ranks use it.
 contributions <- load_all_contributions()
-fin <- senator_finance(senators, contributions)   # goals and progress
-senator_totals <- data.frame()
-if (nrow(contributions) > 0) {
-  senator_totals <- contributions |>
-    filter(!is.na(Recipient.District)) |>
-    group_by(Recipient.District) |>
-    summarize(total_received = sum(Contribution, na.rm = TRUE)) |>
-    arrange(desc(total_received)) |>
-    mutate(rank = row_number())
-}
+transfers     <- load_intake_transfers()
+fin <- senator_finance(senators, contributions, transfers) |>
+  mutate(rank = ifelse(Balance > 0, dense_rank(desc(Balance)), NA_integer_))
 
 for (i in seq_len(nrow(senators))) {
   s <- senators[i, ]
@@ -152,43 +147,41 @@ for (i in seq_len(nrow(senators))) {
     n_abstain <- sum(their_votes$Vote == "Abstain", na.rm = TRUE)
   }
 
-  # --- Their contributions ------------------------------------------------
-  their_contribs   <- data.frame()
-  total_received   <- 0
-  senator_rank     <- NA
+  # --- Their money ---------------------------------------------------------
+  # The ledger is every lobby gift and every transfer in or out, with the
+  # running balance; the dashboard blocks are cut from it.
+  my_fin <- fin[fin$District == as.integer(district), , drop = FALSE]
+  ledger <- senator_ledger(district, senators, contributions, transfers, rel = "../")
+  gifts     <- ledger |> filter(Type == "Lobby gift")
+  xfers_in  <- ledger |> filter(Type == "Transfer in")  |> arrange(desc(Amount))
+  xfers_out <- ledger |> filter(Type == "Transfer out")
   top_contributors <- data.frame()
-  if (nrow(contributions) > 0) {
-    their_contribs <- contributions |>
-      filter(Recipient.District == as.integer(district)) |>
-      arrange(desc(Date)) |>
-      select(Date, Lobby, Lobby_Code, Contribution) |>
+  if (nrow(gifts) > 0) {
+    top_contributors <- gifts |>
+      group_by(Who, Link) |>
+      summarize(total = sum(Amount), .groups = "drop") |>
+      arrange(desc(total)) |>
+      mutate(rank = dense_rank(desc(total))) |>
+      filter(rank <= 3) |>
       as.data.frame()
-
-    if (nrow(their_contribs) > 0) {
-      total_received <- sum(their_contribs$Contribution, na.rm = TRUE)
-      rank_row <- senator_totals |> filter(Recipient.District == as.integer(district))
-      if (nrow(rank_row) > 0) senator_rank <- rank_row$rank
-
-      top_contributors <- their_contribs |>
-        group_by(Lobby, Lobby_Code) |>
-        summarize(total = sum(Contribution, na.rm = TRUE), .groups = "drop") |>
-        arrange(desc(total)) |>
-        mutate(rank = dense_rank(desc(total))) |>
-        filter(rank <= 3) |>
-        as.data.frame()
-    }
   }
-  contribs_code <- paste(capture.output(dput(their_contribs)), collapse = "\n")
+  ledger_code <- paste(capture.output(dput(ledger)), collapse = "\n")
 
   # --- Dashboard ------------------------------------------------------------
-  # Fundraising goal and progress (campaign finance), shown even before the
-  # first contribution so every senator sees their target
-  my_fin <- fin[fin$District == as.integer(district), , drop = FALSE]
+  # The coffer against the goal (judged on the balance at session's end),
+  # with where the money came from underneath. Shown before the first
+  # dollar arrives so every senator sees their target.
+  parts <- sprintf("%s from lobbies", scales::dollar(my_fin$Raised))
+  if (my_fin$TransfersIn > 0)
+    parts <- c(parts, sprintf("+%s from other senators", scales::dollar(my_fin$TransfersIn)))
+  if (my_fin$TransfersOut > 0)
+    parts <- c(parts, sprintf("&minus;%s transferred out", scales::dollar(my_fin$TransfersOut)))
+  breakdown <- sprintf('<span class="stat-sub">%s</span>', paste(parts, collapse = " &middot; "))
   fund_stat <- if (nrow(my_fin) == 1 && !is.na(my_fin$Goal)) {
-    stat_html("Fundraising", scales::dollar(my_fin$Raised),
+    stat_html("Fundraising", scales::dollar(my_fin$Balance),
               sprintf("of %s goal &middot; %s", scales::dollar(my_fin$Goal), my_fin$Race),
-              progress_bar_html(my_fin$Pct, sprintf("%s%% of goal", round(my_fin$Pct))))
-  } else stat_html("Fundraising", scales::dollar(total_received), "no goal set")
+              paste0(progress_bar_html(my_fin$Pct, sprintf("%s%% of goal", round(my_fin$Pct))), breakdown))
+  } else stat_html("Fundraising", scales::dollar(my_fin$Balance), "no goal set", breakdown)
 
   align_stat <- if (cast > 0) {
     stat_html("Voted With Party", sprintf("%d%%", round(100 * aligned / cast)),
@@ -200,9 +193,10 @@ for (i in seq_len(nrow(senators))) {
               sprintf("%d%% of %d roll call%s", round(100 * absent / n_roll), n_roll, ifelse(n_roll == 1, "", "s")))
   } else stat_html("Missed Votes", "&mdash;", "no roll calls yet")
 
-  money_stat <- if (nrow(their_contribs) > 0) {
-    stat_html("Contributions", nrow(their_contribs),
-              sprintf("ranked #%s of 40 by total received", ifelse(is.na(senator_rank), "&mdash;", senator_rank)))
+  money_stat <- if (nrow(gifts) > 0 || nrow(xfers_in) > 0) {
+    stat_html("Contributions", nrow(gifts),
+              sprintf("ranked #%s of %d by balance",
+                      ifelse(is.na(my_fin$rank), "&mdash;", my_fin$rank), nrow(senators)))
   } else stat_html("Contributions", "0", "none received yet")
 
   donors_block <- c(
@@ -210,11 +204,28 @@ for (i in seq_len(nrow(senators))) {
     '<div class="lb-label">Top Donors</div>',
     if (nrow(top_contributors) > 0) c(
       '<ol class="leaderboard">',
-      sprintf('<li><span class="lb-rank">%d</span><span class="lb-name"><a href="../%s/%s.html">%s</a></span><span class="lb-amt">%s</span></li>',
-              top_contributors$rank, LOBBY_PAGES_DIR, top_contributors$Lobby_Code,
-              top_contributors$Lobby, scales::dollar(top_contributors$total)),
+      sprintf('<li><span class="lb-rank">%d</span><span class="lb-name">%s</span><span class="lb-amt">%s</span></li>',
+              top_contributors$rank, html_link(top_contributors$Who, top_contributors$Link),
+              scales::dollar(top_contributors$total)),
       '</ol>'
     ) else '<p class="muted">No contributions received yet.</p>',
+    '</div>'
+  )
+
+  # Money that arrived from other senators (and, in a line, what went out)
+  transfers_block <- c(
+    '<div class="lb-block">',
+    '<div class="lb-label">Transfers from other Senators</div>',
+    if (nrow(xfers_in) > 0) c(
+      '<ol class="leaderboard">',
+      sprintf('<li><span class="lb-rank">%d</span><span class="lb-name">%s &middot; %s</span><span class="lb-amt">%s</span></li>',
+              seq_len(nrow(xfers_in)), html_link(xfers_in$Who, xfers_in$Link),
+              format(xfers_in$Date, "%b %d"), scales::dollar(xfers_in$Amount)),
+      '</ol>'
+    ) else '<p class="muted">None yet.</p>',
+    if (nrow(xfers_out) > 0) sprintf('<p class="muted">Sent to other senators: %s.</p>',
+      paste(sprintf("%s to %s", scales::dollar(-xfers_out$Amount),
+                    html_link(xfers_out$Who, xfers_out$Link)), collapse = "; ")),
     '</div>'
   )
 
@@ -234,7 +245,7 @@ for (i in seq_len(nrow(senators))) {
 
   dashboard_html <- raw_html(
     '<div class="stat-strip">', fund_stat, align_stat, missed_stat, money_stat, '</div>',
-    '<div class="lb-cols">', donors_block, votes_block, '</div>'
+    '<div class="lb-cols">', donors_block, transfers_block, votes_block, '</div>'
   )
 
   # --- Assemble the page ---------------------------------------------------
@@ -289,33 +300,38 @@ for (i in seq_len(nrow(senators))) {
     "}",
     "```",
     "",
-    "## Contributions",
+    "## Ledger",
     "",
     "```{r}",
     "#| echo: false",
     "#| warning: false",
     "#| message: false",
+    "# A bank statement: lobby gifts and transfers in or out, newest first,",
+    "# with the balance after each. Transfers out are negative, in red.",
     "library(reactable)",
     "",
-    paste("senator_contributions <-", contribs_code),
+    paste("ledger <-", ledger_code),
     "",
-    "if (nrow(senator_contributions) > 0) {",
-    "  reactable(senator_contributions, sortable = TRUE, highlight = TRUE,",
+    "if (nrow(ledger) > 0) {",
+    "  reactable(ledger, sortable = TRUE, highlight = TRUE,",
     "    searchable = TRUE, defaultPageSize = 20, showPageSizeOptions = FALSE,",
     "    defaultColDef = colDef(na = ''),",
     "    columns = list(",
     "      Date = colDef(format = colFormat(date = TRUE, locales = 'en-US'), width = 110),",
-    "      Lobby = colDef(name = 'Contributor', cell = function(value, index) {",
-    "        code <- senator_contributions$Lobby_Code[index]",
-    "        if (is.na(code) || code == '') return(value)",
-    sprintf("        htmltools::tags$a(href = sprintf('../%s/%%s.html', code), value)", LOBBY_PAGES_DIR),
+    "      Type = colDef(width = 120),",
+    "      Who = colDef(name = 'From / To', cell = function(value, index) {",
+    "        url <- ledger$Link[index]",
+    "        if (is.na(url) || url == '') value else htmltools::tags$a(href = url, value)",
     "      }),",
-    "      Lobby_Code = colDef(show = FALSE),",
-    "      Contribution = colDef(name = 'Amount', width = 120,",
-    "        format = colFormat(currency = 'USD', separators = TRUE, locales = 'en-US'))",
+    "      Link = colDef(show = FALSE),",
+    "      Amount = colDef(width = 120, cell = function(value) {",
+    "        txt <- scales::dollar(abs(value))",
+    "        if (value < 0) htmltools::span(style = 'color:#a33131', paste0('\\u2212', txt)) else txt",
+    "      }),",
+    "      Balance = colDef(width = 120, cell = function(value) scales::dollar(value))",
     "    ))",
     "} else {",
-    "  htmltools::p(class = 'muted', 'No contributions received yet.')",
+    "  htmltools::p(class = 'muted', 'No money in or out yet.')",
     "}",
     "```",
     "",

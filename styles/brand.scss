@@ -633,7 +633,11 @@ ol.leaderboard {
 }
 
 @media (min-width: 1100px) {
-  .monitor-grid { grid-template-columns: repeat(3, 1fr); }
+  // Two EQUAL rows. With auto rows the browser sized them by content
+  // (431px / 316px): the capped top cards couldn't fill the tall first
+  // row and a hole opened above the bottom row. 1fr rows both take the
+  // taller content height, so the bottom cards stretch up to meet the top.
+  .monitor-grid { grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(2, 1fr); }
 }
 
 // The Wire spans two rows at $wire-height; a regular card is exactly half

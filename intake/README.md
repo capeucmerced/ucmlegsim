@@ -269,6 +269,18 @@ from `lobbyist_list.csv`'s Spending Power column; senators' goals are
 the Goal column of `senator_list.csv`. To change any number, change it
 in both `finance.gs` and `shared.R`, then rerun the two functions.
 
+**Transfers between senators** (`transfers.gs`, added Nov 2026). Senators
+may move money from their own coffer to another senator's; the handler
+refuses anything over the sender's balance (lobby money received +
+transfers in − transfers out) and self-transfers, and emails both
+parties. Setup, once, in the Apps Script editor: add `transfers.gs`
+to the project; run **`buildTransfers()`** (creates the form and its
+`Transfers` tab); run **`syncRosterDropdowns()`** (fills its recipient
+list); then **redeploy the gateway web app as a New version** so the
+site can read `?view=transfers`. The Filing Cabinet lists the form by
+itself on the next build. Voiding a transfer: put `void` in its Status
+cell and rebuild, as with any row.
+
 ## The role checker (self-service hookup receipts)
 
 Built mid-semester 2026 (`role_check.gs`): a question-free **Check My
